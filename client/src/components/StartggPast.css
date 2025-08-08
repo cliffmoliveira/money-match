@@ -1,0 +1,36 @@
+.startgg-past-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: 'Poppins', sans-serif;
+  background-color: #f9f9f9;
+  border-radius: 10px;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.tournament-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.tournament-table th,
+.tournament-table td {
+  text-align: center;
+  padding: 10px;
+  border: 1px solid #ddd;
+}
+
+.tournament-table th {
+  background-color: #004d00;
+  color: white;
+  font-weight: bold;
+}
+
+.tournament-table tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
+.tournament-table tr:hover {
+  background-color: #eaf2f8;
+}

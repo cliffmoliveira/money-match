@@ -1,0 +1,16 @@
+HTTP/1.1 200 OK
+Cache-Control: private, max-age=0, no-cache
+Transfer-Encoding: chunked
+Content-Type: application/json
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Credentials: true
+Access-Control-Allow-Headers: *, Content-Type, Authorization
+Access-Control-Allow-Methods: POST, GET, OPTIONS
+Required-Client-Version: 20
+Strict-Transport-Security: max-age=15724800; includeSubDomains
+X-Cache: CONFIG_NOCACHE
+Accept-CH: Sec-CH-UA-Arch, Sec-CH-UA-Bitness, Sec-CH-UA-Full-Version, Sec-CH-UA-Full-Version-List, Sec-CH-UA-Mobile, Sec-CH-UA-Model, Sec-CH-UA-Platform, Sec-CH-UA-Platform-Version
+X-MSEdge-Ref: Ref A: 1DFB3BB8D06E4E1EBB23C0184A8A3D30 Ref B: YTO01EDGE0719 Ref C: 2025-01-27T00:12:16Z
+Date: Mon, 27 Jan 2025 00:12:15 GMT
+
+{"errors":[{"message":"GQL request error: Expected a POST body, but received none."}],"actionRecords":[]}

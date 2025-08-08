@@ -1,0 +1,240 @@
+/* FutureTournaments.css */
+
+/* Container Styling */
+.future-tournaments-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: 'Arial', sans-serif;
+  background-color: #f9f9f9;
+  border-radius: 10px;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Header Styling */
+h1 {
+  text-align: center;
+  color: #2c3e50;
+  font-size: 32px;
+  margin-bottom: 20px;
+}
+
+/* Tournament Section */
+.tournament {
+  background-color: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.tournament h2 {
+  color: #4caf50;
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+.tournament p {
+  color: #34495e;
+  font-size: 16px;
+  margin: 5px 0;
+}
+
+/* Game Section Styling */
+.game-section {
+  margin-top: 20px;
+  margin-bottom: 20px;
+  padding: 15px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.game-section h3 {
+  font-size: 20px;
+  margin-bottom: 10px;
+  color: #2c3e50;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* Tournament Table */
+.tournament-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+}
+
+.tournament-table th,
+.tournament-table td {
+  text-align: center;
+  padding: 10px;
+  border: 1px solid #ddd;
+  font-size: 14px;
+}
+
+.tournament-table th {
+  background-color: #004d00;
+  color: white;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.tournament-table tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
+.tournament-table tr:hover {
+  background-color: #eaf2f8;
+}
+
+/* Input Fields for Bet Amounts */
+.tournament-table input[type="number"] {
+  width: 80px;
+  padding: 5px;
+  text-align: right;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+/* Submit Bet Button */
+.submit-bet-button {
+  display: inline-block;
+  margin-top: 15px;
+  padding: 10px 20px;
+  background-color: #4caf50;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  text-transform: uppercase;
+  font-weight: bold;
+}
+
+.submit-bet-button:hover {
+  background-color: #45a049;
+}
+
+/* Error Message */
+.error-message {
+  text-align: center;
+  color: #e74c3c;
+  font-size: 16px;
+  margin-top: 20px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .future-tournaments-container {
+    padding: 15px;
+  }
+
+  h1 {
+    font-size: 24px;
+  }
+
+  .tournament {
+    padding: 15px;
+  }
+
+  .tournament h2 {
+    font-size: 20px;
+  }
+
+  .game-section {
+    padding: 10px;
+  }
+
+  .game-section h3 {
+    font-size: 18px;
+  }
+
+  .tournament-table th,
+  .tournament-table td {
+    font-size: 12px;
+    padding: 8px;
+  }
+
+  .tournament-table input[type="number"] {
+    width: 60px;
+    font-size: 12px;
+  }
+
+  .submit-bet-button {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+/* React-Select Dropdown Styling */
+.react-select__control {
+  font-family: 'Poppins', sans-serif;
+  font-size: 14px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  box-shadow: none;
+}
+
+.react-select__control:hover {
+  border-color: #004d00;
+}
+
+.react-select__control--is-focused {
+  border-color: #004d00;
+  box-shadow: 0 0 0 2px #e6ffe6;
+}
+
+/* Dropdown Menu */
+.react-select__menu {
+  font-family: 'Poppins', sans-serif;
+  font-size: 14px;
+  z-index: 9999;
+}
+
+.react-select__menu-list {
+  padding: 0;
+}
+
+.react-select__option {
+  font-family: 'Poppins', sans-serif;
+  font-size: 14px;
+  padding: 8px 12px;
+  cursor: pointer;
+  background-color: #fff;
+  color: #333;
+}
+
+.react-select__option--is-focused {
+  background-color: #f0f8ff;
+  color: #004d00;
+}
+
+.react-select__option--is-selected {
+  background-color: #004d00;
+  color: #fff;
+}
+
+/* Placeholder Text */
+.react-select__placeholder {
+  font-family: 'Poppins', sans-serif;
+  font-size: 14px;
+  color: #999;
+}
+
+/* Single Selected Value */
+.react-select__single-value {
+  font-family: 'Poppins', sans-serif;
+  font-size: 14px;
+  color: #333;
+}
+
+/* Dropdown Indicator */
+.react-select__dropdown-indicator {
+  color: #004d00;
+}
+
+.react-select__dropdown-indicator:hover {
+  color: #002d00;
+}
