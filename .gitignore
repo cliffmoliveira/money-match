@@ -16,9 +16,13 @@ dist/
 # Logs
 logs/
 *.log
+*.err
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Backfill checkpoint cache
+scripts/.backfill-state.json
 
 # Database backups or local dev DBs
 *.sqlite

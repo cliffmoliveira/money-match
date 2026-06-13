@@ -5,7 +5,9 @@ const cors = require('cors');
 const db = require('./db/db'); // Your database connection module
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const morgan = require('morgan');
 const secretKey = 'your_secret_key'; // Use an environment variable in production
+const { syncTournamentBySlug, syncRecent } = require('./syncStartgg');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -13,6 +15,7 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json()); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
+app.use(morgan('dev'));
 app.use(express.static(path.join(__dirname, 'client', 'build')));
 
 // API Routes 
@@ -107,10 +110,11 @@ app.get('/api/past-results', async (req, res) => {
     const query = `
       SELECT 
         matches.id, 
-        tournaments.name AS tournament, 
-        tournaments.date, 
-        tournaments.city AS city, 
-        tournaments.country AS country, 
+        tournaments.name AS tournament,
+        tournaments.date,
+        tournaments.city AS city,
+        tournaments.country AS country,
+        tournaments.logo_url AS logoUrl,
         games.name AS game, 
         player1.name AS winner, 
         player2.name AS loser, 
@@ -121,7 +125,7 @@ app.get('/api/past-results', async (req, res) => {
       JOIN players AS player2 ON matches.loser_id = player2.id
       JOIN tournaments ON matches.tournament_id = tournaments.id
       JOIN games ON matches.game_id = games.id
-      WHERE tournaments.date < DATE('now')
+      WHERE tournaments.date <= DATE('now', '+30 days')
       ORDER BY tournaments.date DESC;
     `;
     const results = await db.allAsync(query);
@@ -138,55 +142,60 @@ app.get('/api/tournaments', async (req, res) => {
   try {
     const query = `
       SELECT 
-        t.id AS tournament_id,
-        t.name AS tournament_name,
-        t.date,
-        t.city,
-        t.country,
-        g.id AS game_id,
-        g.name AS game_name,
-        p.id AS player_id,
-        p.name AS player_name
-      FROM tournaments t
-      LEFT JOIN players_games_tournaments pgt ON t.id = pgt.tournament_id
-      LEFT JOIN games g ON pgt.game_id = g.id
-      LEFT JOIN players p ON pgt.player_id = p.id
-      WHERE t.date >= DATE('now')
-      ORDER BY t.date ASC;
+        id,
+        name,
+        date,
+        city,
+        country
+      FROM tournaments
+      WHERE date >= DATE('now')
+      ORDER BY date ASC;
     `;
-    const rows = await db.allAsync(query);
+    const tournaments = await db.allAsync(query);
+    
+    // Format the response to match the expected structure
+    const formattedTournaments = tournaments.map(t => ({
+      id: t.id,
+      name: t.name,
+      date: t.date,
+      location: { city: t.city, country: t.country }
+    }));
 
-    const tournaments = rows.reduce((acc, row) => {
-      const tournament = acc[row.tournament_id] || {
-        id: row.tournament_id,
-        name: row.tournament_name,
-        date: row.date,
-        location: { city: row.city, country: row.country },
-        games: {},
-      };
-
-      if (row.game_id && row.game_name) {
-        const game = tournament.games[row.game_id] || {
-          id: row.game_id,
-          name: row.game_name,
-          players: [],
-        };
-
-        if (row.player_id && row.player_name) {
-          game.players.push({ id: row.player_id, name: row.player_name });
-        }
-
-        tournament.games[row.game_id] = game;
-      }
-
-      acc[row.tournament_id] = tournament;
-      return acc;
-    }, {});
-
-    res.json(Object.values(tournaments));
+    res.json(formattedTournaments);
   } catch (err) {
     console.error('Error fetching tournaments:', err.message);
     res.status(500).json({ error: 'Failed to fetch tournaments.' });
+  }
+});
+
+app.get('/api/tournaments/all', async (req, res) => {
+  try {
+    const tournaments = await db.allAsync('SELECT id, name FROM tournaments');
+    res.json(tournaments);
+  } catch (err) {
+    console.error('Error fetching all tournaments:', err.message);
+    res.status(500).json({ error: 'Failed to fetch all tournaments.' });
+  }
+});
+
+
+app.get('/api/games', async (req, res) => {
+  try {
+    const games = await db.allAsync('SELECT id, name FROM games');
+    res.json(games);
+  } catch (err) {
+    console.error('Error fetching games:', err);
+    res.status(500).json({ error: 'Failed to fetch games.' });
+  }
+});
+
+app.get('/api/players', async (req, res) => {
+  try {
+    const players = await db.allAsync('SELECT id, name FROM players');
+    res.json(players);
+  } catch (err) {
+    console.error('Error fetching players:', err);
+    res.status(500).json({ error: 'Failed to fetch players.' });
   }
 });
 
@@ -217,17 +226,6 @@ app.get('/api/tournament/:tournamentId/games', async (req, res) => {
   }
 });
 
-
-// Endpoint: Get games
-app.get('/api/games', async (req, res) => {
-  try {
-    const games = await db.allAsync('SELECT * FROM games');
-    res.json(Object.values(games));
-  } catch (err) {
-    console.error('Error fetching games:', err);
-    res.status(500).json({ error: 'Failed to fetch games.' });
-  }
-});
 
 app.get('/api/game/totals', async (req, res) => {
   const { tournamentId, gameId } = req.query;
@@ -269,13 +267,19 @@ app.get('/api/bets', async (req, res) => {
   try {
     const bets = await db.allAsync(
       `SELECT 
-          tournament_id, 
-          game_id, 
-          player_id, 
-          amount, 
-          locked_odds 
-       FROM bets 
-       WHERE user_id = ?`,
+          b.tournament_id, 
+          b.game_id, 
+          b.player_id, 
+          b.amount, 
+          b.locked_odds,
+          CASE
+            WHEN m.winner_id IS NULL THEN NULL -- Pending
+            WHEN m.winner_id = b.player_id THEN 1 -- Win
+            ELSE 0 -- Loss
+          END AS is_winner
+       FROM bets b
+       LEFT JOIN matches m ON b.tournament_id = m.tournament_id AND b.game_id = m.game_id
+       WHERE b.user_id = ?`,
       [userId]
     );
 
@@ -446,6 +450,65 @@ app.post('/api/bets/outcome', async (req, res) => {
   }
 });
 
+// Sync endpoints
+app.post('/api/sync/startgg/tournament', async (req, res) => {
+  try {
+    const { slug } = req.body || {};
+    if (!slug) return res.status(400).json({ error: 'Missing slug' });
+    const token = req.headers['x-startgg-token'];
+    const result = await syncTournamentBySlug(slug, token);
+    res.json(result);
+  } catch (err) {
+    console.error('StartGG sync error:', err.message);
+    res.status(500).json({ error: 'Failed to sync tournament', details: err.message });
+  }
+});
+
+app.post('/api/sync/startgg/recent', async (req, res) => {
+  try {
+    const { afterDate, beforeDate, perPage, maxPages } = req.body || {};
+    if (!afterDate || !beforeDate) {
+      return res.status(400).json({ error: 'Missing afterDate or beforeDate (unix timestamps)' });
+    }
+    const token = req.headers['x-startgg-token'];
+    const result = await syncRecent({ after: afterDate, before: beforeDate, perPage, maxPages }, token);
+    res.json(result);
+  } catch (err) {
+    console.error('StartGG sync recent error:', err.message);
+    res.status(500).json({ error: 'Failed to sync recent', details: err.message });
+  }
+});
+
+
+// Simple daily scheduler to sync upcoming tournaments from Start.gg
+function scheduleStartGgUpcomingSync() {
+  const token = process.env.STARTGG_API_TOKEN || null;
+  if (!token) {
+    console.warn('STARTGG_API_TOKEN not set; Start.gg auto-sync is disabled.');
+    return;
+  }
+  const runSync = async () => {
+    try {
+      const nowSec = Math.floor(Date.now() / 1000);
+      const ninetyDaysSec = 90 * 24 * 60 * 60;
+      const result = await syncRecent({
+        after: nowSec,
+        before: nowSec + ninetyDaysSec,
+        perPage: 10,
+        maxPages: 3,
+      }, token);
+      console.log('Start.gg upcoming sync result:', result);
+    } catch (err) {
+      console.error('Start.gg upcoming sync failed:', err.message);
+    }
+  };
+  // Run once on server start, then every 24 hours
+  runSync();
+  setInterval(runSync, 24 * 60 * 60 * 1000);
+}
+
+// Kick off scheduler
+scheduleStartGgUpcomingSync();
 
 // Catch-all route for React
 app.get('*', (req, res) => {
