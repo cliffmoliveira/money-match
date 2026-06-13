@@ -19,6 +19,8 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 const db = require('../db/db');
 const { startgg } = require('../startggClient');
+// Reuse the backfill's main-event Grand Finals recorder for the recent-results sync.
+const { processTournament: recordPastResults } = require('./backfill-results');
 
 // Tracked fighting games (start.gg videogame ids), same set as the backfill.
 const GAME_IDS = [43868, 49783, 33945, 48599, 1386, 1, 36963, 287, 48548, 73221];
@@ -29,7 +31,9 @@ const GAME_IDS = [43868, 49783, 33945, 48599, 1386, 1, 36963, 287, 48548, 73221]
 // events like "Pre-Evo Warmup" or "Evolution Crash Course" don't.
 const BRANDS = [
   { search: 'Evo',                     re: /^evo\b/i },
-  { search: 'CEO',                     re: /^ceo\b/i },
+  // Require a year so the flagship "CEO 2026" matches but "CEO: <subtitle>"
+  // online series don't. (CEOtaku has its own entry below.)
+  { search: 'CEO',                     re: /^ceo\s+\d{4}\b/i },
   { search: 'Combo Breaker',           re: /^combo\s+breaker\b/i },
   { search: 'Frosty Faustings',        re: /^frosty\s+faustings\b/i },
   { search: 'DreamHack',               re: /^dreamhack\b/i },
@@ -40,7 +44,9 @@ const BRANDS = [
   { search: 'VSFighting',              re: /^vs\s*fighting\b/i },
   { search: 'East Coast Throwdown',    re: /^east\s+coast\s+throwdown\b/i },
   { search: 'Texas Showdown',          re: /^texas\s+showdown\b/i },
-  { search: 'Genesis',                 re: /^genesis\b/i },
+  // Require a number/roman-numeral/X after "Genesis" to match the Smash major
+  // (Genesis X, Genesis 9) and exclude the "Genesis Cup" online Tekken series.
+  { search: 'Genesis',                 re: /^genesis\s+(x\b|\d|[ivxlcdm]+\b)/i },
   { search: 'Super Smash Con',         re: /^super\s+smash\s+con\b/i },
   { search: 'Battle Arena Melbourne',  re: /^battle\s+arena\s+melbourne\b/i },
   { search: 'Tekken World Tour',       re: /^tekken\s+world\s+tour\b/i },
@@ -53,11 +59,13 @@ const normalizeName = (name) => name.trim().replace(/^the\s+/i, '');
 const REQUEST_GAP_MS = 900;
 
 function parseArgs(argv) {
-  const args = { months: 12, top: 8, dryRun: false };
+  const args = { months: 12, top: 8, dryRun: false, results: false, days: 30 };
   for (let i = 2; i < argv.length; i++) {
     if (argv[i] === '--months') args.months = Number(argv[++i]);
     else if (argv[i] === '--top') args.top = Number(argv[++i]);
+    else if (argv[i] === '--days') args.days = Number(argv[++i]);
     else if (argv[i] === '--dry-run') args.dryRun = true;
+    else if (argv[i] === '--results') args.results = true;
     else throw new Error(`Unknown argument: ${argv[i]}`);
   }
   return args;
@@ -87,6 +95,14 @@ query UpcomingBrand($name: String!, $after: Timestamp!, $before: Timestamp!, $id
   tournaments(query: { perPage: 25, page: 1, sortBy: "startAt asc",
     filter: { name: $name, upcoming: true, afterDate: $after, beforeDate: $before, videogameIds: $ids } }) {
     nodes { id name slug startAt city countryCode images { type url } }
+  }
+}`;
+
+const PAST_BRAND_SEARCH = `
+query RecentBrand($name: String!, $after: Timestamp!, $before: Timestamp!, $ids: [ID]) {
+  tournaments(query: { perPage: 25, page: 1, sortBy: "startAt desc",
+    filter: { name: $name, past: true, afterDate: $after, beforeDate: $before, videogameIds: $ids } }) {
+    nodes { slug name }
   }
 }`;
 
@@ -203,17 +219,12 @@ async function processTournament(slug, args) {
   return { events: eventCount, players: playerCount };
 }
 
-async function main() {
-  const args = parseArgs(process.argv);
-  const now = Math.floor(Date.now() / 1000);
-  const before = now + args.months * 30 * 86400;
-  console.log(`Syncing upcoming majors (next ${args.months} months, top ${args.top} seeds)${args.dryRun ? ' [DRY RUN]' : ''}`);
-
-  // Collect unique tournament slugs across all brand searches.
+// Find unique tournament slugs matching the curated brands in a date window.
+async function findBrandTournaments(query, after, before) {
   const seen = new Map(); // slug -> name
   for (const brand of BRANDS) {
     try {
-      const data = await gql(BRAND_SEARCH, { name: brand.search, after: now, before, ids: GAME_IDS });
+      const data = await gql(query, { name: brand.search, after, before, ids: GAME_IDS });
       for (const t of data?.tournaments?.nodes || []) {
         if (!t.slug || seen.has(t.slug)) continue;
         if (!brand.re.test(normalizeName(t.name))) continue;
@@ -223,27 +234,67 @@ async function main() {
       console.error(`Brand "${brand.search}" search failed: ${err.message}`);
     }
   }
-  console.log(`Found ${seen.size} upcoming major tournament(s).\n`);
-
-  let totalEvents = 0;
-  let totalPlayers = 0;
-  let withData = 0;
-  for (const [slug, name] of seen) {
-    try {
-      const { events, players } = await processTournament(slug, args);
-      if (events > 0) {
-        withData++;
-        totalEvents += events;
-        totalPlayers += players;
-        console.log(`${name} [${slug}]: ${events} game(s), ${players} entrant(s)`);
-      }
-    } catch (err) {
-      console.error(`Failed on ${slug}: ${err.message}`);
-    }
-  }
-
-  console.log(`\nDone. ${withData} tournaments, ${totalEvents} games, ${totalPlayers} entrants.`);
-  process.exit(0);
+  return seen;
 }
 
-main().catch((err) => { console.error(`\nSync stopped: ${err.message}`); process.exit(1); });
+// Future page: upcoming major tournaments + their top seeds.
+async function syncUpcoming({ months = 12, top = 8, dryRun = false } = {}) {
+  const now = Math.floor(Date.now() / 1000);
+  const before = now + months * 30 * 86400;
+  console.log(`[sync-upcoming] next ${months} months, top ${top} seeds${dryRun ? ' [DRY RUN]' : ''}`);
+
+  const seen = await findBrandTournaments(BRAND_SEARCH, now, before);
+  console.log(`[sync-upcoming] found ${seen.size} upcoming major tournament(s).`);
+
+  let totalEvents = 0, totalPlayers = 0, withData = 0;
+  for (const [slug, name] of seen) {
+    try {
+      const { events, players } = await processTournament(slug, { top, dryRun });
+      if (events > 0) {
+        withData++; totalEvents += events; totalPlayers += players;
+        console.log(`  ${name} [${slug}]: ${events} game(s), ${players} entrant(s)`);
+      }
+    } catch (err) {
+      console.error(`  Failed on ${slug}: ${err.message}`);
+    }
+  }
+  console.log(`[sync-upcoming] done: ${withData} tournaments, ${totalEvents} games, ${totalPlayers} entrants.`);
+  return { tournaments: withData, events: totalEvents, players: totalPlayers };
+}
+
+// Past page: record recently-completed major Grand Finals winners.
+async function syncRecentResults({ days = 30, minEntrants = 0 } = {}) {
+  const now = Math.floor(Date.now() / 1000);
+  const after = now - days * 86400;
+  console.log(`[sync-results] majors completed in the last ${days} days`);
+
+  const seen = await findBrandTournaments(PAST_BRAND_SEARCH, after, now);
+  console.log(`[sync-results] found ${seen.size} recently-completed major tournament(s).`);
+
+  const gameIdSet = new Set(GAME_IDS);
+  let totalMatches = 0, withData = 0;
+  for (const [slug, name] of seen) {
+    try {
+      const recorded = await recordPastResults(slug, gameIdSet, { minEntrants, dryRun: false });
+      if (recorded > 0) {
+        withData++; totalMatches += recorded;
+        console.log(`  ${name} [${slug}]: ${recorded} result(s)`);
+      }
+    } catch (err) {
+      console.error(`  Failed on ${slug}: ${err.message}`);
+    }
+  }
+  console.log(`[sync-results] done: ${totalMatches} results across ${withData} tournaments.`);
+  return { tournaments: withData, matches: totalMatches };
+}
+
+module.exports = { syncUpcoming, syncRecentResults };
+
+// CLI: `node scripts/sync-upcoming.js [--months N] [--top N] [--dry-run] [--results]`
+if (require.main === module) {
+  const args = parseArgs(process.argv);
+  const run = args.results
+    ? syncRecentResults({ days: args.days })
+    : syncUpcoming({ months: args.months, top: args.top, dryRun: args.dryRun });
+  run.then(() => process.exit(0)).catch((err) => { console.error(`\nSync stopped: ${err.message}`); process.exit(1); });
+}

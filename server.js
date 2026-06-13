@@ -8,6 +8,7 @@ const jwt = require('jsonwebtoken');
 const morgan = require('morgan');
 const secretKey = 'your_secret_key'; // Use an environment variable in production
 const { syncTournamentBySlug, syncRecent } = require('./syncStartgg');
+const { syncUpcoming, syncRecentResults } = require('./scripts/sync-upcoming');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -482,8 +483,10 @@ app.post('/api/sync/startgg/recent', async (req, res) => {
 });
 
 
-// Simple daily scheduler to sync upcoming tournaments from Start.gg
-function scheduleStartGgUpcomingSync() {
+// Daily scheduler: refresh upcoming major tournaments (+ their seeds) for the
+// Future Tournaments page, and record recently-completed major results for the
+// Past Results page. Both are curated to major brands, so each run is light.
+function scheduleStartGgSync() {
   const token = process.env.STARTGG_API_TOKEN || null;
   if (!token) {
     console.warn('STARTGG_API_TOKEN not set; Start.gg auto-sync is disabled.');
@@ -491,26 +494,23 @@ function scheduleStartGgUpcomingSync() {
   }
   const runSync = async () => {
     try {
-      const nowSec = Math.floor(Date.now() / 1000);
-      const ninetyDaysSec = 90 * 24 * 60 * 60;
-      const result = await syncRecent({
-        after: nowSec,
-        before: nowSec + ninetyDaysSec,
-        perPage: 10,
-        maxPages: 3,
-      }, token);
-      console.log('Start.gg upcoming sync result:', result);
+      await syncUpcoming({ months: 12, top: 8 });
     } catch (err) {
       console.error('Start.gg upcoming sync failed:', err.message);
     }
+    try {
+      await syncRecentResults({ days: 30 });
+    } catch (err) {
+      console.error('Start.gg recent-results sync failed:', err.message);
+    }
   };
-  // Run once on server start, then every 24 hours
+  // Run once on server start, then every 24 hours.
   runSync();
   setInterval(runSync, 24 * 60 * 60 * 1000);
 }
 
 // Kick off scheduler
-scheduleStartGgUpcomingSync();
+scheduleStartGgSync();
 
 // Catch-all route for React
 app.get('*', (req, res) => {

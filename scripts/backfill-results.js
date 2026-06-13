@@ -396,7 +396,13 @@ async function main() {
   process.exit(0);
 }
 
-main().catch((err) => {
-  console.error(`\nBackfill stopped: ${err.message}`);
-  process.exit(1);
-});
+// Run the full historical backfill only when invoked directly; when required
+// as a module (e.g. by the daily auto-sync) just expose the reusable pieces.
+if (require.main === module) {
+  main().catch((err) => {
+    console.error(`\nBackfill stopped: ${err.message}`);
+    process.exit(1);
+  });
+}
+
+module.exports = { processTournament };
