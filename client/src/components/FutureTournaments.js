@@ -1,16 +1,101 @@
 import React, { useEffect, useState } from 'react';
 import './FutureTournaments.css';
+import { getGameAlt, getGameLogoSources, getGameLogoStyle } from '../utils/gameLogos';
+import { getTournamentLogoSources, getTournamentAlt, getTournamentLogoStyle } from '../utils/tournamentLogos';
 
 const FutureTournaments = () => {
   const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [bets, setBets] = useState({}); // Tracks selected players for bets
   const [betAmounts, setBetAmounts] = useState({}); // Tracks bet amounts for each player
   const [tournamentGames, setTournamentGames] = useState({});
   const [playerStats, setPlayerStats] = useState({}); // Tracks live odds and totals dynamically
 
+  // Filters
+  const [filterTournament, setFilterTournament] = useState('');
+  const [filterGame, setFilterGame] = useState('');
+  const [filterCountry, setFilterCountry] = useState('');
+  const [filterYear, setFilterYear] = useState('');
+
   const userId = localStorage.getItem('userId');
+
+  const GameTitle = ({ name, height = 28 }) => {
+    const [error, setError] = useState(false);
+    const [src, setSrc] = useState(null);
+    const { avif, webp, png, jpg, jpeg } = getGameLogoSources(name || '');
+
+    useEffect(() => {
+      setError(false);
+      const candidates = [avif, webp, png, jpg, jpeg].filter(Boolean);
+      setSrc(candidates[0] || null);
+    }, [avif, webp, png, jpg, jpeg]);
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[GameTitle] name=', name, { avif, webp, png, jpg, jpeg, chosen: src });
+    }
+
+    const handleError = () => {
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('[GameTitle] failed to load', src, 'for', name);
+      }
+      const candidates = [avif, webp, png, jpg, jpeg].filter(Boolean);
+      const currentIndex = candidates.indexOf(src);
+      if (currentIndex + 1 < candidates.length) {
+        setSrc(candidates[currentIndex + 1]);
+      } else {
+        setError(true);
+      }
+    };
+
+    if (!name) return null;
+
+    if (error || !src) {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', minHeight: `${height}px` }}>
+          <h3 style={{ margin: 0 }}>{name}</h3>
+        </div>
+      );
+    }
+
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', minHeight: `${height}px` }}>
+        {!error && src && (
+          <img
+            src={src}
+            alt={getGameAlt(name)}
+            style={getGameLogoStyle(name, height)}
+            onError={handleError}
+          />
+        )}
+        {error && (
+          <span style={{ color: 'var(--brand)', fontWeight: 600 }}>{name}</span>
+        )}
+      </div>
+    );
+  };
+
+  const TournamentLogo = ({ name, logoUrl, height = 24 }) => {
+    const [index, setIndex] = useState(0);
+    if (!name) return null;
+
+    const { avif, webp, png, jpg, jpeg } = getTournamentLogoSources(name);
+    const candidates = [logoUrl, avif, webp, png, jpg, jpeg].filter(Boolean);
+    const src = candidates[index];
+
+    if (!src) {
+      return <span className="tournament-text">{name}</span>;
+    }
+
+    return (
+      <img
+        src={src}
+        alt={getTournamentAlt(name)}
+        style={getTournamentLogoStyle(name, height)}
+        title={name}
+        onError={() => setIndex((i) => i + 1)}
+      />
+    );
+  };
 
   useEffect(() => {
     const fetchTournamentsAndBets = async () => {
@@ -27,22 +112,29 @@ const FutureTournaments = () => {
         const tournamentsData = await tournamentsResponse.json();
         const betsData = await betsResponse.json();
   
+        // Client-side guard: filter past tournaments and sort by nearest date
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Normalize today to the start of the day
+        const upcoming = (tournamentsData || [])
+          .filter(t => {
+            const d = new Date(t.date);
+            return !isNaN(d) && d >= today;
+          })
+          .sort((a, b) => new Date(a.date) - new Date(b.date));
+  
         // Map bets to unique keys using tournamentId, gameId, and playerId
-        const formattedBets = {};
         const formattedBetAmounts = {};
   
         betsData.forEach((bet) => {
           const key = `${bet.tournament_id}_${bet.game_id}_${bet.player_id}`;
-          formattedBets[key] = bet.player_id;
           formattedBetAmounts[key] = bet.amount || '';
         });
   
-        setTournaments(tournamentsData);
-        setBets(formattedBets);
+        setTournaments(upcoming);
         setBetAmounts(formattedBetAmounts);
   
         // Fetch games for all tournaments
-        const gameRequests = tournamentsData.map(async (tournament) => {
+        const gameRequests = upcoming.map(async (tournament) => {
           const response = await fetch(`/api/tournament/${tournament.id}/games`);
           if (response.ok) {
             const gamesData = await response.json();
@@ -88,16 +180,6 @@ const FutureTournaments = () => {
     fetchTournamentsAndBets();
   }, [userId]);
   
-
-  // 📍 **Debugging State Changes**
-useEffect(() => {
-  console.log('Tournaments:', tournaments);
-  console.log('Tournament Games:', tournamentGames);
-  console.log('Player Stats:', playerStats);
-}, [tournaments, tournamentGames, playerStats]);
-
-  
-
   const calculatePayout = (amount, live_odds) => {
     return (amount * live_odds).toFixed(2);
   };
@@ -105,14 +187,6 @@ useEffect(() => {
   const handleBetChange = async (tournamentId, gameId, playerId) => {
     const key = `${tournamentId}_${gameId}_${playerId}`;
     const amount = betAmounts[key] || 0;
-
-    console.log('Sending Bet Payload:', {
-      userId,
-      tournamentId,
-      gameId,
-      playerId,
-      amount,
-    });
 
     try {
       const response = await fetch('/api/bets', {
@@ -131,8 +205,6 @@ useEffect(() => {
         const errorData = await response.json();
         throw new Error(`Failed to save bet: ${errorData.error || response.statusText}`);
       }
-
-      console.log('Bet saved successfully');
 
       // Fetch updated live odds
       const updatedStatsResponse = await fetch(`/api/game/${tournamentId}/${gameId}/players`);
@@ -160,23 +232,134 @@ useEffect(() => {
   if (loading) return <p>Loading future tournaments...</p>;
   if (error) return <p className="error-message">{error}</p>;
 
+  // Build filter option sets
+  const years = Array.from(new Set(
+    tournaments.map(t => new Date(t.date).getFullYear()).filter(y => !isNaN(y))
+  )).sort((a, b) => a - b);
+
+  const countries = Array.from(new Set(
+    tournaments.map(t => t.location?.country).filter(Boolean)
+  )).sort((a, b) => a.localeCompare(b));
+
+  const allGames = Array.from(new Set(
+    Object.values(tournamentGames).flat().map(g => g.game_name)
+  )).sort((a, b) => a.localeCompare(b));
+
+  const tournamentNames = Array.from(new Set(
+    tournaments.map(t => t.name)
+  )).sort((a, b) => a.localeCompare(b));
+
+  // Apply filters
+  const filteredTournaments = tournaments.filter(t => {
+    const tournamentMatch = !filterTournament || t.name === filterTournament;
+    const yearMatch = !filterYear || new Date(t.date).getFullYear().toString() === filterYear;
+    const countryMatch = !filterCountry || (t.location?.country === filterCountry);
+    const gameMatch = !filterGame || (tournamentGames[t.id]?.some(g => g.game_name === filterGame));
+    return tournamentMatch && yearMatch && countryMatch && gameMatch;
+  });
+
+  const clearFilters = () => {
+    setFilterTournament('');
+    setFilterGame('');
+    setFilterCountry('');
+    setFilterYear('');
+  };
+
   return (
     <div className="future-tournaments-container">
-      <h1>Upcoming Tournaments</h1>
-      {tournaments.map((tournament) => (
+      {/* Title intentionally removed; navbar will highlight current page */}
+      <div className="filter-section">
+        <div className="filter-group">
+          <label htmlFor="ft-tournament">Tournament</label>
+          <select
+            id="ft-tournament"
+            className="filter-select"
+            value={filterTournament}
+            onChange={(e) => setFilterTournament(e.target.value)}
+          >
+            <option value="">All</option>
+            {tournamentNames.map(n => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </select>
+        </div>
+        <div className="filter-group">
+          <label htmlFor="ft-year">Year</label>
+          <select
+            id="ft-year"
+            className="filter-select"
+            value={filterYear}
+            onChange={(e) => setFilterYear(e.target.value)}
+          >
+            <option value="">All</option>
+            {years.map(y => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+        </div>
+        <div className="filter-group">
+          <label htmlFor="ft-country">Country</label>
+          <select
+            id="ft-country"
+            className="filter-select"
+            value={filterCountry}
+            onChange={(e) => setFilterCountry(e.target.value)}
+          >
+            <option value="">All</option>
+            {countries.map(c => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        </div>
+        <div className="filter-group">
+          <label htmlFor="ft-game">Game</label>
+          <select
+            id="ft-game"
+            className="filter-select"
+            value={filterGame}
+            onChange={(e) => setFilterGame(e.target.value)}
+          >
+            <option value="">All</option>
+            {allGames.map(g => (
+              <option key={g} value={g}>{g}</option>
+            ))}
+          </select>
+        </div>
+        <button className="clear-filters" onClick={clearFilters}>Clear Filters</button>
+        <div className="results-count">Showing {filteredTournaments.length} of {tournaments.length}</div>
+      </div>
+      {tournaments.length === 0 && (
+        <p>No upcoming tournaments available right now.</p>
+      )}
+      {filteredTournaments.map((tournament) => (
         <div key={tournament.id} className="tournament">
-          <h2>{tournament.name}</h2>
-          <p>
-            <strong>Date:</strong> {new Date(tournament.date).toLocaleDateString()}
-          </p>
-          <p>
-            <strong>Location:</strong> {tournament.location.city}, {tournament.location.country}
-          </p>
+          <div className="tournament-header">
+            <h2>
+              <TournamentLogo name={tournament.name} logoUrl={tournament.logoUrl} height={48} />
+            </h2>
+            <div className="tournament-details">
+              <p>
+                <strong>Date:</strong> {new Date(tournament.date).toLocaleDateString()}
+              </p>
+              <p>
+                <strong>Location:</strong> {tournament.location.city}, {tournament.location.country}
+              </p>
+            </div>
+          </div>
   
-          {tournamentGames[tournament.id]?.length > 0 ? (
-            tournamentGames[tournament.id].map((game) => (
+          {(() => {
+            const gamesForTournament = tournamentGames[tournament.id] || [];
+            const gamesToShow = filterGame
+              ? gamesForTournament.filter(g => g.game_name === filterGame)
+              : gamesForTournament;
+            if (gamesToShow.length === 0) {
+              return <p>No games available for this tournament.</p>;
+            }
+            return gamesToShow.map((game) => (
               <div key={game.game_id} className="game-section">
-                <h3>{game.game_name}</h3>
+                <h3 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <GameTitle name={game.game_name} height={96} />
+                </h3>
                 <table className="tournament-table">
                   <thead>
                     <tr>
@@ -227,10 +410,8 @@ useEffect(() => {
                   </tbody>
                 </table>
               </div>
-            ))
-          ) : (
-            <p>No games available for this tournament.</p>
-          )}
+            ));
+          })()}
         </div>
       ))}
     </div>

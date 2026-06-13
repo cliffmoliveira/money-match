@@ -141,23 +141,25 @@ app.get('/api/past-results', async (req, res) => {
 app.get('/api/tournaments', async (req, res) => {
   try {
     const query = `
-      SELECT 
+      SELECT
         id,
         name,
         date,
         city,
-        country
+        country,
+        logo_url AS logoUrl
       FROM tournaments
       WHERE date >= DATE('now')
       ORDER BY date ASC;
     `;
     const tournaments = await db.allAsync(query);
-    
+
     // Format the response to match the expected structure
     const formattedTournaments = tournaments.map(t => ({
       id: t.id,
       name: t.name,
       date: t.date,
+      logoUrl: t.logoUrl,
       location: { city: t.city, country: t.country }
     }));
 
