@@ -228,7 +228,7 @@ const PastResults = () => {
                 <tr key={result.id} className="result-row">
                   <td className="tournament-name">
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <TournamentNameOrLogo name={result.tournament} logoUrl={result.logoUrl} height={24} />
+                      <TournamentNameOrLogo name={result.tournament} logoUrl={result.logoUrl} height={64} />
                     </div>
                   </td>
                   <td className="location">

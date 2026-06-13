@@ -7,6 +7,8 @@ export const gameSlugMap = {
   'Guilty Gear Strive': 'guilty-gear-strive',
   'Dragon Ball FighterZ': 'dragon-ball-fighterz',
   'Mortal Kombat 1': 'mortal-kombat-1',
+  'The King of Fighters XV': 'king-of-fighters-xv',
+  'King of Fighters XV': 'king-of-fighters-xv', // Alias
   'Fatal Fury: City of the Wolves': 'fatal-fury-city-of-the-wolves',
   'Granblue Fantasy Versus Rising': 'granblue-fantasy-versus-rising',
   'Under Night In-Birth 2 [Sys:celes]': 'under-night-in-birth-2-sysceles',
