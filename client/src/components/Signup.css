@@ -35,7 +35,7 @@
 .signup-container button {
   padding: 10px;
   font-size: 16px;
-  background-color: #4caf50;
+  background-color: var(--brand);
   color: white;
   border: none;
   border-radius: 4px;
@@ -43,7 +43,7 @@
 }
 
 .signup-container button:hover {
-  background-color: #45a049;
+  background-color: #003b00;
 }
 
 .signup-container .error {
@@ -54,7 +54,7 @@
 }
 
 .signup-container .success {
-  color: green;
+  color: var(--brand);
   font-size: 14px;
   text-align: center;
   margin-top: 10px;

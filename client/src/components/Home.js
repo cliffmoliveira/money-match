@@ -1,131 +1,259 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import './Home.css';
+import { getTournamentLogoSources, getTournamentAlt, getTournamentLogoStyle } from '../utils/tournamentLogos';
+import { getGameLogoSources, getGameAlt, getGameLogoStyle } from '../utils/gameLogos';
 
-const BetsList = () => {
-  const [bets, setBets] = useState([]);
+
+const Home = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const userId = localStorage.getItem('userId'); // Retrieve userId from LocalStorage
+  const [upcoming, setUpcoming] = useState([]);
+  const [allTournaments, setAllTournaments] = useState([]);
+  const [recentChampions, setRecentChampions] = useState([]);
+  const [games, setGames] = useState([]);
+  const [players, setPlayers] = useState([]);
+
+  const [bets, setBets] = useState([]);
+  const [betsLoading, setBetsLoading] = useState(false);
+
+  const userId = localStorage.getItem('userId');
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [tournamentsRes, allTournamentsRes, pastRes, gamesRes, playersRes] = await Promise.all([
+          fetch('/api/tournaments'),
+          fetch('/api/tournaments/all'),
+          fetch('/api/past-results'),
+          fetch('/api/games'),
+          fetch('/api/players')
+        ]);
+
+        if (!tournamentsRes.ok || !allTournamentsRes.ok || !pastRes.ok || !gamesRes.ok || !playersRes.ok) {
+          throw new Error('Failed to load homepage data');
+        }
+
+        const tournaments = await tournamentsRes.json();
+        const allTournamentsData = await allTournamentsRes.json();
+        const past = await pastRes.json();
+        const gamesData = await gamesRes.json();
+        const playersData = await playersRes.json();
+
+        setGames(gamesData);
+        setPlayers(playersData);
+        setAllTournaments(allTournamentsData);
+
+        const sortedUpcoming = (tournaments || []).slice().sort(
+          (a, b) => new Date(a.date) - new Date(b.date)
+        );
+        setUpcoming(sortedUpcoming);
+
+        const champions = (past?.data || [])
+          .slice()
+          .sort((a, b) => new Date(b.date) - new Date(a.date))
+          .slice(0, 6)
+          .map(r => ({
+            tournament: r.tournament,
+            date: r.date,
+            game: r.game,
+            winner: r.winner,
+            loser: r.loser,
+            score: `${r.winnerRoundsWon}-${r.loserRoundsWon}`
+          }));
+        setRecentChampions(champions);
+      } catch (err) {
+        console.error('Home load error:', err.message);
+        setError('Failed to load homepage. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   useEffect(() => {
     const fetchBets = async () => {
+      if (!userId) return;
+      setBetsLoading(true);
       try {
-        if (!userId) {
-          throw new Error('User ID not found in LocalStorage. Please log in again.');
-        }
-
-        console.log('UserId from LocalStorage:', userId); // Debug
-
         const response = await fetch(`/api/bets?userId=${userId}`);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch bets: ${response.status}`);
-        }
+        if (!response.ok) throw new Error('Failed to fetch bets');
         const betsData = await response.json();
-        console.log('Fetched Bets:', betsData);
-
-        // Fetch additional details for tournaments, games, and players
-        const [tournamentsResponse, gamesResponse, playersResponse] = await Promise.all([
-          fetch('/api/tournaments'),
-          fetch('/api/games'),
-          fetch('/api/players'),
-        ]);
-
-        if (!tournamentsResponse.ok || !gamesResponse.ok || !playersResponse.ok) {
-          throw new Error('Failed to fetch additional details.');
-        }
-
-        const tournaments = await tournamentsResponse.json();
-        const games = await gamesResponse.json();
-        const players = await playersResponse.json();
-
-        console.log('Fetched Tournaments:', tournaments);
-        console.log('Fetched Games:', games);
-        console.log('Fetched Players:', players);
-
-        if (!Array.isArray(tournaments) || !Array.isArray(games) || !Array.isArray(players)) {
-          throw new Error('One of the additional API responses is not an array.');
-        }
-
-        // Map the bets with tournament, game, and player details
-        const enrichedBets = betsData.map((bet) => ({
-          ...bet,
-          tournamentDate: tournaments.find((t) => t.id === bet.tournament_id)?.date || 'Unknown Date',
-          tournamentName: tournaments.find((t) => t.id === bet.tournament_id)?.name || 'Unknown Tournament',
-          tournamentCity: tournaments.find((t) => t.id === bet.tournament_id)?.location.city || 'Unknown Location',
-          tournamentCountry: tournaments.find((t) => t.id === bet.tournament_id)?.location.country || 'Unknown Location',
-          gameName: games.find((g) => g.id === bet.game_id)?.name || 'Unknown Game',
-          playerName: players.find((p) => p.id === bet.player_id)?.name || 'Unknown Player',
-        }));
-
-        console.log('Enriched Bets:', enrichedBets);
-        setBets(enrichedBets);
+        setBets(betsData);
       } catch (err) {
-        console.error('Error fetching bets:', err.message);
-        setError('Failed to load your bets. Please try again later.');
+        console.error('Bets load error:', err.message);
       } finally {
-        setLoading(false);
+        setBetsLoading(false);
       }
     };
 
     fetchBets();
   }, [userId]);
 
-  useEffect(() => {
-    console.log('Bets State:', bets); // Debug State Changes
-  }, [bets]);
+  const TournamentLogo = ({ name, height = 24 }) => {
+    const [index, setIndex] = useState(0);
+    if (!name) return null;
+
+    const { avif, webp, png, jpg, jpeg } = getTournamentLogoSources(name);
+    const candidates = [avif, webp, png, jpg, jpeg].filter(Boolean);
+    const src = candidates[index];
+
+    if (!src) {
+      return <span>{name}</span>;
+    }
+
+    return (
+      <img
+        src={src}
+        alt={getTournamentAlt(name)}
+        style={getTournamentLogoStyle(name, height)}
+        title={src}
+        onError={() => {
+          if (index + 1 < candidates.length) {
+            setIndex(index + 1);
+          }
+        }}
+      />
+    );
+  };
+
+  const GameLogo = ({ name, height = 24, customStyles = {} }) => {
+    const [index, setIndex] = useState(0);
+    if (!name) return null;
+
+    const { avif, webp, png, jpg, jpeg } = getGameLogoSources(name);
+    const candidates = [avif, webp, png, jpg, jpeg].filter(Boolean);
+    const src = candidates[index];
+
+    if (!src) {
+      return <span>{name}</span>;
+    }
+
+    return (
+      <img
+        src={src}
+        alt={getGameAlt(name)}
+        style={getGameLogoStyle(name, height, customStyles)}
+        onError={() => {
+          if (index + 1 < candidates.length) {
+            setIndex(index + 1);
+          }
+        }}
+      />
+    );
+  };
+
+  const getGameName = (id) => games.find(g => g.id === id)?.name || id;
+  const getPlayerName = (id) => players.find(p => p.id === id)?.name || id;
+  const getTournamentName = (id) => allTournaments.find(t => t.id === id)?.name || id;
 
   if (loading) {
-    return <p>Loading your bets...</p>;
+    return <div className="home-container"><div className="skeleton">Loading…</div></div>;
   }
 
   if (error) {
-    return <p className="error-message">{error}</p>;
+    return <div className="home-container"><div className="error-message">{error}</div></div>;
   }
+
+  const spotlight = upcoming?.slice(0, 4);
   
   return (
-    <div className="bets-list-container">
-      <h1>Welcome to Money Match</h1>
-      <p>Your upcoming bets:</p>
-      {bets.length === 0 ? (
-        <p>No bets found. Start placing bets to see them here!</p>
-      ) : (
-        <table className="bets-table">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Tournament Name</th>
-              <th>Location</th>
-              <th>Game Name</th>
-              <th>Player Name</th>
-              <th>Bet Amount</th>
-              <th>Outcome</th>
-            </tr>
-          </thead>
-          <tbody>
-            {bets.map((bet, index) => (
-              <tr key={index}>
-                <td>{bet.tournamentDate || 'Unknown Date'}</td>
-                <td>{bet.tournamentName || 'Unknown Tournament'}</td>
-                <td>{bet.tournamentCity + ', ' + bet.tournamentCountry || 'Unknown Location'}</td>
-                <td>{bet.gameName || 'Unknown Game'}</td>
-                <td>{bet.playerName || 'Unknown Player'}</td>
-                <td>
-                  ${Number(bet.amount || 0).toLocaleString(undefined, {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
-                </td>
-                <td>
-                  {bet.is_winner === 1 ? '✅ Win' : bet.is_winner === 0 ? '❌ Loss' : '🕒 Pending'}
-                </td>              
-              </tr>
+    <div className="home-container">
+      {/* Upcoming Spotlight */}
+      {spotlight && spotlight.length > 0 && (
+        <section className="spotlight">
+          <div className="section-header">
+            <h2>Next Up</h2>
+            <Link to="/future-tournaments" className="link">See all</Link>
+          </div>
+          <div className="spotlight-grid">
+            {spotlight.map(t => (
+              <div key={t.id} className="spotlight-card">
+                <div className="spotlight-header">
+                  <h3>
+                    <TournamentLogo name={t.name} height={24} />
+                    <span style={{ marginLeft: '10px' }}>{t.name}</span>
+                  </h3>
+                </div>
+                <div className="spotlight-date">{new Date(t.date).toLocaleDateString()}</div>
+                <div className="spotlight-location">
+                  {t.location?.city}, {t.location?.country}
+                </div>
+                <div className="spotlight-games">
+                  {(Object.values(t.games || {}) || []).slice(0, 4).map(g => (
+                    <span key={g.id} className="pill">{g.name}</span>
+                  ))}
+                  {Object.values(t.games || {}).length > 4 && (
+                    <span className="more-pill">+{Object.values(t.games || {}).length - 4} more</span>
+                  )}
+                </div>
+              </div>
             ))}
-          </tbody>
-        </table>
+          </div>
+        </section>
+      )}
+
+      {/* Recent Champions */}
+      <section className="champions">
+        <div className="section-header">
+          <h2>Recent Champions</h2>
+          <Link to="/past-results" className="link">See all</Link>
+        </div>
+        <div className="champion-grid">
+          {recentChampions.map((c, i) => (
+            <div key={i} className="champion-card">
+              <div className="champion-game">
+                <GameLogo name={c.game} height={32} />
+              </div>
+              <div className="champion-winner">{c.winner}</div>
+              <div className="champion-meta">
+                <span className="champion-tournament">{c.tournament}</span>
+                <span className="champion-date">{new Date(c.date).toLocaleDateString()}</span>
+              </div>
+              <div className="champion-score">{c.score} vs {c.loser}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Your Bets (if logged in) */}
+      {userId && (
+        <section className="bets">
+          <div className="section-header">
+            <h2>Your Bets</h2>
+            <Link to="/future-tournaments" className="link">Place bets</Link>
+          </div>
+          {betsLoading ? (
+            <div className="skeleton">Loading bets…</div>
+          ) : bets.length === 0 ? (
+            <p className="muted">No bets yet.</p>
+          ) : (
+            <div className="bets-grid">
+              {bets.slice(0, 6).map((b, i) => (
+                <div key={i} className="bet-card">
+                  <div className="bet-tournament">
+                    <TournamentLogo name={getTournamentName(b.tournament_id)} height={20} />
+                    <span className="bet-tournament-name">{getTournamentName(b.tournament_id)}</span>
+                  </div>
+                  <div className="bet-game">
+                    <GameLogo name={getGameName(b.game_id)} height={24} />
+                  </div>
+                  <div className="bet-player">{getPlayerName(b.player_id)}</div>
+                  <div className="bet-amount">${Number(b.amount || 0).toFixed(2)}</div>
+                  <div className={`bet-outcome ${b.is_winner === 1 ? 'win' : b.is_winner === 0 ? 'loss' : 'pending'}`}>
+                    {b.is_winner === 1 ? 'Win' : b.is_winner === 0 ? 'Loss' : 'Pending'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
       )}
     </div>
   );
 };
 
-export default BetsList;
+export default Home;

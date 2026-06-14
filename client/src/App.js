@@ -3,9 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Navbar from './components/Navbar';
 import Home from './components/Home';
 import FutureTournaments from './components/FutureTournaments';
+import LiveBetting from './components/LiveBetting';
 import PastResults from './components/PastResults';
-import Startgg from './components/Startgg';
-import StartggPast from './components/StartggPast';
 import Login from './components/Login';
 import Signup from './components/Signup';
 
@@ -28,12 +27,8 @@ function App() {
           element={isLoggedIn ? <FutureTournaments /> : <Navigate to="/login" />}
         />
         <Route
-          path="/startgg"
-          element={isLoggedIn ? <Startgg /> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/startgg-past"
-          element={isLoggedIn ? <StartggPast /> : <Navigate to="/login" />}
+          path="/live"
+          element={isLoggedIn ? <LiveBetting /> : <Navigate to="/login" />}
         />
       </Routes>
     </Router>

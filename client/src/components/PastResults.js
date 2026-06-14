@@ -69,9 +69,7 @@ const PastResults = () => {
     const { avif, webp, png, jpg, jpeg } = getTournamentLogoSources(name);
     const candidates = [logoUrl, avif, webp, png, jpg, jpeg].filter(Boolean);
     const src = candidates[index];
-    if (!src) {
-      return <span className="tournament-text">{name}</span>;
-    }
+    if (!src) return null;
     return (
       <img
         src={src}
@@ -227,8 +225,9 @@ const PastResults = () => {
               {filteredResults.map((result) => (
                 <tr key={result.id} className="result-row">
                   <td className="tournament-name">
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
                       <TournamentNameOrLogo name={result.tournament} logoUrl={result.logoUrl} height={64} />
+                      <span style={{ textAlign: 'center' }}>{result.tournament}</span>
                     </div>
                   </td>
                   <td className="location">

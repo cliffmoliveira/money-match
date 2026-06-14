@@ -3,11 +3,128 @@ import './FutureTournaments.css';
 import { getGameAlt, getGameLogoSources, getGameLogoStyle } from '../utils/gameLogos';
 import { getTournamentLogoSources, getTournamentAlt, getTournamentLogoStyle } from '../utils/tournamentLogos';
 
+// Self-contained, second-ticking countdown to a YYYY-MM-DD event date. Owns its
+// own interval so only it re-renders each second (not the whole tournament list).
+const Countdown = ({ date }) => {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const target = new Date(`${date}T00:00:00`).getTime();
+  if (isNaN(target)) return null;
+  const diff = target - now;
+  if (diff <= 0) return <div className="countdown-live">Happening now</div>;
+
+  const total = Math.floor(diff / 1000);
+  const days = Math.floor(total / 86400);
+  const hours = Math.floor((total % 86400) / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const seconds = total % 60;
+  const seg = (value, label) => (
+    <div className="countdown-seg" key={label}>
+      <span className="countdown-num">{String(value).padStart(2, '0')}</span>
+      <span className="countdown-label">{label}</span>
+    </div>
+  );
+
+  return (
+    <div className="countdown">
+      <div className="countdown-title">Starts in</div>
+      <div className="countdown-segs">
+        {seg(days, 'Days')}
+        <span className="countdown-sep">:</span>
+        {seg(hours, 'Hrs')}
+        <span className="countdown-sep">:</span>
+        {seg(minutes, 'Min')}
+        <span className="countdown-sep">:</span>
+        {seg(seconds, 'Sec')}
+      </div>
+    </div>
+  );
+};
+
+// Defined at module scope so their component identity is stable across
+// FutureTournaments re-renders (e.g. every stake keystroke). Defining them
+// inside the parent recreates the type each render, remounting every logo
+// and making the images flicker.
+const GameTitle = ({ name, height = 28 }) => {
+  const [error, setError] = useState(false);
+  const [src, setSrc] = useState(null);
+  const { avif, webp, png, jpg, jpeg } = getGameLogoSources(name || '');
+
+  useEffect(() => {
+    setError(false);
+    const candidates = [avif, webp, png, jpg, jpeg].filter(Boolean);
+    setSrc(candidates[0] || null);
+  }, [avif, webp, png, jpg, jpeg]);
+
+  const handleError = () => {
+    const candidates = [avif, webp, png, jpg, jpeg].filter(Boolean);
+    const currentIndex = candidates.indexOf(src);
+    if (currentIndex + 1 < candidates.length) {
+      setSrc(candidates[currentIndex + 1]);
+    } else {
+      setError(true);
+    }
+  };
+
+  if (!name) return null;
+
+  if (error || !src) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', minHeight: `${height}px` }}>
+        <h3 style={{ margin: 0 }}>{name}</h3>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', minHeight: `${height}px` }}>
+      {!error && src && (
+        <img
+          src={src}
+          alt={getGameAlt(name)}
+          style={getGameLogoStyle(name, height)}
+          onError={handleError}
+        />
+      )}
+      {error && (
+        <span style={{ color: 'var(--brand)', fontWeight: 600 }}>{name}</span>
+      )}
+    </div>
+  );
+};
+
+const TournamentLogo = ({ name, logoUrl, height = 24 }) => {
+  const [index, setIndex] = useState(0);
+  if (!name) return null;
+
+  const { avif, webp, png, jpg, jpeg } = getTournamentLogoSources(name);
+  const candidates = [logoUrl, avif, webp, png, jpg, jpeg].filter(Boolean);
+  const src = candidates[index];
+
+  if (!src) return null;
+
+  return (
+    <img
+      src={src}
+      alt={getTournamentAlt(name)}
+      style={getTournamentLogoStyle(name, height)}
+      title={name}
+      onError={() => setIndex((i) => i + 1)}
+    />
+  );
+};
+
 const FutureTournaments = () => {
   const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [betAmounts, setBetAmounts] = useState({}); // Tracks bet amounts for each player
+  const [slip, setSlip] = useState({}); // Pending bet selections, keyed tournament_game_player
+  const [placedBets, setPlacedBets] = useState({}); // Already-placed bet amounts, same key
+  const [placing, setPlacing] = useState(false);
+  const [placeMsg, setPlaceMsg] = useState(null);
   const [tournamentGames, setTournamentGames] = useState({});
   const [playerStats, setPlayerStats] = useState({}); // Tracks live odds and totals dynamically
 
@@ -19,99 +136,32 @@ const FutureTournaments = () => {
 
   const userId = localStorage.getItem('userId');
 
-  const GameTitle = ({ name, height = 28 }) => {
-    const [error, setError] = useState(false);
-    const [src, setSrc] = useState(null);
-    const { avif, webp, png, jpg, jpeg } = getGameLogoSources(name || '');
-
-    useEffect(() => {
-      setError(false);
-      const candidates = [avif, webp, png, jpg, jpeg].filter(Boolean);
-      setSrc(candidates[0] || null);
-    }, [avif, webp, png, jpg, jpeg]);
-
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('[GameTitle] name=', name, { avif, webp, png, jpg, jpeg, chosen: src });
-    }
-
-    const handleError = () => {
-      if (process.env.NODE_ENV !== 'production') {
-        console.error('[GameTitle] failed to load', src, 'for', name);
-      }
-      const candidates = [avif, webp, png, jpg, jpeg].filter(Boolean);
-      const currentIndex = candidates.indexOf(src);
-      if (currentIndex + 1 < candidates.length) {
-        setSrc(candidates[currentIndex + 1]);
-      } else {
-        setError(true);
-      }
-    };
-
-    if (!name) return null;
-
-    if (error || !src) {
-      return (
-        <div style={{ display: 'flex', alignItems: 'center', minHeight: `${height}px` }}>
-          <h3 style={{ margin: 0 }}>{name}</h3>
-        </div>
-      );
-    }
-
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', minHeight: `${height}px` }}>
-        {!error && src && (
-          <img
-            src={src}
-            alt={getGameAlt(name)}
-            style={getGameLogoStyle(name, height)}
-            onError={handleError}
-          />
-        )}
-        {error && (
-          <span style={{ color: 'var(--brand)', fontWeight: 600 }}>{name}</span>
-        )}
-      </div>
-    );
-  };
-
-  const TournamentLogo = ({ name, logoUrl, height = 24 }) => {
-    const [index, setIndex] = useState(0);
-    if (!name) return null;
-
-    const { avif, webp, png, jpg, jpeg } = getTournamentLogoSources(name);
-    const candidates = [logoUrl, avif, webp, png, jpg, jpeg].filter(Boolean);
-    const src = candidates[index];
-
-    if (!src) {
-      return <span className="tournament-text">{name}</span>;
-    }
-
-    return (
-      <img
-        src={src}
-        alt={getTournamentAlt(name)}
-        style={getTournamentLogoStyle(name, height)}
-        title={name}
-        onError={() => setIndex((i) => i + 1)}
-      />
-    );
-  };
-
   useEffect(() => {
     const fetchTournamentsAndBets = async () => {
       try {
         const [tournamentsResponse, betsResponse] = await Promise.all([
           fetch('/api/tournaments'),
-          fetch(`/api/bets?userId=${userId}`)
+          fetch(`/api/bets?userId=${userId}`),
         ]);
-  
-        if (!tournamentsResponse.ok || !betsResponse.ok) {
-          throw new Error('Failed to fetch tournaments or bets.');
+
+        if (!tournamentsResponse.ok) {
+          throw new Error('Failed to fetch tournaments.');
         }
-  
+
         const tournamentsData = await tournamentsResponse.json();
-        const betsData = await betsResponse.json();
-  
+
+        // Track already-placed bets (by player) so rows can offer "Adjust".
+        // This does NOT seed the slip — the slip stays empty until you act.
+        if (betsResponse.ok) {
+          const betsData = await betsResponse.json();
+          const placed = {};
+          betsData.forEach((bet) => {
+            const key = `${bet.tournament_id}_${bet.game_id}_${bet.player_id}`;
+            placed[key] = { amount: bet.amount, odds: bet.locked_odds };
+          });
+          setPlacedBets(placed);
+        }
+
         // Client-side guard: filter past tournaments and sort by nearest date
         const today = new Date();
         today.setHours(0, 0, 0, 0); // Normalize today to the start of the day
@@ -121,17 +171,10 @@ const FutureTournaments = () => {
             return !isNaN(d) && d >= today;
           })
           .sort((a, b) => new Date(a.date) - new Date(b.date));
-  
-        // Map bets to unique keys using tournamentId, gameId, and playerId
-        const formattedBetAmounts = {};
-  
-        betsData.forEach((bet) => {
-          const key = `${bet.tournament_id}_${bet.game_id}_${bet.player_id}`;
-          formattedBetAmounts[key] = bet.amount || '';
-        });
-  
+
+        // The slip starts empty — it stages new selections only. Already-placed
+        // bets stay committed server-side and are not shown here.
         setTournaments(upcoming);
-        setBetAmounts(formattedBetAmounts);
   
         // Fetch games for all tournaments
         const gameRequests = upcoming.map(async (tournament) => {
@@ -179,54 +222,206 @@ const FutureTournaments = () => {
   
     fetchTournamentsAndBets();
   }, [userId]);
-  
-  const calculatePayout = (amount, live_odds) => {
-    return (amount * live_odds).toFixed(2);
+
+  const addToSlip = (tournamentId, gameId, playerId, currentOdds, placed = null) => {
+    const key = `${tournamentId}_${gameId}_${playerId}`;
+    setSlip((prev) => {
+      if (prev[key]) return prev; // already in the slip
+      // Adjusting an existing bet pre-fills its current total and remembers the
+      // already-locked portion so added stake blends at the current odds.
+      const oldAmount = placed ? placed.amount : 0;
+      const oldOdds = placed ? placed.odds : 0;
+      const stake = placed ? String(placed.amount) : '';
+      return {
+        ...prev,
+        [key]: { tournamentId, gameId, playerId, currentOdds, oldAmount, oldOdds, stake },
+      };
+    });
+    setPlaceMsg(null);
   };
 
-  const handleBetChange = async (tournamentId, gameId, playerId) => {
-    const key = `${tournamentId}_${gameId}_${playerId}`;
-    const amount = betAmounts[key] || 0;
+  // Splits a slip entry's stake into the portion that keeps its original locked
+  // odds and the newly-added portion priced at the current odds, then blends.
+  const effectiveBet = (entry) => {
+    const stake = Number(entry?.stake) || 0;
+    const oldAmount = entry?.oldAmount || 0;
+    const kept = Math.min(stake, oldAmount);
+    const added = Math.max(0, stake - oldAmount);
+    const payout = kept * (entry?.oldOdds || 0) + added * (entry?.currentOdds || 0);
+    const odds = stake > 0 ? payout / stake : (entry?.currentOdds || 0);
+    return { stake, oldAmount, kept, added, payout, odds };
+  };
 
+  const removeFromSlip = (key) => {
+    setSlip((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  };
+
+  const updateStake = (key, value) => {
+    const clean = value.replace(/[^0-9.]/g, '');
+    setSlip((prev) => ({ ...prev, [key]: { ...prev[key], stake: clean } }));
+  };
+
+  const placeBets = async () => {
+    const entries = Object.values(slip).filter((e) => Number(e.stake) > 0);
+    if (entries.length === 0) return;
+
+    setPlacing(true);
+    setPlaceMsg(null);
     try {
-      const response = await fetch('/api/bets', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId,
-          tournamentId,
-          gameId,
-          playerId,
-          amount,
-        }),
+      // POST is one bet at a time; submit each selection in turn.
+      for (const e of entries) {
+        const response = await fetch('/api/bets', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId,
+            tournamentId: e.tournamentId,
+            gameId: e.gameId,
+            playerId: e.playerId,
+            amount: Number(e.stake),
+          }),
+        });
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || response.statusText);
+        }
+      }
+
+      // Refresh pooled odds/totals for every game that was bet on.
+      const affected = Array.from(
+        new Set(entries.map((e) => `${e.tournamentId}_${e.gameId}`))
+      );
+      const refreshed = await Promise.all(
+        affected.map(async (gk) => {
+          const [tId, gId] = gk.split('_');
+          const r = await fetch(`/api/game/${tId}/${gId}/players`);
+          return { key: gk, players: r.ok ? await r.json() : [] };
+        })
+      );
+      setPlayerStats((prev) => {
+        const next = { ...prev };
+        refreshed.forEach(({ key, players }) => { next[key] = players; });
+        return next;
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`Failed to save bet: ${errorData.error || response.statusText}`);
+      // Re-read placed bets so rows show "Adjust" with the authoritative
+      // blended odds the server just computed.
+      const betsRes = await fetch(`/api/bets?userId=${userId}`);
+      if (betsRes.ok) {
+        const betsData = await betsRes.json();
+        const placed = {};
+        betsData.forEach((bet) => {
+          const key = `${bet.tournament_id}_${bet.game_id}_${bet.player_id}`;
+          placed[key] = { amount: bet.amount, odds: bet.locked_odds };
+        });
+        setPlacedBets(placed);
       }
 
-      // Fetch updated live odds
-      const updatedStatsResponse = await fetch(`/api/game/${tournamentId}/${gameId}/players`);
-      if (updatedStatsResponse.ok) {
-        const updatedStats = await updatedStatsResponse.json();
-        setPlayerStats((prev) => ({
-          ...prev,
-          [`${tournamentId}_${gameId}`]: updatedStats,
-        }));
-      }
+      setSlip({});
+      setPlaceMsg(`Placed ${entries.length} bet${entries.length > 1 ? 's' : ''} successfully.`);
     } catch (err) {
-      console.error('Error saving bet:', err.message);
-      alert('Failed to save your bet. Please try again.');
+      console.error('Error placing bets:', err.message);
+      setPlaceMsg(`Failed to place bets: ${err.message}`);
+    } finally {
+      setPlacing(false);
     }
   };
 
-  const handleBetAmountChange = (tournamentId, gameId, playerId, amount) => {
-    const key = `${tournamentId}_${gameId}_${playerId}`;
-    setBetAmounts((prev) => ({
-      ...prev,
-      [key]: amount.replace(/[^0-9.]/g, ''),
-    }));
+  // Rendered as a plain function (not a <Component/>) so the stake inputs keep
+  // focus across re-renders instead of remounting on each keystroke.
+  const renderBetSlip = () => {
+    const entries = Object.entries(slip);
+    const totalStake = entries.reduce((s, [, e]) => s + (Number(e.stake) || 0), 0);
+    const totalPayout = entries.reduce((s, [, e]) => s + effectiveBet(e).payout, 0);
+
+    const lookup = (e) => {
+      const t = tournaments.find((t) => t.id === e.tournamentId);
+      const g = (tournamentGames[e.tournamentId] || []).find((g) => g.game_id === e.gameId);
+      const p = (playerStats[`${e.tournamentId}_${e.gameId}`] || []).find(
+        (p) => p.player_id === e.playerId
+      );
+      return {
+        tournamentName: t?.name || 'Tournament',
+        gameName: g?.game_name || 'Game',
+        playerName: p?.player_name || 'Player',
+      };
+    };
+
+    return (
+      <aside className="bet-slip">
+        <div className="bet-slip-header">Your Slip ({entries.length})</div>
+        {entries.length === 0 ? (
+          <p className="bet-slip-empty">Add players to start building your slip.</p>
+        ) : (
+          <>
+            <ul className="bet-slip-list">
+              {entries.map(([key, e]) => {
+                const { tournamentName, gameName, playerName } = lookup(e);
+                const eff = effectiveBet(e);
+                // Show the blend only when added stake actually prices differently.
+                const blended =
+                  eff.kept > 0 && eff.added > 0 && e.oldOdds !== e.currentOdds;
+                return (
+                  <li key={key} className="bet-slip-item">
+                    <div className="bet-slip-item-info">
+                      <span className="bet-slip-player">
+                        {playerName} <span className="bet-slip-odds">@{eff.odds.toFixed(2)}</span>
+                      </span>
+                      <span className="bet-slip-meta">{gameName} · {tournamentName}</span>
+                      {blended && (
+                        <span className="bet-slip-blend">
+                          ${eff.kept.toFixed(2)} @{(e.oldOdds || 0).toFixed(2)} + ${eff.added.toFixed(2)} @{(e.currentOdds || 0).toFixed(2)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="bet-slip-item-stake">
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="Stake"
+                        value={e.stake}
+                        onChange={(ev) => updateStake(key, ev.target.value)}
+                      />
+                      <span className="bet-slip-payout">→ ${eff.payout.toFixed(2)}</span>
+                      <button
+                        type="button"
+                        className="bet-slip-remove"
+                        aria-label="Remove"
+                        onClick={() => removeFromSlip(key)}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+            <div className="bet-slip-totals">
+              <div><span>Stake</span><strong>${totalStake.toFixed(2)}</strong></div>
+              <div><span>Projected payout</span><strong>${totalPayout.toFixed(2)}</strong></div>
+            </div>
+            <p className="bet-slip-note">
+              Odds are pooled and may shift as bets are placed. When you adjust a bet,
+              your original stake keeps its locked odds and only the added stake prices
+              at the current odds.
+            </p>
+            <button
+              type="button"
+              className="bet-slip-place"
+              disabled={placing || totalStake <= 0}
+              onClick={placeBets}
+            >
+              {placing ? 'Placing…' : 'Place Bets'}
+            </button>
+          </>
+        )}
+        {placeMsg && <p className="bet-slip-msg">{placeMsg}</p>}
+      </aside>
+    );
   };
 
   if (loading) return <p>Loading future tournaments...</p>;
@@ -266,7 +461,8 @@ const FutureTournaments = () => {
   };
 
   return (
-    <div className="future-tournaments-container">
+    <div className="future-layout">
+      <div className="future-tournaments-container">
       {/* Title intentionally removed; navbar will highlight current page */}
       <div className="filter-section">
         <div className="filter-group">
@@ -334,8 +530,9 @@ const FutureTournaments = () => {
       {filteredTournaments.map((tournament) => (
         <div key={tournament.id} className="tournament">
           <div className="tournament-header">
-            <h2>
+            <h2 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
               <TournamentLogo name={tournament.name} logoUrl={tournament.logoUrl} height={48} />
+              <span>{tournament.name}</span>
             </h2>
             <div className="tournament-details">
               <p>
@@ -345,6 +542,7 @@ const FutureTournaments = () => {
                 <strong>Location:</strong> {tournament.location.city}, {tournament.location.country}
               </p>
             </div>
+            <Countdown date={tournament.date} />
           </div>
   
           {(() => {
@@ -353,57 +551,78 @@ const FutureTournaments = () => {
               ? gamesForTournament.filter(g => g.game_name === filterGame)
               : gamesForTournament;
             if (gamesToShow.length === 0) {
-              return <p>No games available for this tournament.</p>;
+              return (
+                <p className="futures-pending">
+                  Futures open once the bracket is seeded (about {21} days before the event). Check back closer to the date.
+                </p>
+              );
             }
             return gamesToShow.map((game) => (
               <div key={game.game_id} className="game-section">
                 <h3 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <GameTitle name={game.game_name} height={96} />
                 </h3>
+                <p className="seed-caption">Win % implied from Start.gg seeding.</p>
                 <table className="tournament-table">
                   <thead>
                     <tr>
+                      <th>Seed</th>
                       <th>Player</th>
-                      <th>Live Odds</th>
+                      <th>Win %</th>
+                      <th>Odds</th>
                       <th>Total Bets</th>
                       <th>Total Amount</th>
-                      <th>Your Bet</th>
+                      <th>Bet</th>
                       <th>Payout</th>
                     </tr>
                   </thead>
                   <tbody>
                     {playerStats[`${tournament.id}_${game.game_id}`]?.map((player) => {
                       const key = `${tournament.id}_${game.game_id}_${player.player_id}`;
-                      const betAmount = betAmounts[key] || '';
-  
+                      const inSlip = Boolean(slip[key]);
+                      const placed = placedBets[key];
+                      const hasPlaced = placed != null;
+                      const label = inSlip ? 'Added ✓' : hasPlaced ? 'Adjust' : '+ Add';
+                      const className = inSlip
+                        ? 'slip-toggle added'
+                        : hasPlaced
+                        ? 'slip-toggle adjust'
+                        : 'slip-toggle';
+                      const rowPayout = inSlip ? effectiveBet(slip[key]).payout : 0;
+
+                      const isField = player.player_name === 'The Field';
+                      const winPct = player.win_probability != null
+                        ? `${(player.win_probability * 100).toFixed(1)}%`
+                        : '—';
+
                       return (
-                        <tr key={player.player_id}>
+                        <tr key={player.player_id} className={isField ? 'field-row' : ''}>
+                          <td className="seed-cell">{player.seed_num != null ? `#${player.seed_num}` : (isField ? 'Field' : '—')}</td>
                           <td>{player.player_name}</td>
+                          <td className="winpct-cell">{winPct}</td>
                           <td>{player.live_odds?.toFixed(2)}</td>
                           <td>{player.total_bets || 0}</td>
                           <td>${player.total_amount || 0}</td>
                           <td>
-                            <input
-                              type="number"
-                              value={betAmount}
-                              onChange={(e) =>
-                                handleBetAmountChange(
-                                  tournament.id,
-                                  game.game_id,
-                                  player.player_id,
-                                  e.target.value
-                                )
+                            <button
+                              type="button"
+                              className={className}
+                              onClick={() =>
+                                inSlip
+                                  ? removeFromSlip(key)
+                                  : addToSlip(
+                                      tournament.id,
+                                      game.game_id,
+                                      player.player_id,
+                                      player.live_odds,
+                                      hasPlaced ? placed : null
+                                    )
                               }
-                              onBlur={() =>
-                                handleBetChange(
-                                  tournament.id,
-                                  game.game_id,
-                                  player.player_id
-                                )
-                              }
-                            />
+                            >
+                              {label}
+                            </button>
                           </td>
-                          <td>${calculatePayout(betAmount || 0, player.live_odds)}</td>
+                          <td>${rowPayout.toFixed(2)}</td>
                         </tr>
                       );
                     })}
@@ -414,9 +633,11 @@ const FutureTournaments = () => {
           })()}
         </div>
       ))}
+      </div>
+      {renderBetSlip()}
     </div>
   );
-  
+
 };
 
 export default FutureTournaments;

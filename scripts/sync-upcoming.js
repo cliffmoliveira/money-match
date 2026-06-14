@@ -19,6 +19,13 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 const db = require('../db/db');
 const { startgg } = require('../startggClient');
+const { fieldProbabilities } = require('../liveOdds');
+
+const FIELD_PLAYER_NAME = 'The Field';
+// Futures open only within this many days of the event (seeding is finalized
+// close to the event) and only when the top seed is genuinely low.
+const FUTURES_WINDOW_DAYS = 21;
+const SEED_SANITY_MAX = 4;
 // Reuse the backfill's main-event Grand Finals recorder for the recent-results sync.
 const { processTournament: recordPastResults } = require('./backfill-results');
 
@@ -106,6 +113,8 @@ query RecentBrand($name: String!, $after: Timestamp!, $before: Timestamp!, $ids:
   }
 }`;
 
+// Pull the entry phase's SEEDS (seed-ordered) rather than the unsorted entrant
+// list — that's the only way to reliably get the actual top seeds (#1, #2 …).
 const TOURNAMENT_ENTRANTS = `
 query Entrants($slug: String!, $ids: [ID]) {
   tournament(slug: $slug) {
@@ -113,8 +122,11 @@ query Entrants($slug: String!, $ids: [ID]) {
     images { type url }
     events(limit: 20, filter: { videogameId: $ids }) {
       id name numEntrants videogame { id name }
-      entrants(query: { perPage: 16, page: 1 }) {
-        nodes { id name seeds { seedNum } }
+      phases {
+        id phaseOrder
+        seeds(query: { perPage: 16, page: 1 }) {
+          nodes { seedNum entrant { id name } }
+        }
       }
     }
   }
@@ -175,15 +187,41 @@ function topSeeds(entrants = [], top) {
     .slice(0, top);
 }
 
-async function addEntrant(tournamentId, gameId, playerId) {
-  // Keep a starting live_odds of 1.0; the bet endpoint recalculates it once
-  // wagers come in. Don't clobber odds on re-run.
+// Reserved synthetic entrant representing every unlisted player ("the field").
+async function upsertFieldPlayer() {
+  const existing = await db.getAsync('SELECT id FROM players WHERE name = ?', [FIELD_PLAYER_NAME]);
+  if (existing) return existing.id;
+  const res = await db.runAsync('INSERT INTO players (name, country) VALUES (?, ?)', [FIELD_PLAYER_NAME, '']);
+  return res.lastID;
+}
+
+// Store an entrant with its seed, seed-based fair probability, and fixed odds.
+// Re-runs refresh seed/prob/odds (seeding finalizes near event time) but never
+// after results are in (is_winner set).
+async function addEntrant(tournamentId, gameId, playerId, { seedNum = null, winProb = null, odds = 1.0 } = {}) {
   await db.runAsync(
-    `INSERT INTO players_games_tournaments (tournament_id, game_id, player_id, live_odds, created_at)
-     VALUES (?, ?, ?, 1.0, CURRENT_TIMESTAMP)
-     ON CONFLICT(tournament_id, game_id, player_id) DO NOTHING`,
-    [tournamentId, gameId, playerId]
+    `INSERT INTO players_games_tournaments (tournament_id, game_id, player_id, seed_num, win_probability, live_odds, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+     ON CONFLICT(tournament_id, game_id, player_id) DO UPDATE
+       SET seed_num = excluded.seed_num,
+           win_probability = excluded.win_probability,
+           live_odds = excluded.live_odds
+       WHERE players_games_tournaments.is_winner IS NULL
+          OR players_games_tournaments.is_winner = 0`,
+    [tournamentId, gameId, playerId, seedNum, winProb, odds]
   );
+}
+
+// Top `n` real seeds for an event: take the entry phase (lowest phaseOrder),
+// keep seeds with a real entrant + numeric seedNum, sort by seedNum, slice.
+// Returns [{ seedNum, entrant }]. Exposed for testing.
+function pickTopSeeds(ev, n) {
+  const phases = (ev.phases || []).slice().sort((a, b) => (a.phaseOrder ?? 0) - (b.phaseOrder ?? 0));
+  const nodes = (phases[0]?.seeds?.nodes || [])
+    .filter((s) => s && s.entrant && s.entrant.id != null && Number.isFinite(s.seedNum))
+    .sort((a, b) => a.seedNum - b.seedNum)
+    .slice(0, n);
+  return nodes;
 }
 
 async function processTournament(slug, args) {
@@ -194,26 +232,72 @@ async function processTournament(slug, args) {
   const events = (t.events || []).filter((ev) => ev.videogame && GAME_IDS.includes(Number(ev.videogame.id)) && (ev.numEntrants || 0) > 0);
   if (events.length === 0) return { events: 0, players: 0 };
 
-  let tournamentId = null;
+  // Always record the tournament so it appears on the page (with a countdown),
+  // even before futures open.
+  const tournamentId = args.dryRun ? null : await upsertTournament(t);
+
+  // Futures only open once an event is genuinely seeded. Far-future majors
+  // aren't seeded yet and report provisional/huge seed values, so we gate on
+  // (a) being within a few weeks of the start and (b) the top seeds looking
+  // real (a low seed actually present).
+  const daysOut = (t.startAt * 1000 - Date.now()) / 86400000;
+  const futuresOpen = daysOut <= FUTURES_WINDOW_DAYS;
+
   let eventCount = 0;
   let playerCount = 0;
 
   for (const ev of events) {
-    const seeds = topSeeds(ev.entrants?.nodes || [], args.top);
-    if (seeds.length === 0) continue;
+    const seedNodes = pickTopSeeds(ev, args.top);
+    if (seedNodes.length === 0) continue;
+    const minSeed = seedNodes[0].seedNum;
+    const seedsLookReal = minSeed <= SEED_SANITY_MAX; // real seeding -> seed 1 present
+    if (!futuresOpen || !seedsLookReal) continue; // tournament still shows (countdown)
 
     if (args.dryRun) {
-      console.log(`   ${ev.videogame.name}: ${seeds.map((s) => s.name).join(', ')}`);
-      eventCount++; playerCount += seeds.length;
+      console.log(`   ${ev.videogame.name}: ${seedNodes.map((s) => s.entrant.name).join(', ')}`);
+      eventCount++; playerCount += seedNodes.length;
       continue;
     }
 
-    if (tournamentId === null) tournamentId = await upsertTournament(t);
     const gameId = await upsertGame(ev.videogame);
-    for (const s of seeds) {
-      const pid = await upsertPlayer(s);
-      if (pid) { await addEntrant(tournamentId, gameId, pid); playerCount++; }
+
+    // Replace this game's prior futures entrants (those with no bets and no
+    // result) with the current top 16, so re-syncs don't accumulate stale or
+    // duplicate seeds. Entrants someone has bet on are preserved.
+    await db.runAsync(
+      `DELETE FROM players_games_tournaments
+       WHERE tournament_id = ? AND game_id = ?
+         AND (is_winner IS NULL OR is_winner = 0)
+         AND NOT EXISTS (
+           SELECT 1 FROM bets b
+           WHERE b.tournament_id = players_games_tournaments.tournament_id
+             AND b.game_id = players_games_tournaments.game_id
+             AND b.player_id = players_games_tournaments.player_id)`,
+      [tournamentId, gameId]
+    );
+
+    // Price by RANK (1..N) for a robust 1/seed ladder, but display the real
+    // start.gg seedNum.
+    const { players: probs, field } = fieldProbabilities(seedNodes.map((_, i) => i + 1));
+
+    for (let i = 0; i < seedNodes.length; i++) {
+      const pid = await upsertPlayer(seedNodes[i].entrant);
+      if (!pid) continue;
+      await addEntrant(tournamentId, gameId, pid, {
+        seedNum: seedNodes[i].seedNum,
+        winProb: probs[i].prob,
+        odds: probs[i].odds,
+      });
+      playerCount++;
     }
+
+    // One "Field" entrant for everyone outside the listed seeds (skip if the
+    // listed seeds already cover essentially the whole field).
+    if (field.prob > 0.005) {
+      const fieldPid = await upsertFieldPlayer();
+      await addEntrant(tournamentId, gameId, fieldPid, { seedNum: null, winProb: field.prob, odds: field.odds });
+    }
+
     eventCount++;
   }
   return { events: eventCount, players: playerCount };
@@ -288,7 +372,7 @@ async function syncRecentResults({ days = 30, minEntrants = 0 } = {}) {
   return { tournaments: withData, matches: totalMatches };
 }
 
-module.exports = { syncUpcoming, syncRecentResults };
+module.exports = { syncUpcoming, syncRecentResults, pickTopSeeds };
 
 // CLI: `node scripts/sync-upcoming.js [--months N] [--top N] [--dry-run] [--results]`
 if (require.main === module) {
