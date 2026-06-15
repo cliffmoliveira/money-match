@@ -272,7 +272,7 @@ const Home = () => {
                     <span style={{ marginLeft: '10px' }}>{t.name}</span>
                   </h3>
                 </div>
-                <div className="spotlight-date">{new Date(t.date).toLocaleDateString()}</div>
+                <div className="spotlight-date">{new Date(t.date + 'T00:00:00').toLocaleDateString()}</div>
                 <div className="spotlight-location">
                   {t.location?.city}, {t.location?.country}
                 </div>
@@ -306,7 +306,7 @@ const Home = () => {
               <div className="champion-winner">{c.winner}</div>
               <div className="champion-meta">
                 <span className="champion-tournament">{c.tournament}</span>
-                <span className="champion-date">{new Date(c.date).toLocaleDateString()}</span>
+                <span className="champion-date">{new Date(c.date + 'T00:00:00').toLocaleDateString()}</span>
               </div>
               <div className="champion-score">{c.score} vs {c.loser}</div>
             </div>

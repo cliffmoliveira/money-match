@@ -117,8 +117,12 @@ const Node = ({ market, slip, onPick, demoControls, registerRef }) => {
 
 const Column = ({ col, markets, slip, onPick, demoControls, registerRef }) => {
   const nodes = markets.filter((m) => classify(m) === col.key).sort((a, b) => a.id - b.id);
+  // Render at least `cap` cells (TBD placeholders before markets exist), but more
+  // if a column actually holds extra markets — notably the Grand Final + its
+  // Reset, which both classify to GF and must both be shown.
   const cells = [];
-  for (let i = 0; i < col.cap; i++) {
+  const count = Math.max(col.cap, nodes.length);
+  for (let i = 0; i < count; i++) {
     cells.push(
       <Node
         key={nodes[i]?.id ?? `${col.key}-tbd-${i}`}

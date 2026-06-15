@@ -237,7 +237,7 @@ const PastResults = () => {
                     }
                   </td>
                   <td className="date">
-                    {new Date(result.date).toLocaleDateString('en-US', {
+                    {new Date(result.date + 'T00:00:00').toLocaleDateString('en-US', {
                       year: 'numeric',
                       month: 'short',
                       day: 'numeric'
