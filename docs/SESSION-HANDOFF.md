@@ -1,11 +1,13 @@
-# MoneyMatch — Session Handoff (2026-06-14)
+# MoneyMatch — Session Handoff (2026-06-14 → 06-15)
 
 A resume point for a fresh session. Covers what was built, current state, how to run, and open items.
+
+**Status (2026-06-15):** everything below is **committed and pushed** to `past-results-startgg-backfill` → [PR #1](https://github.com/cliffmoliveira/money-match/pull/1). `node_modules` and the dev DBs are no longer tracked, so `git status` is clean. The latest pass (home page, live-event readiness, clean launch slate) is **§2c**.
 
 ## Project at a glance
 - **App:** MoneyMatch — bet on competitive fighting-game tournaments (Evo, CEO, etc.).
 - **Stack:** React client in `client/` (CRA, react-app-rewired) + Express/SQLite backend in `server.js`. DB at `db/database.db` (path via `DATABASE_PATH` env, set in `.env`). Start.gg GraphQL via `startggClient.js` (`STARTGG_API_TOKEN` in `.env`).
-- **Branch:** `past-results-startgg-backfill`. **Nothing has been committed this session — all work is in the working tree.** (`node_modules` is tracked in this repo, which makes `git status` noisy.)
+- **Branch:** `past-results-startgg-backfill`, **committed + pushed to [PR #1](https://github.com/cliffmoliveira/money-match/pull/1)** (→ `main`). `node_modules` and the binary dev DBs are now untracked (already in `.gitignore`, just stopped being tracked), so `git status` is clean.
 - **Server:** was left running on `:5000` with `ENABLE_DEMO=1` as a background process started from the tool shell — **it may not survive the session ending; just restart it (below).**
 
 ## How to run
@@ -39,7 +41,7 @@ cd client; npm run build
 - **Bracket UX:** EVO-style Top 8; **auto-scales to fit** (CSS transform + `ResizeObserver`, hysteresis + `scrollbar-gutter: stable` in `index.css` to stop a resize "shake"); **SVG connectors** aim at the player-rows center and the Grand Final node is nudged onto its feeder midpoint; winners **advance immediately** (pending nodes); **Live Slip + My Bets** combined into one compact card (`.live-rail`).
 
 ### 2b. Live betting — economics rework + reliability (later 2026-06-14)
-Follow-up pass on the live-betting feature. **All still in the working tree (uncommitted).**
+Follow-up pass on the live-betting feature. **(Committed — see §2c.)**
 
 **Correctness/reliability fixes**
 - **Grand Final winners-side bump was being dropped in live play.** `fillBracketSlot` prices a node only when its *second* slot fills; it now derives the winners-side flag from `round_text` instead of a per-call arg, so the 1.15× GF edge actually applies. Removed the misleading `p1WinnersSide` param from the poller/demo callers (`liveMarkets.js`, `scripts/sync-live.js`).
@@ -55,6 +57,18 @@ Follow-up pass on the live-betting feature. **All still in the working tree (unc
 
 **Verification:** done via throwaway DB copies (`DATABASE_PATH=./db/database.test.db DISABLE_SYNC=1`) exercising the real `placeBet`/`settleMarket` — confirmed bankroll ≥ 0 after every settle, winners ≥ pool split, GF bump applied; poller validated against the live Start.gg API. (All test scripts were temporary and deleted.) `client` builds clean.
 
+### 2c. Home page + live-event readiness + clean slate (2026-06-15)
+All committed/pushed to PR #1. Each item below was eyeballed in a live preview (server against a test/replay DB copy).
+
+- **Home page rebuilt around live betting** (`Home.{js,css}`): a **🔴 Live Now hero** (in-progress sets + odds + balance + CTA to `/live`; with logged-in-idle and logged-out value-prop variants); **unified Your Bets** merging live + futures (WON/LOST/PENDING + sign-correct net, pending first); inline logos hoisted to module scope. A `My Bets` sign bug — a parimutuel "won" pick can net negative, which rendered `+$-2.00` — was fixed (`signed()` helper).
+- **Shared `Countdown` component**: extracted from `FutureTournaments.js` into `client/src/components/Countdown.{js,css}` (with a `compact` variant) and reused on Home's Next Up cards. FutureTournaments now imports it.
+- **Replay + simulation harness** (`scripts/replay-live.js`): replays a *completed* event's Top 8 through state 1→2→3 on a DB copy with simulated users betting — exercising market open/close/settle, winnerId→player mapping, **Grand Final Reset**, and the parimutuel/cap economics. Validated against Evo 2025 TEKKEN 8 (incl. a real reset): all settled, winners correct, bankroll never negative, money conserved to the cent. Run: `node scripts/replay-live.js [startggId] [gameSubstr]` (leaves `db/database.replay.db`; delete after).
+- **Grand Final Reset render fix** (`Bracket.js`): a column now renders every market it holds (`Math.max(col.cap, nodes.length)`), not just `cap` cells — so the Reset (which classifies to GF alongside the Grand Final) actually shows. Verified on real reset data.
+- **Date off-by-one fix**: `YYYY-MM-DD` was parsed as UTC midnight → labels showed a day early in west-of-UTC zones. Now `+ 'T00:00:00'` (local) in Home, Future Tournaments, Past Results.
+- **Evo France 2026** (Oct 9–11, Nice/FR) added — a manual `tournaments` row (id 204) since the real event isn't on Start.gg yet; the daily sync reconciles when it registers (watch for a possible duplicate then).
+- **Economics at scale** (Monte Carlo on the real odds engine, 50–100 users × 600 events): house **hold settles at ~4.3–4.7%** (≈ the 5% rake minus a small subsidy giveback), **never lost an event**, bankroll never negative. The ~17.7% from a tiny 6-user dry-run was a thin-pool/zero-bankroll artifact, not steady-state.
+- **Demo data cleared from the real DB** (launch prep): `clearDemoMarkets()` + a purge of demo wallet rows → **0 `set_markets`, 0 `set_bets`, house bankroll $0**, wallet ledger = the 7 real $1000 grants only, every balance reconciles.
+
 ### 3. Payments research (advisory only — nothing implemented)
 - Full report: **`docs/payments-research.md`** — Part 1 (USD vs Bitcoin), Part 2 (token models + Canada entry + geographic sequencing + 30/90/180 roadmap), Part 3 (fee structure: percentage vs flat).
 - Agent memory: **`.claude/agent-memory/payment-rails-researcher/`** (operator profile, recommended structure, fee structure, Canada landmarks, wallet architecture).
@@ -67,19 +81,21 @@ Follow-up pass on the live-betting feature. **All still in the working tree (unc
 - `tournaments.is_live`; `players_games_tournaments.seed_num` (futures). A reserved player named **"The Field"** backs the Field bet.
 
 ## Current data state
-- Real DB: Evo 2026 has **real seed-based futures** (live-validated). All users funded $1000. Live betting tables exist. The migration is idempotent — safe to re-run.
-- `scripts/clear-futures.js` exists to wipe futures data; **not needed** (the self-cleaning sync handled it; there were 0 futures bets).
+- Real DB: Evo 2026 has **real seed-based futures** (live-validated); **Evo France 2026** added (id 204, manual row). The 7 users are funded $1000 each.
+- **Live-betting tables are clean** (2026-06-15): 0 `set_markets`, 0 `set_bets`, house bankroll **$0**, wallet ledger = the 7 grants only — all demo data was cleared for a clean launch baseline. Migrations are idempotent.
+- Wipe helpers: `scripts/clear-futures.js` (futures); `liveMarkets.clearDemoMarkets()` (demo live-betting data).
 
 ## Open items / next steps
-- **Commit the work** — nothing is committed yet. Consider a branch + meaningful commits (and maybe stop tracking `node_modules`).
+- **PR #1 is open** (`past-results-startgg-backfill` → `main`) and current; settle the open items below before merging. Nothing is uncommitted.
 - **SQLite is a single-writer SPOF** — fine for play money; migrate to Postgres before any real money.
 - **Payments = research only.** If pursuing: non-redeemable token model first (add a token unit, *no* withdrawal path), then a licensed Canadian route. Retain Canadian gaming/fintech counsel before real money.
 - **Live poller** now targets each event's finals phase and was validated against a *completed* major (Evo 2025, all 16 events). Still unverified against a genuinely **in-progress** event — i.e. the live state-1→2→3 (open→close→settle) transitions over time. Watch one real live event to confirm the lifecycle, scores, and Grand Final Reset handling. (See §2b.)
-- **Demo tools** are gated behind `ENABLE_DEMO=1`; remove or keep gated before any production/real-money launch (the seed/close/settle/reset endpoints are dev-only).
+- **Demo tools** are gated behind `ENABLE_DEMO=1` (dev-only); demo *data* has now been cleared from the real DB. Keep gated / remove the seed/close/settle/reset endpoints before a real-money launch.
+- **Evo Vegas live test (June 26)** is the one remaining live-poller validation — it's operational, not schedulable: have the server running during the event (June 26 is in the auto-sync date window), confirm Evo 2026 `is_live`, and watch `/live`. A `/schedule` cloud routine can't do it (no access to the local DB/token). The replay harness has de-risked everything except real-time state timing.
 - **Subagent Write is disabled** in this harness (the `payment-rails-researcher` agent can't write files even though its config lists Write) — the parent persists its output instead.
 
-## Home page recommendations (`client/src/components/Home.js`)
-The home page predates this session's work — it only surfaces futures (old `bets` table), with sections: Next Up, Recent Champions, Your Bets. Priority upgrades:
+## Home page (✅ rebuilt 2026-06-15 — see §2c)
+All six upgrades below were implemented and verified in a live preview:
 1. **"🔴 Live Now" hero (highest impact).** Fetch `/api/live/markets`; if any market is `open`/`closed`, show a top hero with the live set(s) + a big CTA to `/live`. The marquee feature is currently invisible on the landing page. When nothing's live, show "Next live event" with a countdown.
 2. **Wallet balance + quick stats.** Pull `/api/wallet?userId=` and show the balance prominently (it's only in the navbar now), plus simple P/L. The wallet is a core new primitive the home ignores.
 3. **Unify "Your Bets."** It only shows futures bets today. Also fetch live bets (`/api/live/bets?userId=`) and merge them (WON/LOST/PENDING + payouts) so home is the single place to see all action.
@@ -88,5 +104,5 @@ The home page predates this session's work — it only surfaces futures (old `be
 6. **Polish:** the inline `TournamentLogo`/`GameLogo` components in `Home.js` are defined inside the component (same remount glitch we fixed elsewhere) — hoist them to module scope.
 
 ## Key files
-- New: `wallet.js`, `liveOdds.js`, `liveMarkets.js`, `scripts/sync-live.js`, `scripts/migrate-live-betting.js`, `scripts/recompute-futures.js`, `scripts/clear-futures.js`, `client/src/components/LiveBetting.{js,css}`, `client/src/components/Bracket.{js,css}`, `docs/payments-research.md`, `docs/SESSION-HANDOFF.md`, `.claude/agents/payment-rails-researcher.md`, `.claude/agent-memory/payment-rails-researcher/*`.
+- New: `wallet.js`, `liveOdds.js`, `liveMarkets.js`, `scripts/sync-live.js`, `scripts/replay-live.js`, `scripts/migrate-live-betting.js`, `scripts/recompute-futures.js`, `scripts/clear-futures.js`, `client/src/components/LiveBetting.{js,css}`, `client/src/components/Bracket.{js,css}`, `client/src/components/Countdown.{js,css}`, `docs/payments-research.md`, `docs/SESSION-HANDOFF.md`, `.claude/agents/payment-rails-researcher.md`, `.claude/agent-memory/payment-rails-researcher/*`.
 - Modified: `server.js`, `scripts/sync-upcoming.js`, `client/src/App.js`, `client/src/components/{Navbar,FutureTournaments,PastResults}.{js,css}`, `client/src/index.css`.
