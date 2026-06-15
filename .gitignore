@@ -16,9 +16,13 @@ dist/
 # Logs
 logs/
 *.log
+*.err
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Backfill checkpoint cache
+scripts/.backfill-state.json
 
 # Database backups or local dev DBs
 *.sqlite
@@ -38,3 +42,12 @@ coverage/
 
 # IDE settings
 .idea/
+
+# Claude Code local machine settings (agent definitions + memory ARE tracked)
+.claude/settings.local.json
+
+# Google Drive sync temp folder
+.tmp.driveupload/
+
+# Ad-hoc/scratch SQL run by hand during dev (real scripts live in scripts/)
+/*.sql

@@ -25,7 +25,7 @@
   width: 100%;
   padding: 10px;
   margin-top: 10px;
-  background-color: #0078ff;
+  background-color: var(--brand);
   color: white;
   border: none;
   border-radius: 5px;
@@ -34,7 +34,7 @@
 }
 
 .login-container button:hover {
-  background-color: #005ecb;
+  background-color: #003b00;
 }
 
 /* Error Message */
@@ -56,7 +56,7 @@
 }
 
 .signup-link a {
-  color: #0078ff;
+  color: var(--brand);
   text-decoration: none;
   font-weight: bold;
 }

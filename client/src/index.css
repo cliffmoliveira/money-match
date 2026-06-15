@@ -1,3 +1,30 @@
+:root {
+  --brand: #004d00; /* Navbar green */
+  --brand-alt: #ffd700; /* Gold */
+  --bg: #f4f8f4; /* Subtle green-tinted background */
+  --text: #0b0b0f;
+}
+
+/* Reserve space for the vertical scrollbar so the viewport width does not jump
+   when content height crosses the fold. This prevents a feedback loop with the
+   auto-scaling bracket (scrollbar toggling -> width change -> rescale) without
+   painting an empty scrollbar track on short pages. */
+html {
+  scrollbar-gutter: stable;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a { color: var(--brand); }
+a:hover { color: var(--brand-alt); }
+
 .login-container {
   max-width: 400px;
   margin: 50px auto;

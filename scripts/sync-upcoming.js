@@ -1,0 +1,387 @@
+/**
+ * Populate the Future Tournaments page with upcoming MAJOR fighting-game
+ * tournaments from start.gg and their top-seeded entrants (so there's
+ * something to bet on).
+ *
+ * Unlike past results, upcoming events can't be filtered by attendance
+ * (registration fills up close to the date), so we curate by known major
+ * brands and pull every upcoming edition of each.
+ *
+ * For each matching tournament it upserts the tournament (+ logo), each event
+ * for a tracked game, and the top N seeds as players_games_tournaments rows
+ * with a starting live_odds of 1.0.
+ *
+ * Usage:
+ *   node scripts/sync-upcoming.js [--months N] [--top N] [--dry-run]
+ */
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
+
+const db = require('../db/db');
+const { startgg } = require('../startggClient');
+const { fieldProbabilities } = require('../liveOdds');
+
+const FIELD_PLAYER_NAME = 'The Field';
+// Futures open only within this many days of the event (seeding is finalized
+// close to the event) and only when the top seed is genuinely low.
+const FUTURES_WINDOW_DAYS = 21;
+const SEED_SANITY_MAX = 4;
+// Reuse the backfill's main-event Grand Finals recorder for the recent-results sync.
+const { processTournament: recordPastResults } = require('./backfill-results');
+
+// Tracked fighting games (start.gg videogame ids). Original backfill set + the
+// remaining Evo 2026 games (2XKO, BlazBlue CF, Invincible Vs., Vampire Savior,
+// Rivals II, UNI2, VF5) so their futures populate.
+const GAME_IDS = [43868, 49783, 33945, 48599, 1386, 1, 36963, 287, 48548, 73221,
+  64423, 37, 108058, 582, 53945, 50203, 114237];
+
+// Curated major brands: { search } is the start.gg name query; { re } must
+// match the tournament name to qualify. Anchored at the start (after an
+// optional "The ") with a word boundary so "Evo 2026" matches but local hype
+// events like "Pre-Evo Warmup" or "Evolution Crash Course" don't.
+const BRANDS = [
+  { search: 'Evo',                     re: /^evo\b/i },
+  // Require a year so the flagship "CEO 2026" matches but "CEO: <subtitle>"
+  // online series don't. (CEOtaku has its own entry below.)
+  { search: 'CEO',                     re: /^ceo\s+\d{4}\b/i },
+  { search: 'Combo Breaker',           re: /^combo\s+breaker\b/i },
+  { search: 'Frosty Faustings',        re: /^frosty\s+faustings\b/i },
+  { search: 'DreamHack',               re: /^dreamhack\b/i },
+  { search: 'Red Bull Kumite',         re: /^red\s+bull\s+kumite\b/i },
+  { search: 'Capcom Cup',              re: /^capcom\s+cup\b/i },
+  { search: 'CEOtaku',                 re: /^ceotaku\b/i },
+  { search: 'The Mixup',               re: /^mixup\b/i },
+  { search: 'VSFighting',              re: /^vs\s*fighting\b/i },
+  { search: 'East Coast Throwdown',    re: /^east\s+coast\s+throwdown\b/i },
+  { search: 'Texas Showdown',          re: /^texas\s+showdown\b/i },
+  // Require a number/roman-numeral/X after "Genesis" to match the Smash major
+  // (Genesis X, Genesis 9) and exclude the "Genesis Cup" online Tekken series.
+  { search: 'Genesis',                 re: /^genesis\s+(x\b|\d|[ivxlcdm]+\b)/i },
+  { search: 'Super Smash Con',         re: /^super\s+smash\s+con\b/i },
+  { search: 'Battle Arena Melbourne',  re: /^battle\s+arena\s+melbourne\b/i },
+  { search: 'Tekken World Tour',       re: /^tekken\s+world\s+tour\b/i },
+  { search: 'Ultimate Fighting Arena', re: /^ultimate\s+fighting\s+arena\b/i },
+];
+
+// Strip a leading "The " so "The Mixup 2026" matches /^mixup\b/.
+const normalizeName = (name) => name.trim().replace(/^the\s+/i, '');
+
+const REQUEST_GAP_MS = 900;
+
+function parseArgs(argv) {
+  const args = { months: 12, top: 8, dryRun: false, results: false, days: 30 };
+  for (let i = 2; i < argv.length; i++) {
+    if (argv[i] === '--months') args.months = Number(argv[++i]);
+    else if (argv[i] === '--top') args.top = Number(argv[++i]);
+    else if (argv[i] === '--days') args.days = Number(argv[++i]);
+    else if (argv[i] === '--dry-run') args.dryRun = true;
+    else if (argv[i] === '--results') args.results = true;
+    else throw new Error(`Unknown argument: ${argv[i]}`);
+  }
+  return args;
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function gql(query, variables) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const data = await startgg(query, variables);
+      await sleep(REQUEST_GAP_MS);
+      return data;
+    } catch (err) {
+      const status = err.response?.status;
+      const retryable = status === 429 || (status >= 500 && status < 600) || (!err.response && !!err.request);
+      if (!retryable || attempt >= 5) throw err;
+      const backoff = Math.min(60000, 2000 * 2 ** attempt);
+      console.warn(`  start.gg ${status || 'network'}; retry in ${backoff / 1000}s (${attempt}/5)`);
+      await sleep(backoff);
+    }
+  }
+}
+
+const BRAND_SEARCH = `
+query UpcomingBrand($name: String!, $after: Timestamp!, $before: Timestamp!, $ids: [ID]) {
+  tournaments(query: { perPage: 25, page: 1, sortBy: "startAt asc",
+    filter: { name: $name, upcoming: true, afterDate: $after, beforeDate: $before, videogameIds: $ids } }) {
+    nodes { id name slug startAt city countryCode images { type url } }
+  }
+}`;
+
+const PAST_BRAND_SEARCH = `
+query RecentBrand($name: String!, $after: Timestamp!, $before: Timestamp!, $ids: [ID]) {
+  tournaments(query: { perPage: 25, page: 1, sortBy: "startAt desc",
+    filter: { name: $name, past: true, afterDate: $after, beforeDate: $before, videogameIds: $ids } }) {
+    nodes { slug name }
+  }
+}`;
+
+// Pull the entry phase's SEEDS (seed-ordered) rather than the unsorted entrant
+// list — that's the only way to reliably get the actual top seeds (#1, #2 …).
+const TOURNAMENT_ENTRANTS = `
+query Entrants($slug: String!, $ids: [ID]) {
+  tournament(slug: $slug) {
+    id name slug startAt city countryCode
+    images { type url }
+    events(limit: 20, filter: { videogameId: $ids }) {
+      id name numEntrants videogame { id name }
+      phases {
+        id phaseOrder
+        seeds(query: { perPage: 16, page: 1 }) {
+          nodes { seedNum entrant { id name } }
+        }
+      }
+    }
+  }
+}`;
+
+function logoFrom(images = []) {
+  return images.find((i) => i.type === 'profile')?.url
+    || images.find((i) => i.type === 'banner')?.url
+    || null;
+}
+
+async function upsertTournament(t) {
+  const date = new Date(t.startAt * 1000).toISOString().slice(0, 10);
+  const logoUrl = logoFrom(t.images);
+  const existing = await db.getAsync('SELECT id FROM tournaments WHERE startgg_id = ?', [t.id]);
+  const nameTaken = await db.getAsync('SELECT id FROM tournaments WHERE name = ? AND id != ?', [t.name, existing?.id ?? -1]);
+  const name = nameTaken ? `${t.name} (${date})` : t.name;
+  if (existing) {
+    await db.runAsync(
+      'UPDATE tournaments SET name = ?, date = ?, city = ?, country = ?, logo_url = ? WHERE id = ?',
+      [name, date, t.city || '', t.countryCode || '', logoUrl, existing.id]
+    );
+    return existing.id;
+  }
+  const result = await db.runAsync(
+    'INSERT INTO tournaments (name, date, city, country, startgg_id, logo_url) VALUES (?, ?, ?, ?, ?, ?)',
+    [name, date, t.city || '', t.countryCode || '', t.id, logoUrl]
+  );
+  return result.lastID;
+}
+
+async function upsertGame(g) {
+  const existing = await db.getAsync('SELECT id FROM games WHERE startgg_id = ? OR name = ?', [g.id, g.name]);
+  if (existing) {
+    await db.runAsync('UPDATE games SET startgg_id = COALESCE(startgg_id, ?) WHERE id = ?', [g.id, existing.id]);
+    return existing.id;
+  }
+  const result = await db.runAsync('INSERT INTO games (name, startgg_id) VALUES (?, ?)', [g.name, g.id]);
+  return result.lastID;
+}
+
+async function upsertPlayer(entrant) {
+  const name = entrant?.name?.trim();
+  if (!name) return null;
+  const existing = await db.getAsync('SELECT id FROM players WHERE startgg_id = ? OR name = ?', [entrant.id, name]);
+  if (existing) {
+    await db.runAsync('UPDATE players SET startgg_id = COALESCE(startgg_id, ?) WHERE id = ?', [entrant.id, existing.id]);
+    return existing.id;
+  }
+  const result = await db.runAsync('INSERT INTO players (name, country, startgg_id) VALUES (?, ?, ?)', [name, '', entrant.id]);
+  return result.lastID;
+}
+
+function topSeeds(entrants = [], top) {
+  return [...entrants]
+    .map((e) => ({ ...e, seedNum: e.seeds?.[0]?.seedNum ?? Infinity }))
+    .sort((a, b) => a.seedNum - b.seedNum)
+    .slice(0, top);
+}
+
+// Reserved synthetic entrant representing every unlisted player ("the field").
+async function upsertFieldPlayer() {
+  const existing = await db.getAsync('SELECT id FROM players WHERE name = ?', [FIELD_PLAYER_NAME]);
+  if (existing) return existing.id;
+  const res = await db.runAsync('INSERT INTO players (name, country) VALUES (?, ?)', [FIELD_PLAYER_NAME, '']);
+  return res.lastID;
+}
+
+// Store an entrant with its seed, seed-based fair probability, and fixed odds.
+// Re-runs refresh seed/prob/odds (seeding finalizes near event time) but never
+// after results are in (is_winner set).
+async function addEntrant(tournamentId, gameId, playerId, { seedNum = null, winProb = null, odds = 1.0 } = {}) {
+  await db.runAsync(
+    `INSERT INTO players_games_tournaments (tournament_id, game_id, player_id, seed_num, win_probability, live_odds, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+     ON CONFLICT(tournament_id, game_id, player_id) DO UPDATE
+       SET seed_num = excluded.seed_num,
+           win_probability = excluded.win_probability,
+           live_odds = excluded.live_odds
+       WHERE players_games_tournaments.is_winner IS NULL
+          OR players_games_tournaments.is_winner = 0`,
+    [tournamentId, gameId, playerId, seedNum, winProb, odds]
+  );
+}
+
+// Top `n` real seeds for an event: take the entry phase (lowest phaseOrder),
+// keep seeds with a real entrant + numeric seedNum, sort by seedNum, slice.
+// Returns [{ seedNum, entrant }]. Exposed for testing.
+function pickTopSeeds(ev, n) {
+  const phases = (ev.phases || []).slice().sort((a, b) => (a.phaseOrder ?? 0) - (b.phaseOrder ?? 0));
+  const nodes = (phases[0]?.seeds?.nodes || [])
+    .filter((s) => s && s.entrant && s.entrant.id != null && Number.isFinite(s.seedNum))
+    .sort((a, b) => a.seedNum - b.seedNum)
+    .slice(0, n);
+  return nodes;
+}
+
+async function processTournament(slug, args) {
+  const data = await gql(TOURNAMENT_ENTRANTS, { slug, ids: GAME_IDS });
+  const t = data?.tournament;
+  if (!t) return { events: 0, players: 0 };
+
+  const events = (t.events || []).filter((ev) => ev.videogame && GAME_IDS.includes(Number(ev.videogame.id)) && (ev.numEntrants || 0) > 0);
+  if (events.length === 0) return { events: 0, players: 0 };
+
+  // Always record the tournament so it appears on the page (with a countdown),
+  // even before futures open.
+  const tournamentId = args.dryRun ? null : await upsertTournament(t);
+
+  // Futures only open once an event is genuinely seeded. Far-future majors
+  // aren't seeded yet and report provisional/huge seed values, so we gate on
+  // (a) being within a few weeks of the start and (b) the top seeds looking
+  // real (a low seed actually present).
+  const daysOut = (t.startAt * 1000 - Date.now()) / 86400000;
+  const futuresOpen = daysOut <= FUTURES_WINDOW_DAYS;
+
+  let eventCount = 0;
+  let playerCount = 0;
+
+  for (const ev of events) {
+    const seedNodes = pickTopSeeds(ev, args.top);
+    if (seedNodes.length === 0) continue;
+    const minSeed = seedNodes[0].seedNum;
+    const seedsLookReal = minSeed <= SEED_SANITY_MAX; // real seeding -> seed 1 present
+    if (!futuresOpen || !seedsLookReal) continue; // tournament still shows (countdown)
+
+    if (args.dryRun) {
+      console.log(`   ${ev.videogame.name}: ${seedNodes.map((s) => s.entrant.name).join(', ')}`);
+      eventCount++; playerCount += seedNodes.length;
+      continue;
+    }
+
+    const gameId = await upsertGame(ev.videogame);
+
+    // Replace this game's prior futures entrants (those with no bets and no
+    // result) with the current top 16, so re-syncs don't accumulate stale or
+    // duplicate seeds. Entrants someone has bet on are preserved.
+    await db.runAsync(
+      `DELETE FROM players_games_tournaments
+       WHERE tournament_id = ? AND game_id = ?
+         AND (is_winner IS NULL OR is_winner = 0)
+         AND NOT EXISTS (
+           SELECT 1 FROM bets b
+           WHERE b.tournament_id = players_games_tournaments.tournament_id
+             AND b.game_id = players_games_tournaments.game_id
+             AND b.player_id = players_games_tournaments.player_id)`,
+      [tournamentId, gameId]
+    );
+
+    // Price by RANK (1..N) for a robust 1/seed ladder, but display the real
+    // start.gg seedNum.
+    const { players: probs, field } = fieldProbabilities(seedNodes.map((_, i) => i + 1));
+
+    for (let i = 0; i < seedNodes.length; i++) {
+      const pid = await upsertPlayer(seedNodes[i].entrant);
+      if (!pid) continue;
+      await addEntrant(tournamentId, gameId, pid, {
+        seedNum: seedNodes[i].seedNum,
+        winProb: probs[i].prob,
+        odds: probs[i].odds,
+      });
+      playerCount++;
+    }
+
+    // One "Field" entrant for everyone outside the listed seeds (skip if the
+    // listed seeds already cover essentially the whole field).
+    if (field.prob > 0.005) {
+      const fieldPid = await upsertFieldPlayer();
+      await addEntrant(tournamentId, gameId, fieldPid, { seedNum: null, winProb: field.prob, odds: field.odds });
+    }
+
+    eventCount++;
+  }
+  return { events: eventCount, players: playerCount };
+}
+
+// Find unique tournament slugs matching the curated brands in a date window.
+async function findBrandTournaments(query, after, before) {
+  const seen = new Map(); // slug -> name
+  for (const brand of BRANDS) {
+    try {
+      const data = await gql(query, { name: brand.search, after, before, ids: GAME_IDS });
+      for (const t of data?.tournaments?.nodes || []) {
+        if (!t.slug || seen.has(t.slug)) continue;
+        if (!brand.re.test(normalizeName(t.name))) continue;
+        seen.set(t.slug, t.name);
+      }
+    } catch (err) {
+      console.error(`Brand "${brand.search}" search failed: ${err.message}`);
+    }
+  }
+  return seen;
+}
+
+// Future page: upcoming major tournaments + their top seeds.
+async function syncUpcoming({ months = 12, top = 8, dryRun = false } = {}) {
+  const now = Math.floor(Date.now() / 1000);
+  const before = now + months * 30 * 86400;
+  console.log(`[sync-upcoming] next ${months} months, top ${top} seeds${dryRun ? ' [DRY RUN]' : ''}`);
+
+  const seen = await findBrandTournaments(BRAND_SEARCH, now, before);
+  console.log(`[sync-upcoming] found ${seen.size} upcoming major tournament(s).`);
+
+  let totalEvents = 0, totalPlayers = 0, withData = 0;
+  for (const [slug, name] of seen) {
+    try {
+      const { events, players } = await processTournament(slug, { top, dryRun });
+      if (events > 0) {
+        withData++; totalEvents += events; totalPlayers += players;
+        console.log(`  ${name} [${slug}]: ${events} game(s), ${players} entrant(s)`);
+      }
+    } catch (err) {
+      console.error(`  Failed on ${slug}: ${err.message}`);
+    }
+  }
+  console.log(`[sync-upcoming] done: ${withData} tournaments, ${totalEvents} games, ${totalPlayers} entrants.`);
+  return { tournaments: withData, events: totalEvents, players: totalPlayers };
+}
+
+// Past page: record recently-completed major Grand Finals winners.
+async function syncRecentResults({ days = 30, minEntrants = 0 } = {}) {
+  const now = Math.floor(Date.now() / 1000);
+  const after = now - days * 86400;
+  console.log(`[sync-results] majors completed in the last ${days} days`);
+
+  const seen = await findBrandTournaments(PAST_BRAND_SEARCH, after, now);
+  console.log(`[sync-results] found ${seen.size} recently-completed major tournament(s).`);
+
+  const gameIdSet = new Set(GAME_IDS);
+  let totalMatches = 0, withData = 0;
+  for (const [slug, name] of seen) {
+    try {
+      const recorded = await recordPastResults(slug, gameIdSet, { minEntrants, dryRun: false });
+      if (recorded > 0) {
+        withData++; totalMatches += recorded;
+        console.log(`  ${name} [${slug}]: ${recorded} result(s)`);
+      }
+    } catch (err) {
+      console.error(`  Failed on ${slug}: ${err.message}`);
+    }
+  }
+  console.log(`[sync-results] done: ${totalMatches} results across ${withData} tournaments.`);
+  return { tournaments: withData, matches: totalMatches };
+}
+
+module.exports = { syncUpcoming, syncRecentResults, processTournament, pickTopSeeds };
+
+// CLI: `node scripts/sync-upcoming.js [--months N] [--top N] [--dry-run] [--results]`
+if (require.main === module) {
+  const args = parseArgs(process.argv);
+  const run = args.results
+    ? syncRecentResults({ days: args.days })
+    : syncUpcoming({ months: args.months, top: args.top, dryRun: args.dryRun });
+  run.then(() => process.exit(0)).catch((err) => { console.error(`\nSync stopped: ${err.message}`); process.exit(1); });
+}
