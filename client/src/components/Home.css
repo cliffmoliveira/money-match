@@ -144,6 +144,9 @@
 .bet-game { flex: 0.5; text-align: center; }
 .bet-player { flex: 1.5; text-align: left; padding: 0 10px; }
 .bet-amount { flex-basis: 30%; text-align: right; font-weight: 600; }
+.bet-kind { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; padding: 2px 7px; border-radius: 999px; background: #eef2ff; color: #3730a3; flex-shrink: 0; }
+.bet-kind.live { background: #fee2e2; color: #b91c1c; }
+.bet-result { font-weight: 600; margin-left: 2px; }
 
 /* Skeleton & Feedback */
 .skeleton {
@@ -164,3 +167,33 @@
   .hero { padding: 32px 20px; }
   .hero h1 { font-size: 28px; }
 }
+
+/* Live Now hero */
+.live-hero {
+  border-radius: 20px;
+  padding: 20px 24px;
+  margin: 12px 0 28px;
+  background: linear-gradient(135deg, #07380a 0%, #0c5a10 100%);
+  color: #fff;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.live-hero-top { display: flex; align-items: center; justify-content: space-between; }
+.live-hero-badge { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; letter-spacing: .08em; font-size: 13px; }
+.live-dot { width: 9px; height: 9px; border-radius: 50%; background: #ff3b30; animation: livePulse 1.6s infinite; }
+@keyframes livePulse {
+  0% { box-shadow: 0 0 0 0 rgba(255,59,48,.7); }
+  70% { box-shadow: 0 0 0 8px rgba(255,59,48,0); }
+  100% { box-shadow: 0 0 0 0 rgba(255,59,48,0); }
+}
+.live-hero-balance { background: rgba(255,255,255,.15); padding: 4px 12px; border-radius: 999px; font-weight: 600; font-size: 14px; }
+.live-hero-sets { display: flex; flex-wrap: wrap; gap: 10px; }
+.live-hero-set { flex: 1; min-width: 240px; background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.18); border-radius: 14px; padding: 10px 14px; }
+.live-hero-meta { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: rgba(255,255,255,.7); margin-bottom: 6px; }
+.live-hero-match { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+.lh-player { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lh-player b { color: var(--brand-alt); margin-left: 4px; }
+.lh-vs { color: rgba(255,255,255,.6); font-size: 12px; }
+.live-hero-cta { align-self: flex-start; font-weight: 600; }

@@ -1,0 +1,77 @@
+/* Segmented countdown (shared by Future Tournaments + Home) */
+.countdown {
+  margin-top: 14px;
+  text-align: center;
+}
+.countdown-title {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--brand);
+  margin-bottom: 10px;
+}
+.countdown-segs {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.countdown-seg {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 70px;
+  padding: 12px 10px;
+  border-radius: 12px;
+  background: linear-gradient(150deg, #036b03 0%, var(--brand) 100%);
+  box-shadow: 0 4px 10px rgba(0, 77, 0, 0.28);
+}
+.countdown-num {
+  color: #ffffff;
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.countdown-label {
+  color: #d8f3d8;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-top: 6px;
+}
+.countdown-sep {
+  color: var(--brand);
+  font-size: 26px;
+  font-weight: 800;
+  align-self: flex-start;
+  margin-top: 10px;
+}
+.countdown-live {
+  display: inline-block;
+  margin-top: 14px;
+  padding: 10px 24px;
+  border-radius: 999px;
+  background: var(--brand);
+  color: #fff;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+@media (max-width: 520px) {
+  .countdown-seg { min-width: 56px; padding: 9px 6px; }
+  .countdown-num { font-size: 22px; }
+  .countdown-sep { font-size: 20px; }
+}
+
+/* Compact variant: smaller and left-aligned, for Home "Next Up" cards */
+.countdown.compact { margin-top: 12px; text-align: left; }
+.countdown.compact .countdown-title { font-size: 10px; letter-spacing: 1.5px; margin-bottom: 6px; }
+.countdown.compact .countdown-segs { gap: 6px; }
+.countdown.compact .countdown-seg { min-width: 44px; padding: 7px 6px; border-radius: 9px; }
+.countdown.compact .countdown-num { font-size: 18px; }
+.countdown.compact .countdown-label { font-size: 9px; letter-spacing: 1px; margin-top: 3px; }
+.countdown.compact .countdown-sep { font-size: 16px; margin-top: 6px; }
+.countdown-live.compact { margin-top: 12px; padding: 7px 16px; font-size: 12px; }

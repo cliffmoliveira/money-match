@@ -2,47 +2,7 @@ import React, { useEffect, useState } from 'react';
 import './FutureTournaments.css';
 import { getGameAlt, getGameLogoSources, getGameLogoStyle } from '../utils/gameLogos';
 import { getTournamentLogoSources, getTournamentAlt, getTournamentLogoStyle } from '../utils/tournamentLogos';
-
-// Self-contained, second-ticking countdown to a YYYY-MM-DD event date. Owns its
-// own interval so only it re-renders each second (not the whole tournament list).
-const Countdown = ({ date }) => {
-  const [now, setNow] = useState(Date.now());
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, []);
-  const target = new Date(`${date}T00:00:00`).getTime();
-  if (isNaN(target)) return null;
-  const diff = target - now;
-  if (diff <= 0) return <div className="countdown-live">Happening now</div>;
-
-  const total = Math.floor(diff / 1000);
-  const days = Math.floor(total / 86400);
-  const hours = Math.floor((total % 86400) / 3600);
-  const minutes = Math.floor((total % 3600) / 60);
-  const seconds = total % 60;
-  const seg = (value, label) => (
-    <div className="countdown-seg" key={label}>
-      <span className="countdown-num">{String(value).padStart(2, '0')}</span>
-      <span className="countdown-label">{label}</span>
-    </div>
-  );
-
-  return (
-    <div className="countdown">
-      <div className="countdown-title">Starts in</div>
-      <div className="countdown-segs">
-        {seg(days, 'Days')}
-        <span className="countdown-sep">:</span>
-        {seg(hours, 'Hrs')}
-        <span className="countdown-sep">:</span>
-        {seg(minutes, 'Min')}
-        <span className="countdown-sep">:</span>
-        {seg(seconds, 'Sec')}
-      </div>
-    </div>
-  );
-};
+import Countdown from './Countdown';
 
 // Defined at module scope so their component identity is stable across
 // FutureTournaments re-renders (e.g. every stake keystroke). Defining them
