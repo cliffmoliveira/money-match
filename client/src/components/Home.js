@@ -31,8 +31,7 @@ const TournamentLogo = ({ name, height = 24 }) => {
 const GameLogo = ({ name, height = 24, customStyles = {} }) => {
   const [index, setIndex] = useState(0);
   if (!name) return null;
-  const { avif, webp, png, jpg, jpeg } = getGameLogoSources(name);
-  const candidates = [avif, webp, png, jpg, jpeg].filter(Boolean);
+  const candidates = Object.values(getGameLogoSources(name)).filter(Boolean);
   const src = candidates[index];
   if (!src) return <span>{name}</span>;
   return (

@@ -11,16 +11,15 @@ import Countdown from './Countdown';
 const GameTitle = ({ name, height = 28 }) => {
   const [error, setError] = useState(false);
   const [src, setSrc] = useState(null);
-  const { avif, webp, png, jpg, jpeg } = getGameLogoSources(name || '');
+  const candidates = Object.values(getGameLogoSources(name || '')).filter(Boolean);
 
   useEffect(() => {
     setError(false);
-    const candidates = [avif, webp, png, jpg, jpeg].filter(Boolean);
     setSrc(candidates[0] || null);
-  }, [avif, webp, png, jpg, jpeg]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [name]);
 
   const handleError = () => {
-    const candidates = [avif, webp, png, jpg, jpeg].filter(Boolean);
     const currentIndex = candidates.indexOf(src);
     if (currentIndex + 1 < candidates.length) {
       setSrc(candidates[currentIndex + 1]);

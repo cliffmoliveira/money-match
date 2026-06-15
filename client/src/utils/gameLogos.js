@@ -85,9 +85,10 @@ export function getGameAlt(name) {
 
 export function getGameLogoSources(name) {
   const slug = slugifyGameName(name);
-  if (!slug) return { avif: null, webp: null, png: null, jpg: null, jpeg: null };
+  if (!slug) return { svg: null, avif: null, webp: null, png: null, jpg: null, jpeg: null };
   const base = process.env.PUBLIC_URL || '';
   return {
+    svg: `${base}/assets/games/${slug}.svg`,
     avif: `${base}/assets/games/${slug}.avif`,
     webp: `${base}/assets/games/${slug}.webp`,
     png: `${base}/assets/games/${slug}.png`,
@@ -121,6 +122,7 @@ export function getGameLogoSourcesList(name) {
   const slug = slugifyGameName(name);
   if (!slug) return [];
   return [
+    `${base}/assets/games/${slug}.svg`,
     `${base}/assets/games/${slug}.avif`,
     `${base}/assets/games/${slug}.webp`,
     `${base}/assets/games/${slug}.png`,
