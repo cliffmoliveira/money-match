@@ -3,6 +3,9 @@ import './LiveBetting.css';
 import Bracket from './Bracket';
 
 const fmt = (cents) => `$${(cents / 100).toFixed(2)}`;
+// Signed money: a parimutuel "won" pick can still net negative (e.g. a one-sided
+// pool), so format the +/− from the value rather than hard-coding a sign.
+const signed = (cents) => `${cents >= 0 ? '+' : '−'}$${(Math.abs(cents) / 100).toFixed(2)}`;
 const POLL_MS = 15000;
 
 const LiveBetting = () => {
@@ -235,7 +238,7 @@ const LiveBetting = () => {
                   <span className={`live-mybets-status ${st.cls}`}>{st.label}</span>
                   <span className="live-mybets-amount">
                     {b.state === 'won'
-                      ? `+${fmt(b.payout_cents - b.amount_cents)}`
+                      ? signed(b.payout_cents - b.amount_cents)
                       : b.state === 'lost'
                       ? `−${fmt(b.amount_cents)}`
                       : fmt(b.amount_cents)}
