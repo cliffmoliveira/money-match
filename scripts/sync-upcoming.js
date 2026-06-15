@@ -375,7 +375,7 @@ async function syncRecentResults({ days = 30, minEntrants = 0 } = {}) {
   return { tournaments: withData, matches: totalMatches };
 }
 
-module.exports = { syncUpcoming, syncRecentResults, pickTopSeeds };
+module.exports = { syncUpcoming, syncRecentResults, processTournament, pickTopSeeds };
 
 // CLI: `node scripts/sync-upcoming.js [--months N] [--top N] [--dry-run] [--results]`
 if (require.main === module) {
