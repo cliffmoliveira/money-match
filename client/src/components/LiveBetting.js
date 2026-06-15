@@ -1,12 +1,31 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import './LiveBetting.css';
 import Bracket from './Bracket';
+import { getGameLogoSources, getGameAlt, getGameLogoStyle } from '../utils/gameLogos';
 
 const fmt = (cents) => `$${(cents / 100).toFixed(2)}`;
 // Signed money: a parimutuel "won" pick can still net negative (e.g. a one-sided
 // pool), so format the +/− from the value rather than hard-coding a sign.
 const signed = (cents) => `${cents >= 0 ? '+' : '−'}$${(Math.abs(cents) / 100).toFixed(2)}`;
 const POLL_MS = 15000;
+
+// Game logo for the live section headers; walks the asset candidates and falls
+// back to the game name as text if none load.
+const GameLogo = ({ name, height = 30 }) => {
+  const [index, setIndex] = useState(0);
+  if (!name) return null;
+  const candidates = Object.values(getGameLogoSources(name)).filter(Boolean);
+  const src = candidates[index];
+  if (!src) return <>{name}</>;
+  return (
+    <img
+      src={src}
+      alt={getGameAlt(name)}
+      style={getGameLogoStyle(name, height)}
+      onError={() => setIndex((i) => (i + 1 < candidates.length ? i + 1 : i))}
+    />
+  );
+};
 
 const LiveBetting = () => {
   const [markets, setMarkets] = useState([]);
@@ -297,7 +316,7 @@ const LiveBetting = () => {
               <h2>{tournamentName}</h2>
               {Object.entries(games).map(([gameName, mkts]) => (
                 <div key={gameName} className="live-game">
-                  <h3>{gameName}</h3>
+                  <h3 className="live-game-title"><GameLogo name={gameName} height={30} /><span>{gameName}</span></h3>
                   <Bracket
                     markets={mkts}
                     slip={slip}

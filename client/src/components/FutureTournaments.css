@@ -561,3 +561,28 @@ h1 {
 .react-select__dropdown-indicator:hover {
   color: #002d00;
 }
+
+/* Collapsible game accordion */
+.game-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  margin: 6px 0 0;
+  background: #ffffff;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+.game-toggle:hover { background: #f0f7f0; }
+.game-toggle-name { flex: 1; font-size: 16px; font-weight: 700; color: #004d00; text-transform: uppercase; letter-spacing: .02em; }
+.game-toggle-meta { font-size: 12px; color: #6c6d75; white-space: nowrap; }
+.game-toggle-chevron { font-size: 13px; color: #004d00; transition: transform 160ms ease; }
+.game-toggle-chevron.open { transform: rotate(180deg); }
+/* Collapsed: strip the old card so only the compact toggle row shows */
+.game-section.collapsed { margin: 0; padding: 0; border: none; background: none; box-shadow: none; }
+/* Expanded: keep the card; the toggle becomes a header with a divider */
+.game-section.expanded .game-toggle { margin-top: 0; border: none; border-bottom: 1px solid #e0e0e0; border-radius: 0; background: transparent; }

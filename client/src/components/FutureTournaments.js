@@ -93,6 +93,12 @@ const FutureTournaments = () => {
   const [filterGame, setFilterGame] = useState('');
   const [filterCountry, setFilterCountry] = useState('');
   const [filterYear, setFilterYear] = useState('');
+  const [expandedGames, setExpandedGames] = useState(() => new Set()); // collapsed by default
+  const toggleGame = (key) => setExpandedGames((prev) => {
+    const next = new Set(prev);
+    if (next.has(key)) next.delete(key); else next.add(key);
+    return next;
+  });
 
   const userId = localStorage.getItem('userId');
 
@@ -517,8 +523,19 @@ const FutureTournaments = () => {
                 </p>
               );
             }
-            return gamesToShow.map((game) => (
-              <div key={game.game_id} className="game-section">
+            return gamesToShow.map((game) => {
+              const gameKey = `${tournament.id}_${game.game_id}`;
+              const isExpanded = expandedGames.has(gameKey);
+              const seedCount = (playerStats[gameKey] || []).filter((p) => p.player_name !== 'The Field').length;
+              return (
+              <div key={game.game_id} className={`game-section ${isExpanded ? 'expanded' : 'collapsed'}`}>
+                <button type="button" className="game-toggle" onClick={() => toggleGame(gameKey)} aria-expanded={isExpanded}>
+                  <span className="game-toggle-name">{game.game_name}</span>
+                  {seedCount > 0 && <span className="game-toggle-meta">{seedCount} seeds</span>}
+                  <span className={`game-toggle-chevron ${isExpanded ? 'open' : ''}`} aria-hidden="true">▾</span>
+                </button>
+                {isExpanded && (
+                  <>
                 <h3 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <GameTitle name={game.game_name} height={96} />
                 </h3>
@@ -588,8 +605,11 @@ const FutureTournaments = () => {
                     })}
                   </tbody>
                 </table>
+                  </>
+                )}
               </div>
-            ));
+              );
+            });
           })()}
         </div>
       ))}

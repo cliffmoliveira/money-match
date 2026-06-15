@@ -29,8 +29,11 @@ const SEED_SANITY_MAX = 4;
 // Reuse the backfill's main-event Grand Finals recorder for the recent-results sync.
 const { processTournament: recordPastResults } = require('./backfill-results');
 
-// Tracked fighting games (start.gg videogame ids), same set as the backfill.
-const GAME_IDS = [43868, 49783, 33945, 48599, 1386, 1, 36963, 287, 48548, 73221];
+// Tracked fighting games (start.gg videogame ids). Original backfill set + the
+// remaining Evo 2026 games (2XKO, BlazBlue CF, Invincible Vs., Vampire Savior,
+// Rivals II, UNI2, VF5) so their futures populate.
+const GAME_IDS = [43868, 49783, 33945, 48599, 1386, 1, 36963, 287, 48548, 73221,
+  64423, 37, 108058, 582, 53945, 50203, 114237];
 
 // Curated major brands: { search } is the start.gg name query; { re } must
 // match the tournament name to qualify. Anchored at the start (after an

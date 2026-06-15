@@ -24,6 +24,15 @@ export const gameSlugMap = {
   'Super Street Fighter 2: Turbo': 'super-street-fighter-ii-turbo', // Corrected slug
   'Super Street Fighter II: Turbo': 'super-street-fighter-ii-turbo', // Alias
   'Virtua Fighter 5 R.E.V.O.': 'virtua-fighter-5-revo', // Corrected slug
+  'Virtua Fighter 5 R.E.V.O. World Stage': 'virtua-fighter-5-revo', // Evo 2026 name
+  // Evo 2026 additions (assets are Start.gg box art — swap for transparent logos when available)
+  '2XKO': '2xko',
+  'BlazBlue: Central Fiction': 'blazblue-central-fiction',
+  'Invincible Vs.': 'invincible-vs',
+  'Invincible VS': 'invincible-vs', // event/display alias
+  'Vampire Savior: The Lord of Vampire': 'vampire-savior',
+  'Vampire Savior': 'vampire-savior', // alias
+  'Under Night In-Birth II Sys:Celes': 'under-night-in-birth-2-sysceles', // Evo 2026 name
 };
 
 // Per-game visual tuning (very wide logos, etc.) by slug
