@@ -63,60 +63,79 @@ const Home = () => {
   const [balanceCents, setBalanceCents] = useState(null);
 
   const userId = localStorage.getItem('userId');
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [tournamentsRes, allTournamentsRes, pastRes, gamesRes, playersRes] = await Promise.all([
-          fetch('/api/tournaments'),
-          fetch('/api/tournaments/all'),
-          fetch('/api/past-results'),
-          fetch('/api/games'),
-          fetch('/api/players')
-        ]);
+    let cancelled = false;
 
-        if (!tournamentsRes.ok || !allTournamentsRes.ok || !pastRes.ok || !gamesRes.ok || !playersRes.ok) {
-          throw new Error('Failed to load homepage data');
+    const fetchOnce = async () => {
+      const [tournamentsRes, allTournamentsRes, pastRes, gamesRes, playersRes] = await Promise.all([
+        fetch('/api/tournaments'),
+        fetch('/api/tournaments/all'),
+        fetch('/api/past-results'),
+        fetch('/api/games'),
+        fetch('/api/players')
+      ]);
+      if (!tournamentsRes.ok || !allTournamentsRes.ok || !pastRes.ok || !gamesRes.ok || !playersRes.ok) {
+        throw new Error('Failed to load homepage data');
+      }
+      return {
+        tournaments: await tournamentsRes.json(),
+        allTournamentsData: await allTournamentsRes.json(),
+        past: await pastRes.json(),
+        gamesData: await gamesRes.json(),
+        playersData: await playersRes.json(),
+      };
+    };
+
+    // A few automatic retries with backoff so a brief API blip self-heals
+    // instead of stranding the page; the error UI also offers a manual Retry.
+    const run = async () => {
+      setLoading(true);
+      setError(null);
+      const MAX = 4;
+      for (let attempt = 1; attempt <= MAX && !cancelled; attempt++) {
+        try {
+          const { tournaments, allTournamentsData, past, gamesData, playersData } = await fetchOnce();
+          if (cancelled) return;
+          setGames(gamesData);
+          setPlayers(playersData);
+          setAllTournaments(allTournamentsData);
+          setUpcoming((tournaments || []).slice().sort((a, b) => new Date(a.date) - new Date(b.date)));
+          setRecentChampions(
+            (past?.data || [])
+              .slice()
+              .sort((a, b) => new Date(b.date) - new Date(a.date))
+              .slice(0, 6)
+              .map((r) => ({
+                tournament: r.tournament,
+                date: r.date,
+                game: r.game,
+                winner: r.winner,
+                loser: r.loser,
+                score: `${r.winnerRoundsWon}-${r.loserRoundsWon}`,
+              }))
+          );
+          setError(null);
+          setLoading(false);
+          return;
+        } catch (err) {
+          console.error(`Home load error (attempt ${attempt}/${MAX}):`, err.message);
+          if (attempt === MAX) {
+            if (!cancelled) {
+              setError('Failed to load homepage. Please try again later.');
+              setLoading(false);
+            }
+          } else {
+            await new Promise((r) => setTimeout(r, 1200 * attempt)); // 1.2s, 2.4s, 3.6s
+          }
         }
-
-        const tournaments = await tournamentsRes.json();
-        const allTournamentsData = await allTournamentsRes.json();
-        const past = await pastRes.json();
-        const gamesData = await gamesRes.json();
-        const playersData = await playersRes.json();
-
-        setGames(gamesData);
-        setPlayers(playersData);
-        setAllTournaments(allTournamentsData);
-
-        const sortedUpcoming = (tournaments || []).slice().sort(
-          (a, b) => new Date(a.date) - new Date(b.date)
-        );
-        setUpcoming(sortedUpcoming);
-
-        const champions = (past?.data || [])
-          .slice()
-          .sort((a, b) => new Date(b.date) - new Date(a.date))
-          .slice(0, 6)
-          .map(r => ({
-            tournament: r.tournament,
-            date: r.date,
-            game: r.game,
-            winner: r.winner,
-            loser: r.loser,
-            score: `${r.winnerRoundsWon}-${r.loserRoundsWon}`
-          }));
-        setRecentChampions(champions);
-      } catch (err) {
-        console.error('Home load error:', err.message);
-        setError('Failed to load homepage. Please try again later.');
-      } finally {
-        setLoading(false);
       }
     };
 
-    fetchData();
-  }, []);
+    run();
+    return () => { cancelled = true; };
+  }, [reloadKey]);
 
   useEffect(() => {
     const fetchBets = async () => {
@@ -168,7 +187,14 @@ const Home = () => {
   }
 
   if (error) {
-    return <div className="home-container"><div className="error-message">{error}</div></div>;
+    return (
+      <div className="home-container">
+        <div className="error-state">
+          <p className="error-message">{error}</p>
+          <button className="btn primary" onClick={() => setReloadKey((k) => k + 1)}>Retry</button>
+        </div>
+      </div>
+    );
   }
 
   const spotlight = upcoming?.slice(0, 4);

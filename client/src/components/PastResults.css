@@ -68,7 +68,7 @@
   font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
   color: var(--muted); border-bottom: 1px solid var(--border);
 }
-.results-table th.game { text-align: left; }
+.results-table th.game { text-align: center; }
 .results-table td { padding: 15px 14px; border-bottom: 1px solid var(--border-soft); vertical-align: middle; }
 .results-table tbody tr { transition: background-color 0.15s ease; }
 .results-table tbody tr:hover { background: var(--surface); }
@@ -77,8 +77,8 @@
 .tournament-name img { max-width: 180px; }
 .location { color: var(--muted); min-width: 120px; }
 .date { color: var(--muted); font-family: 'Saira', sans-serif; font-weight: 500; font-variant-numeric: tabular-nums; min-width: 100px; }
-.game { color: var(--muted); font-family: 'Saira', sans-serif; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; min-width: 100px; text-align: left; }
-.results-table td.game > div { display: flex; align-items: center; justify-content: flex-start; width: 100%; }
+.game { color: var(--muted); font-family: 'Saira', sans-serif; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; min-width: 100px; text-align: center; }
+.results-table td.game > div { display: flex; align-items: center; justify-content: center; width: 100%; }
 .winner { font-family: 'Saira', sans-serif; color: var(--text); font-weight: 700; min-width: 100px; max-width: 180px; overflow-wrap: anywhere; }
 .winner::before { content: "★ "; color: var(--gold); }
 .score { font-family: 'Saira', sans-serif; font-weight: 700; color: var(--win); text-align: center; min-width: 70px; font-variant-numeric: tabular-nums; }

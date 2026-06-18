@@ -193,6 +193,10 @@ body { background: var(--bg); color: var(--text); }
 }
 .champion-card:hover { transform: none; border-color: rgba(231,180,88,0.25); box-shadow: none; }
 .champion-game { display: flex; align-items: center; align-self: flex-start; height: auto; margin-bottom: 14px; }
+
+/* Error state with a manual retry */
+.error-state { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 48px 20px; text-align: center; }
+.error-state .error-message { margin: 0; }
 .champion-winner { font-family: 'Saira', sans-serif; font-size: 19px; font-weight: 700; margin-bottom: 3px; }
 .champion-winner::before { content: "★ "; color: var(--gold); }
 .champion-meta { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; color: var(--text-muted); margin-bottom: 14px; }
