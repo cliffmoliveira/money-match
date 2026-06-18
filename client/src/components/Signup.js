@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './Signup.css';
+import './Login.css';
+import logo from '../assets/images/MoneyMatch.png';
 
 const Signup = () => {
   const [form, setForm] = useState({ username: '', email: '', password: '' });
@@ -39,36 +40,49 @@ const Signup = () => {
   };
 
   return (
-    <div className="signup-container">
-      <h1>Create an Account</h1>
+    <div className="login-container">
+      <img src={logo} alt="Money Match" className="login-logo" />
+      <h2>Create your account</h2>
+      <p className="tagline">Play-money betting on the FGC.</p>
+
+      <div className="auth-toggle">
+        <button type="button" onClick={() => navigate('/login')}>Log in</button>
+        <button type="button" className="active">Sign up</button>
+      </div>
+
       <form onSubmit={handleSubmit}>
-        <label>Username:</label>
+        <label htmlFor="signup-username">Display name</label>
         <input
+          id="signup-username"
           type="text"
           name="username"
           value={form.username}
           onChange={handleChange}
           required
         />
-        <label>Email:</label>
+        <label htmlFor="signup-email">Email</label>
         <input
+          id="signup-email"
           type="email"
           name="email"
+          placeholder="you@example.com"
           value={form.email}
           onChange={handleChange}
           required
         />
-        <label>Password:</label>
+        <label htmlFor="signup-password">Password</label>
         <input
+          id="signup-password"
           type="password"
           name="password"
+          placeholder="••••••••"
           value={form.password}
           onChange={handleChange}
           required
         />
-        <button type="submit">Sign Up</button>
+        <button type="submit">Create account</button>
       </form>
-      {error && <p className="error">{error}</p>}
+      {error && <p className="error-message">{error}</p>}
       {success && <p className="success">{success}</p>}
     </div>
   );

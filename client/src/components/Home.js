@@ -194,6 +194,16 @@ const Home = () => {
     })),
   ].sort((a, b) => betStatusRank[a.status] - betStatusRank[b.status]);
 
+  // Stat-strip metrics (logged-in): open bets + 7-day realized P&L from live bets.
+  const WEEK_MS = 7 * 24 * 3600 * 1000;
+  const openBets =
+    (liveBets || []).filter((b) => b.state === 'placed').length +
+    (bets || []).filter((b) => b.is_winner == null).length;
+  const pnl7Cents = (liveBets || [])
+    .filter((b) => b.state === 'won' || b.state === 'lost')
+    .filter((b) => { const t = b.created_at ? new Date(b.created_at).getTime() : NaN; return isNaN(t) || Date.now() - t <= WEEK_MS; })
+    .reduce((s, b) => s + ((b.payout_cents || 0) - (b.amount_cents || 0)), 0);
+
   const renderHero = () => {
     // Logged-out: value-prop + funnel CTA.
     if (!userId) {
@@ -255,6 +265,25 @@ const Home = () => {
     <div className="home-container">
       {renderHero()}
 
+      {userId && (
+        <div className="stat-strip">
+          <div className="stat-card">
+            <div className="label">Balance</div>
+            <div className="value">{balanceCents != null ? fmt(balanceCents) : '—'}</div>
+          </div>
+          <div className="stat-card">
+            <div className="label">Open bets</div>
+            <div className="value">{openBets}</div>
+          </div>
+          <div className="stat-card">
+            <div className="label">7-day P&amp;L</div>
+            <div className={`value ${pnl7Cents >= 0 ? 'up' : 'down'}`}>
+              {pnl7Cents >= 0 ? '+' : '−'}{Math.abs(pnl7Cents / 100).toFixed(2)}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Upcoming Spotlight */}
       {spotlight && spotlight.length > 0 && (
         <section className="spotlight">
@@ -307,7 +336,7 @@ const Home = () => {
                 <span className="champion-tournament">{c.tournament}</span>
                 <span className="champion-date">{new Date(c.date + 'T00:00:00').toLocaleDateString()}</span>
               </div>
-              <div className="champion-score">{c.score} vs {c.loser}</div>
+              <div className="champion-score"><b>{c.score}</b> def. {c.loser}</div>
             </div>
           ))}
         </div>

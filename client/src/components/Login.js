@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import './Login.css';
+import logo from '../assets/images/MoneyMatch.png';
 
 const Login = ({ setIsLoggedIn }) => {
   const [email, setEmail] = useState('');
@@ -37,21 +39,33 @@ const Login = ({ setIsLoggedIn }) => {
 
   return (
     <div className="login-container">
-      <h2>Login</h2>
+      <img src={logo} alt="Money Match" className="login-logo" />
+      <h2>Welcome back</h2>
+      <p className="tagline">Play-money betting on the FGC.</p>
+
+      <div className="auth-toggle">
+        <button type="button" className="active">Log in</button>
+        <button type="button" onClick={() => navigate('/signup')}>Sign up</button>
+      </div>
+
       <form onSubmit={handleLogin}>
+        <label htmlFor="login-email">Email</label>
         <input
+          id="login-email"
           type="email"
-          placeholder="Email"
+          placeholder="you@example.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
+        <label htmlFor="login-password">Password</label>
         <input
+          id="login-password"
           type="password"
-          placeholder="Password"
+          placeholder="••••••••"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
-        <button type="submit">Login</button>
+        <button type="submit">Log in</button>
       </form>
       {error && <p className="error-message">{error}</p>}
     </div>

@@ -49,7 +49,7 @@ const GameTitle = ({ name, height = 28 }) => {
         />
       )}
       {error && (
-        <span style={{ color: 'var(--brand)', fontWeight: 600 }}>{name}</span>
+        <span style={{ color: 'var(--gold)', fontWeight: 600 }}>{name}</span>
       )}
     </div>
   );

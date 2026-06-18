@@ -1,66 +1,83 @@
-/* General Container */
+/* ============================================================
+   MoneyMatch — Login.css  (premium dark restyle)
+   Drop-in replacement: same class names. Used by Login & Signup.
+   Assumes dark/gold tokens from Home.css :root.
+   ============================================================ */
+
 .login-container {
   max-width: 400px;
-  margin: 100px auto;
-  padding: 20px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  background-color: #f9f9f9;
-  text-align: center;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  margin: 80px auto;
+  padding: 28px 24px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--card);
+  text-align: left;
+  box-shadow: var(--shadow, 0 24px 70px rgba(0,0,0,0.45));
+  font-family: 'Hanken Grotesk', sans-serif;
+  color: var(--text);
 }
 
-/* Input Fields */
+/* Brand wordmark at the top of the card */
+.login-logo { display: block; height: 42px; width: auto; margin: 4px auto 16px; }
+
+/* Optional heading inside the card */
+.login-container h1, .login-container h2 {
+  font-family: 'Saira', sans-serif;
+  font-weight: 700;
+  font-size: 23px;
+  text-align: center;
+  margin: 0 0 4px;
+}
+.login-container .tagline { text-align: center; color: var(--muted); font-size: 14px; margin-bottom: 20px; }
+
+/* Field labels */
+.login-container label { display: block; font-size: 12px; color: var(--muted); font-weight: 600; margin: 14px 0 7px; }
+
+/* Inputs */
 .login-container input {
   width: 100%;
-  margin: 10px 0;
-  padding: 12px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
+  margin: 0 0 4px;
+  padding: 12px 13px;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: var(--input);
+  color: var(--text);
   font-size: 14px;
 }
+.login-container input::placeholder { color: var(--faint); }
+.login-container input:focus { outline: none; border-color: rgba(231,180,88,0.5); }
 
-/* Submit Button */
+/* Submit button (gold) */
 .login-container button {
   width: 100%;
-  padding: 10px;
-  margin-top: 10px;
-  background-color: var(--brand);
-  color: white;
+  padding: 13px;
+  margin-top: 18px;
+  background: var(--gold-grad);
+  color: var(--on-gold);
   border: none;
-  border-radius: 5px;
+  border-radius: 11px;
   cursor: pointer;
-  font-size: 16px;
+  font-family: 'Saira', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  box-shadow: 0 8px 22px rgba(231,180,88,0.22);
 }
+.login-container button:hover { filter: brightness(1.05); background: var(--gold-grad); }
 
-.login-container button:hover {
-  background-color: #003b00;
+/* Segmented Log in | Sign up toggle (if you add one) */
+.auth-toggle { display: flex; gap: 6px; background: var(--input); border: 1px solid var(--border-soft); border-radius: 11px; padding: 5px; margin-bottom: 18px; }
+.auth-toggle button {
+  flex: 1; margin: 0; padding: 9px; border-radius: 8px; border: none; cursor: pointer;
+  font-family: 'Saira', sans-serif; font-weight: 600; font-size: 14px;
+  background: transparent; color: var(--muted); box-shadow: none;
 }
+.auth-toggle button.active { background: var(--surface); color: var(--text); }
 
-/* Error Message */
-.error-message {
-  color: red;
-  margin-top: 10px;
-  font-size: 14px;
-}
+.error-message { color: var(--live-text); margin-top: 12px; font-size: 14px; text-align: center; }
+.login-container .success { color: var(--win); margin-top: 12px; font-size: 14px; text-align: center; }
 
-/* Signup Link */
-.signup-link {
-  margin-top: 20px;
-  font-size: 14px;
-  color: #555;
-}
-
-.signup-link p {
-  margin: 0;
-}
-
-.signup-link a {
-  color: var(--brand);
-  text-decoration: none;
-  font-weight: bold;
-}
-
-.signup-link a:hover {
-  text-decoration: underline;
-}
+/* Switch link */
+.signup-link { margin-top: 18px; font-size: 13px; color: var(--muted); text-align: center; }
+.signup-link p { margin: 0; }
+.signup-link a { color: var(--gold); text-decoration: none; font-weight: 700; }
+.signup-link a:hover { text-decoration: underline; }

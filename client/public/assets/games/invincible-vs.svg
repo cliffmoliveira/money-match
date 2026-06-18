@@ -72,11 +72,11 @@
       }
 
       .cls-17 {
-        fill: #1a1a1a;
+        fill: #fff;
       }
 
       .cls-18 {
-        fill: #000;
+        fill: #fff;
       }
     </style>
     <radialGradient id="radial-gradient" cx="5262.46" cy="867.76" fx="5262.46" fy="867.76" r="1511.85" gradientUnits="userSpaceOnUse">

@@ -1,192 +1,95 @@
-/* Bracket.css — EVO-style Top 8 layout: winners top, losers bottom, GF right */
+/* ============================================================
+   MoneyMatch — Bracket.css  (premium dark sportsbook restyle)
+   Drop-in replacement: same class names. Assumes dark/gold tokens.
+   ============================================================ */
 
-/* Available-width container: clips nothing because the inner layer is scaled
-   to fit, so there are never scrollbars. */
-.bracket-fit {
-  width: 100%;
-  overflow: hidden;
-}
-
-/* Natural-size layer that gets transform: scale()'d to fit .bracket-fit. */
-.bracket-scale {
-  position: relative;
-  width: max-content;
-}
+.bracket-fit { width: 100%; overflow: hidden; }
+.bracket-scale { position: relative; width: max-content; }
 
 .bracket-grid {
   display: grid;
   grid-template-columns: 1fr auto;
-  grid-template-areas:
-    "winners grand"
-    "losers  grand";
+  grid-template-areas: "winners grand" "losers grand";
   gap: 16px 20px;
   align-items: center;
   padding: 8px 4px 12px;
 }
 
-/* Connector overlay: orthogonal feeder lines, behind the nodes. */
-.bracket-lines {
-  position: absolute;
-  top: 0;
-  left: 0;
-  pointer-events: none;
-  z-index: 0;
-}
-.bracket-lines path {
-  fill: none;
-  stroke: #c2cdd2;
-  stroke-width: 2;
-}
+/* Connector lines */
+.bracket-lines { position: absolute; top: 0; left: 0; pointer-events: none; z-index: 0; }
+.bracket-lines path { fill: none; stroke: rgba(255,255,255,0.12); stroke-width: 2; }
 
 .bracket-winners { grid-area: winners; }
 .bracket-losers { grid-area: losers; }
 .bracket-grand { grid-area: grand; display: flex; align-items: center; }
+.bracket-winners, .bracket-losers, .bracket-grand { position: relative; z-index: 1; }
+.bracket-winners, .bracket-losers { display: flex; gap: 18px; align-items: stretch; }
 
-/* Sections/nodes sit above the connector lines. */
-.bracket-winners,
-.bracket-losers,
-.bracket-grand { position: relative; z-index: 1; }
-
-.bracket-winners,
-.bracket-losers {
-  display: flex;
-  gap: 18px;
-  align-items: stretch;
-}
-
-.bcol {
-  display: flex;
-  flex-direction: column;
-  width: 172px;
-}
+.bcol { display: flex; flex-direction: column; width: 184px; }
 .bcol-label {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #8aa;
-  margin-bottom: 8px;
-  text-align: center;
+  font-family: 'Saira', sans-serif; font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .07em; color: var(--muted);
+  margin-bottom: 8px; text-align: center;
 }
-.bcol-nodes {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-around;
-  flex: 1;
-  gap: 14px;
-}
+.bcol-nodes { display: flex; flex-direction: column; justify-content: space-around; flex: 1; gap: 14px; }
 
-/* A match node: header + two player rows */
+/* Match node */
 .bnode {
-  background: #fff;
-  border: 1px solid #d8e0d8;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  overflow: hidden;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; box-shadow: none; overflow: hidden;
 }
-.bnode.tbd { opacity: 0.5; border-style: dashed; }
-.bnode.closed { box-shadow: 0 0 0 2px #ffe08a; }
-.bnode.settled { background: #f7faf7; }
+.bnode.tbd { opacity: 0.45; border-style: dashed; }
+.bnode.closed { box-shadow: 0 0 0 1px rgba(255,81,89,0.4); }
+.bnode.settled { background: var(--card); }
 
 .bnode-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 4px 8px;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: #889;
-  background: #f3f6f3;
-  border-bottom: 1px solid #e6ece6;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 10px; font-family: 'Saira', sans-serif; font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .05em; color: var(--gold);
+  background: transparent; border-bottom: 1px solid var(--border-soft);
 }
-.bnode-live {
-  color: #fff;
-  background: #d39e00;
-  padding: 1px 6px;
-  border-radius: 999px;
-  font-size: 9px;
-}
-.bnode-wait {
-  color: #667;
-  background: #e7ecf3;
-  padding: 1px 6px;
-  border-radius: 999px;
-  font-size: 9px;
-}
+.bnode-live { color: var(--live-text); background: var(--live-tint); padding: 2px 7px; border-radius: 5px; font-size: 9px; }
+.bnode-wait { color: var(--muted); background: var(--surface); padding: 2px 7px; border-radius: 5px; font-size: 9px; }
 .bnode.pending { border-style: dashed; }
-.bnode-name.tbd { color: #aab; font-weight: 500; }
-.bnode-odds.muted { color: #bbb; }
+.bnode-name.tbd { color: var(--faint); font-weight: 500; }
+.bnode-odds.muted { color: var(--faint); }
 
 .bnode-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  gap: 8px;
-  padding: 8px 10px;
-  border: none;
-  background: #fff;
-  cursor: pointer;
-  font-size: 13px;
-  text-align: left;
-  border-top: 1px solid #f0f3f0;
+  display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 8px;
+  padding: 10px 12px; border: none; background: transparent; cursor: pointer;
+  font-family: 'Saira', sans-serif; font-size: 14px; text-align: left;
+  border-top: 1px solid var(--border-soft);
+  transition: background .15s ease;
 }
 .bnode-row:first-of-type { border-top: none; }
 .bnode-row:disabled { cursor: default; }
-.bnode-row:not(:disabled):hover { background: #edf7ed; }
-.bnode-row.picked { background: var(--brand); }
-.bnode-row.picked .bnode-name,
-.bnode-row.picked .bnode-odds { color: #fff; }
-.bnode-row.win { background: #e6f7e6; font-weight: 700; }
-.bnode-row.loss { color: #999; }
+.bnode-row:not(:disabled):hover { background: var(--surface); }
+.bnode-row.picked { background: var(--gold-grad); }
+.bnode-row.picked .bnode-name, .bnode-row.picked .bnode-odds { color: var(--on-gold); }
+.bnode-row.win { background: var(--win-tint); font-weight: 700; }
+.bnode-row.loss { color: var(--faint); }
 
-.bnode-name { font-weight: 600; color: #2c3e50; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.bnode-row.loss .bnode-name { color: #999; font-weight: 500; }
-.bnode-odds { font-weight: 700; color: var(--brand); flex-shrink: 0; }
-.bnode-score { font-weight: 700; color: #345; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.bnode-name { font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bnode-row.loss .bnode-name { color: var(--faint); font-weight: 500; }
+.bnode-odds { font-weight: 700; color: var(--gold); flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.bnode-score { font-weight: 700; color: var(--win); flex-shrink: 0; font-variant-numeric: tabular-nums; }
 
-/* Demo controls under a node */
-.bnode-demo {
-  display: flex;
-  gap: 4px;
-  padding: 6px;
-  border-top: 1px solid #eee;
-  flex-wrap: wrap;
-}
+/* Demo controls */
+.bnode-demo { display: flex; gap: 4px; padding: 6px; border-top: 1px solid var(--border-soft); flex-wrap: wrap; }
 .bnode-demo button {
-  flex: 1;
-  font-size: 10px;
-  padding: 4px;
-  border: 1px solid #cfd8cf;
-  border-radius: 5px;
-  background: #f4f8f4;
-  color: #345;
-  cursor: pointer;
-  white-space: nowrap;
+  flex: 1; font-size: 10px; padding: 5px; border: 1px solid var(--border);
+  border-radius: 5px; background: var(--surface); color: var(--text); cursor: pointer; white-space: nowrap;
 }
-.bnode-demo button:hover { background: #e6f0e6; }
+.bnode-demo button:hover { background: #222834; }
 
-/* On narrow screens stack the bracket (winners / grand / losers) so it stays
-   readable instead of scaling down to nothing. */
 @media (max-width: 820px) {
-  .bracket-grid {
-    grid-template-columns: 1fr;
-    grid-template-areas: "winners" "grand" "losers";
-  }
+  .bracket-grid { grid-template-columns: 1fr; grid-template-areas: "winners" "grand" "losers"; }
   .bracket-grand { justify-content: center; }
 }
 
-/* Parimutuel pool split under a live/closed node */
-.bnode-pool { padding: 5px 7px; border-top: 1px solid #eee; }
-.bnode-pool-bar { height: 4px; border-radius: 2px; background: #d8e6d8; overflow: hidden; }
-.bnode-pool-bar span { display: block; height: 100%; background: var(--brand, #2e7d32); }
-.bnode-pool-amts {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 10px;
-  color: #6b7d6b;
-  margin-top: 3px;
-}
-.bnode-pool-mid { color: #9aa; font-size: 9px; text-transform: uppercase; letter-spacing: .04em; }
+/* Parimutuel pool split */
+.bnode-pool { padding: 7px 9px; border-top: 1px solid var(--border-soft); }
+.bnode-pool-bar { height: 5px; border-radius: 99px; background: rgba(255,255,255,0.08); overflow: hidden; display: flex; }
+.bnode-pool-bar span { display: block; height: 100%; background: linear-gradient(90deg,#E7B458,#caa044); }
+.bnode-pool-amts { display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: var(--muted); margin-top: 4px; font-variant-numeric: tabular-nums; }
+.bnode-pool-mid { color: var(--faint); font-size: 9px; text-transform: uppercase; letter-spacing: .04em; }

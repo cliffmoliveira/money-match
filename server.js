@@ -486,6 +486,30 @@ app.get('/api/wallet', async (req, res) => {
   }
 });
 
+// Deposit (play-money top-up): credit the wallet and return the new balance.
+// Mirrors the /api/wallet read + wallet.js ledger logic.
+app.post('/api/wallet/deposit', async (req, res) => {
+  const { userId, amountCents } = req.body || {};
+  const amount = Number(amountCents);
+  if (!userId || !Number.isInteger(amount) || amount <= 0) {
+    return res.status(400).json({ error: 'userId and a positive integer amountCents are required' });
+  }
+  try {
+    // Guard against crediting a non-existent user, which would otherwise write a
+    // phantom ledger row and return balanceCents:null. Mirrors the 404 the
+    // /api/wallet read returns for an unknown user.
+    const current = await wallet.getBalance(Number(userId));
+    if (current === null) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    const balanceCents = await wallet.credit(Number(userId), amount, 'deposit');
+    res.status(201).json({ balanceCents });
+  } catch (err) {
+    console.error('Deposit failed:', err.message);
+    res.status(500).json({ error: 'Deposit failed' });
+  }
+});
+
 // Live per-set betting
 app.get('/api/live/markets', async (req, res) => {
   try {

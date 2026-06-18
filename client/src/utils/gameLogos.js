@@ -97,10 +97,20 @@ export function getGameLogoSources(name) {
   };
 }
 
+// Color treatment so dark/black wordmarks read on the dark sportsbook theme.
+// brightness(0) invert(1) => flat white silhouette (these ship as dark artwork
+// on a transparent background). Super Smash Bros. and TEKKEN 8 are handled at
+// the asset level instead (Smash's white box baked to transparency + white
+// text; TEKKEN's lettering whitened while keeping its red "8").
+const logoTreatmentMap = {
+  'street-fighter-6': { filter: 'brightness(0) invert(1)' },
+  'guilty-gear-strive': { filter: 'brightness(0) invert(1)' },
+};
+
 export function getGameLogoStyle(name, baseHeight) {
   const slug = slugifyGameName(name);
-  
-  const baseStyle = { 
+
+  const baseStyle = {
     height: `${baseHeight || 32}px`, 
     maxHeight: `${baseHeight || 32}px`, 
     maxWidth: '180px', // Generous max-width for table cell
@@ -114,7 +124,7 @@ export function getGameLogoStyle(name, baseHeight) {
   // but keep other transforms like margins if needed.
   delete customStyle.height;
 
-  return { ...baseStyle, ...customStyle };
+  return { ...baseStyle, ...customStyle, ...(logoTreatmentMap[slug] || {}) };
 }
 
 export function getGameLogoSourcesList(name) {

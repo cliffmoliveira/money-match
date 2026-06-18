@@ -1,318 +1,103 @@
-/* PastResults.css */
+/* ============================================================
+   MoneyMatch — PastResults.css  (premium dark restyle)
+   Drop-in replacement: same class names. Assumes dark/gold tokens.
+   ============================================================ */
 
 .past-results-container {
-  max-width: 1200px;
+  max-width: 1080px;
   margin: 0 auto;
-  padding: 20px;
-  font-family: 'Poppins', sans-serif;
+  padding: 34px 28px 90px;
+  font-family: 'Hanken Grotesk', sans-serif;
+  color: var(--text);
 }
-
 .past-results-container h1 {
-  text-align: center;
-  color: var(--brand);
-  margin-bottom: 30px;
-  font-size: 2.5em;
-  font-weight: bold;
-}
-
-/* Loading and Error States */
-.loading-spinner {
-  text-align: center;
-  padding: 50px;
-  font-size: 1.2em;
-  color: #666;
-}
-
-.error-message {
-  text-align: center;
-  padding: 20px;
-  background-color: #ffebee;
-  color: #c62828;
-  border-radius: 5px;
-  margin: 20px 0;
-  font-weight: bold;
-}
-
-/* Filter Section */
-.filter-section {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  margin-bottom: 30px;
-  padding: 15px;
-  background-color: #f2f7f2;
-  border-radius: 8px;
-  flex-wrap: wrap;
-  border-left: 4px solid var(--brand-alt);
-}
-
-.filter-section label {
-  font-weight: bold;
-  color: #333;
-}
-
-.year-filter {
-  padding: 8px 12px;
-  border: 2px solid #ddd;
-  border-radius: 5px;
-  font-size: 14px;
-  background-color: white;
-  cursor: pointer;
-  transition: border-color 0.3s ease;
-}
-
-.year-filter:focus {
-  outline: none;
-  border-color: var(--brand);
-}
-
-.results-count {
-  color: #666;
-  font-size: 14px;
-  margin-left: auto;
-}
-
-/* No Results */
-.no-results {
-  text-align: center;
-  padding: 50px;
-  color: #666;
-  font-size: 1.1em;
-}
-
-/* Results Table */
-.results-table-container {
-  overflow-x: auto;
-  margin-bottom: 30px;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-.results-table {
-  width: 100%;
-  border-collapse: collapse;
-  background-color: white;
-  font-size: 14px;
-}
-
-.results-table thead {
-  background-color: var(--brand);
-  color: white;
-}
-
-.results-table th {
-  padding: 15px 12px;
   text-align: left;
-  font-weight: bold;
-  border-bottom: 2px solid var(--brand-alt);
+  font-family: 'Saira', sans-serif;
+  color: var(--text);
+  margin-bottom: 6px;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
 }
+.results-subtitle { color: var(--muted); font-size: 15px; margin: 0 0 18px; }
 
-/* Center the Game column header */
-.results-table th.game {
-  text-align: center;
+.loading-spinner { text-align: center; padding: 50px; font-size: 1.1em; color: var(--muted); }
+.error-message { text-align: center; padding: 16px; background: var(--card); color: var(--live-text); border: 1px solid var(--border); border-radius: 12px; margin: 20px 0; font-weight: 600; }
+
+/* Filter tabs / section */
+.filter-section {
+  display: flex; align-items: center; gap: 8px; margin: 16px 0 20px; padding: 0;
+  background: transparent; border: none; border-radius: 0; flex-wrap: wrap;
 }
-
-.results-table td {
-  padding: 12px;
-  border-bottom: 1px solid #eee;
-  vertical-align: middle;
+.filter-section label { font-weight: 600; color: var(--muted); }
+.year-filter, .filter-select {
+  padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: 9px;
+  font-size: 14px; background: var(--input); color: var(--text); cursor: pointer;
 }
-
-.results-table tbody tr {
-  transition: background-color 0.2s ease;
-}
-
-.results-table tbody tr:hover {
-  background-color: #f8f9fa;
-}
-
-/* Table Column Styling */
-.tournament-name {
-  font-weight: bold;
-  color: #333;
-  min-width: 150px;
-}
-
-.location {
-  color: #666;
-  min-width: 120px;
-}
-
-.date {
-  color: #555;
-  font-family: 'Poppins', sans-serif; /* match global font */
-  font-weight: 500;
-  font-variant-numeric: tabular-nums; /* align numbers neatly */
-  min-width: 100px;
-}
-
-.game {
-  color: var(--brand);
-  font-weight: 500;
-  min-width: 280px;
-  text-align: center;
-}
-
-/* Center inner content (logos or fallback text) */
-.results-table td.game > div {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-}
-
-.winner {
-  color: var(--brand);
-  font-weight: bold;
-  min-width: 100px;
-  max-width: 180px;
-  overflow-wrap: anywhere;
-}
-
-.score {
-  font-family: 'Courier New', monospace;
-  font-weight: bold;
-  color: #333;
-  text-align: center;
-  min-width: 80px;
-}
-
-.loser {
-  color: #dc3545;
-  font-weight: 500;
-  min-width: 100px;
-  max-width: 180px;
-  overflow-wrap: anywhere;
-}
-
-.tournament-name {
-  max-width: 200px;
-  overflow-wrap: anywhere;
-}
-
-.tournament-name img {
-  max-width: 180px;
-}
-
-/* Summary Statistics */
-.summary-stats {
-  background-color: #f8f9fa;
-  padding: 25px;
-  border-radius: 8px;
-  border: 1px solid #dee2e6;
-}
-
-.summary-stats h3 {
-  margin: 0 0 20px 0;
-  color: #333;
-  font-size: 1.3em;
-  text-align: center;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
-}
-
-.stat-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px;
-  background-color: white;
-  border-radius: 5px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.stat-label {
-  font-weight: bold;
-  color: #666;
-}
-
-.stat-value {
-  font-size: 1.2em;
-  font-weight: bold;
-  color: var(--brand);
-}
-
-.filter-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.filter-group label {
-  font-weight: 600;
-  color: #333;
-}
-
-.filter-select {
-  padding: 8px 12px;
-  border: 2px solid #ddd;
-  border-radius: 5px;
-  font-size: 14px;
-  background-color: #fff;
-}
-
+.year-filter:focus, .filter-select:focus { outline: none; border-color: rgba(231,180,88,0.5); }
+.results-count { color: var(--muted); font-size: 14px; margin-left: auto; }
+.filter-group { display: flex; align-items: center; gap: 8px; }
+.filter-group label { font-weight: 600; color: var(--muted); }
 .clear-filters {
-  margin-left: auto;
-  padding: 8px 12px;
-  background: var(--brand);
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.2s ease;
+  margin-left: auto; padding: 8px 14px; background: var(--gold-grad); color: var(--on-gold);
+  border: none; border-radius: 9px; font-family: 'Saira', sans-serif; font-weight: 600; cursor: pointer;
 }
+.clear-filters:hover { filter: brightness(1.05); }
 
-.clear-filters:hover { filter: brightness(0.95); }
+/* Tip: render the game filters as pill tabs — active = gold fill, idle = bordered.
+   If you keep them as buttons, this class gives the right look: */
+.filter-tab {
+  font-family: 'Saira', sans-serif; font-weight: 600; font-size: 13px;
+  padding: 8px 15px; border-radius: 9px; cursor: pointer; transition: all .15s ease;
+  border: 1px solid var(--border-strong); background: transparent; color: var(--muted);
+}
+.filter-tab:hover { color: var(--text); }
+.filter-tab.active { background: var(--gold-grad); color: var(--on-gold); border-color: transparent; }
 
-/* Responsive Design */
+.no-results { text-align: center; padding: 50px; color: var(--muted); font-size: 1.05em; }
+
+/* Results table */
+.results-table-container {
+  overflow-x: auto; margin-bottom: 30px; border-radius: 16px;
+  border: 1px solid var(--border); box-shadow: none;
+}
+.results-table { width: 100%; border-collapse: collapse; background: var(--card); font-size: 14px; }
+.results-table thead { background: transparent; color: var(--muted); }
+.results-table th {
+  padding: 13px 14px; text-align: left; font-family: 'Saira', sans-serif;
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--muted); border-bottom: 1px solid var(--border);
+}
+.results-table th.game { text-align: left; }
+.results-table td { padding: 15px 14px; border-bottom: 1px solid var(--border-soft); vertical-align: middle; }
+.results-table tbody tr { transition: background-color 0.15s ease; }
+.results-table tbody tr:hover { background: var(--surface); }
+
+.tournament-name { font-family: 'Saira', sans-serif; font-weight: 600; color: #C9CCD3; min-width: 150px; max-width: 200px; overflow-wrap: anywhere; }
+.tournament-name img { max-width: 180px; }
+.location { color: var(--muted); min-width: 120px; }
+.date { color: var(--muted); font-family: 'Saira', sans-serif; font-weight: 500; font-variant-numeric: tabular-nums; min-width: 100px; }
+.game { color: var(--muted); font-family: 'Saira', sans-serif; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; min-width: 100px; text-align: left; }
+.results-table td.game > div { display: flex; align-items: center; justify-content: flex-start; width: 100%; }
+.winner { font-family: 'Saira', sans-serif; color: var(--text); font-weight: 700; min-width: 100px; max-width: 180px; overflow-wrap: anywhere; }
+.winner::before { content: "★ "; color: var(--gold); }
+.score { font-family: 'Saira', sans-serif; font-weight: 700; color: var(--win); text-align: center; min-width: 70px; font-variant-numeric: tabular-nums; }
+.loser { color: var(--muted); font-weight: 500; min-width: 100px; max-width: 180px; overflow-wrap: anywhere; }
+
+/* Summary statistics */
+.summary-stats { background: var(--card); padding: 22px; border-radius: 16px; border: 1px solid var(--border); }
+.summary-stats h3 { margin: 0 0 18px; font-family: 'Saira', sans-serif; color: var(--text); font-size: 1.2em; text-align: left; }
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+.stat-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; background: var(--surface); border: 1px solid var(--border-soft); border-radius: 12px; box-shadow: none; }
+.stat-label { font-weight: 600; color: var(--muted); }
+.stat-value { font-family: 'Saira', sans-serif; font-size: 1.2em; font-weight: 700; color: var(--gold); font-variant-numeric: tabular-nums; }
+
 @media (max-width: 768px) {
-  .past-results-container {
-    padding: 10px;
-  }
-  
-  .past-results-container h1 {
-    font-size: 2em;
-  }
-  
-  .filter-section {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .results-count {
-    margin-left: 0;
-    text-align: center;
-  }
-  
-  .results-table {
-    font-size: 12px;
-  }
-  
-  .results-table th,
-  .results-table td {
-    padding: 8px 6px;
-  }
-  
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 480px) {
-  .past-results-container h1 {
-    font-size: 1.5em;
-  }
-  
-  .results-table {
-    font-size: 11px;
-  }
-  
-  .results-table th,
-  .results-table td {
-    padding: 6px 4px;
-  }
+  .past-results-container { padding: 20px 16px 60px; }
+  .past-results-container h1 { font-size: 24px; }
+  .filter-section { flex-direction: row; flex-wrap: wrap; align-items: stretch; }
+  .results-count { margin-left: 0; }
+  .results-table { font-size: 12px; }
+  .results-table th, .results-table td { padding: 10px 8px; }
+  .stats-grid { grid-template-columns: 1fr; }
 }

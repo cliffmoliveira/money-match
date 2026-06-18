@@ -1,588 +1,189 @@
-/* FutureTournaments.css */
+/* ============================================================
+   MoneyMatch — FutureTournaments.css  (premium dark restyle)
+   Drop-in replacement: same class names. Assumes dark/gold tokens.
+   ============================================================ */
 
-/* Two-column layout: listing + bet slip */
 .future-layout {
-  display: flex;
-  align-items: flex-start;
-  gap: 20px;
-  max-width: 1240px;
-  margin: 0 auto;
-  padding: 0 20px;
-}
-
-/* Container Styling */
-.future-tournaments-container {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 358px;
+  align-items: start;
+  gap: 24px;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
-  font-family: 'Poppins', sans-serif;
-  background-color: #f4f8f4;
-  border-radius: 10px;
-  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 30px 28px 90px;
 }
 
-/* In the flex layout the container is the flexible main column */
-.future-layout > .future-tournaments-container {
-  flex: 1;
-  min-width: 0;
-  margin: 0;
-}
-
-/* Add/Added toggle in the player table */
-.slip-toggle {
-  padding: 6px 12px;
-  border: 1px solid var(--brand);
-  border-radius: 5px;
-  background: #fff;
-  color: var(--brand);
-  font-weight: 600;
-  font-size: 13px;
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
-}
-
-.slip-toggle:hover {
-  background: #edf7ed;
-}
-
-.slip-toggle.added {
-  background: var(--brand);
-  color: #fff;
-}
-
-/* A bet is already placed on this player; click to load it for editing */
-.slip-toggle.adjust {
-  border-color: #b8860b;
-  color: #8a6400;
-  background: #fff8e6;
-}
-
-.slip-toggle.adjust:hover {
-  background: #fdeecb;
-}
-
-/* Bet Slip panel */
-.bet-slip {
-  position: sticky;
-  top: 90px; /* clear the sticky navbar (~70px) plus a gap */
-  width: 300px;
-  flex-shrink: 0;
-  background: #fff;
-  border-radius: 10px;
-  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
-  font-family: 'Poppins', sans-serif;
-  overflow: hidden;
-}
-
-.bet-slip-header {
-  background: var(--brand);
-  color: #fff;
-  padding: 14px 16px;
-  font-weight: bold;
-  font-size: 16px;
-}
-
-.bet-slip-empty {
-  padding: 20px 16px;
-  color: #777;
-  font-size: 14px;
-  text-align: center;
-}
-
-.bet-slip-list {
-  list-style: none;
+.future-tournaments-container {
+  max-width: 100%;
   margin: 0;
   padding: 0;
-  max-height: 50vh;
-  overflow-y: auto;
+  font-family: 'Hanken Grotesk', sans-serif;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  color: var(--text);
 }
+.future-layout > .future-tournaments-container { min-width: 0; }
 
+/* Add / Added pick toggle (in the player table) */
+.slip-toggle {
+  padding: 8px 14px; border: 1px solid rgba(231,180,88,0.45); border-radius: 9px;
+  background: var(--surface); color: var(--gold);
+  font-family: 'Saira', sans-serif; font-weight: 600; font-size: 13px; cursor: pointer;
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+.slip-toggle:hover { background: #222834; border-color: rgba(231,180,88,0.6); }
+.slip-toggle.added { background: var(--gold-grad); color: var(--on-gold); border-color: var(--gold); }
+.slip-toggle.adjust { border-color: rgba(231,180,88,0.5); color: var(--gold); background: var(--gold-tint); }
+.slip-toggle.adjust:hover { background: rgba(231,180,88,0.2); }
+
+/* Bet Slip (matches the Live slip styling) */
+.bet-slip {
+  position: sticky; top: 88px; width: 100%; flex-shrink: 0;
+  background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+  box-shadow: none; font-family: 'Hanken Grotesk', sans-serif; overflow: hidden;
+}
+.bet-slip-header {
+  background: transparent; color: var(--text);
+  padding: 15px 18px; border-bottom: 1px solid var(--border);
+  font-family: 'Saira', sans-serif; font-weight: 700; font-size: 16px;
+}
+.bet-slip-empty { padding: 34px 18px; color: var(--muted); font-size: 13px; text-align: center; }
+.bet-slip-list { list-style: none; margin: 0; padding: 0; max-height: 50vh; overflow-y: auto; }
 .bet-slip-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 12px 16px;
-  border-bottom: 1px solid #eee;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 14px 18px; border-bottom: 1px solid var(--border-soft);
 }
-
-.bet-slip-item-info {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.bet-slip-player {
-  font-weight: 600;
-  color: #333;
-  font-size: 14px;
-}
-
-.bet-slip-odds {
-  color: var(--brand);
-  font-weight: 700;
-}
-
-.bet-slip-meta {
-  color: #888;
-  font-size: 12px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.bet-slip-blend {
-  color: #8a6400;
-  font-size: 11px;
-  margin-top: 2px;
-}
-
-.bet-slip-item-stake {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
+.bet-slip-item-info { display: flex; flex-direction: column; min-width: 0; }
+.bet-slip-player { font-family: 'Saira', sans-serif; font-weight: 600; color: var(--text); font-size: 15px; }
+.bet-slip-odds { color: var(--gold); font-weight: 700; font-variant-numeric: tabular-nums; }
+.bet-slip-meta { color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bet-slip-blend { color: var(--gold); font-size: 11px; margin-top: 2px; }
+.bet-slip-item-stake { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .bet-slip-item-stake input[type="number"] {
-  width: 64px;
-  padding: 5px;
-  text-align: right;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 13px;
+  width: 70px; padding: 8px; text-align: right;
+  border: 1px solid var(--border-strong); border-radius: 9px;
+  background: var(--input); color: var(--text); font-size: 13px; font-variant-numeric: tabular-nums;
 }
-
-.bet-slip-payout {
-  font-size: 12px;
-  color: #555;
-  white-space: nowrap;
-}
-
-.bet-slip-remove {
-  border: none;
-  background: none;
-  color: #c0392b;
-  font-size: 18px;
-  line-height: 1;
-  cursor: pointer;
-  padding: 0 2px;
-}
-
-.bet-slip-totals {
-  padding: 12px 16px;
-  border-top: 1px solid #eee;
-}
-
-.bet-slip-totals div {
-  display: flex;
-  justify-content: space-between;
-  font-size: 14px;
-  margin: 4px 0;
-  color: #333;
-}
-
-.bet-slip-totals strong {
-  color: var(--brand);
-}
-
-.bet-slip-note {
-  padding: 0 16px;
-  font-size: 11px;
-  color: #999;
-  line-height: 1.4;
-}
-
+.bet-slip-item-stake input[type="number"]:focus { outline: none; border-color: rgba(231,180,88,0.5); }
+.bet-slip-payout { font-size: 12px; color: var(--win); font-family: 'Saira', sans-serif; white-space: nowrap; }
+.bet-slip-remove { border: none; background: none; color: var(--faint); font-size: 18px; line-height: 1; cursor: pointer; padding: 0 2px; }
+.bet-slip-remove:hover { color: var(--live-text); }
+.bet-slip-totals { padding: 15px 18px; border-top: 1px solid var(--border); }
+.bet-slip-totals div { display: flex; justify-content: space-between; font-size: 13px; margin: 4px 0; color: var(--muted); }
+.bet-slip-totals strong { color: var(--text); font-family: 'Saira', sans-serif; font-variant-numeric: tabular-nums; }
+.bet-slip-totals div:last-child strong { color: var(--win); }
+.bet-slip-note { padding: 8px 18px 0; font-size: 11px; color: var(--faint); line-height: 1.5; }
 .bet-slip-place {
-  display: block;
-  width: calc(100% - 32px);
-  margin: 12px 16px 16px;
-  padding: 12px;
-  background: var(--brand);
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  font-weight: bold;
-  text-transform: uppercase;
-  cursor: pointer;
+  display: block; width: calc(100% - 36px); margin: 14px 18px 16px; padding: 13px;
+  background: var(--gold-grad); color: var(--on-gold); border: none; border-radius: 12px;
+  font-family: 'Saira', sans-serif; font-weight: 700; text-transform: none; font-size: 15px; cursor: pointer;
+  box-shadow: 0 8px 22px rgba(231,180,88,0.25);
 }
+.bet-slip-place:hover:not(:disabled) { filter: brightness(1.05); }
+.bet-slip-place:disabled { background: #2a2f3a; color: #6b7280; cursor: not-allowed; box-shadow: none; }
+.bet-slip-msg { padding: 12px 18px; font-size: 13px; color: var(--win); }
 
-.bet-slip-place:hover:not(:disabled) {
-  background: #003b00;
-}
-
-.bet-slip-place:disabled {
-  background: #aaa;
-  cursor: not-allowed;
-}
-
-.bet-slip-msg {
-  padding: 0 16px 14px;
-  font-size: 13px;
-  color: #333;
-}
-
-/* Stack the slip below the listing on narrow screens */
 @media (max-width: 980px) {
-  .future-layout {
-    flex-direction: column;
-  }
-
-  .future-layout > .future-tournaments-container {
-    width: 100%;
-  }
-
-  .bet-slip {
-    position: static;
-    width: 100%;
-  }
+  .future-layout { grid-template-columns: 1fr; }
+  .bet-slip { position: static; width: 100%; }
 }
 
 /* Filters */
 .filter-section {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 12px 0 20px;
-  padding: 12px;
-  background: #f2f7f2;
-  border-left: 4px solid var(--brand-alt);
-  border-radius: 8px;
-  flex-wrap: wrap;
+  display: flex; align-items: center; gap: 12px; margin: 12px 0 20px; padding: 12px 14px;
+  background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--gold);
+  border-radius: 12px; flex-wrap: wrap;
 }
-
-.filter-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
+.filter-group { display: flex; align-items: center; gap: 8px; }
 .filter-select, .filter-input {
-  padding: 8px 10px;
-  border: 2px solid #ddd;
-  border-radius: 6px;
-  background: #fff;
-  font-size: 14px;
+  padding: 8px 10px; border: 1px solid var(--border-strong); border-radius: 9px;
+  background: var(--input); color: var(--text); font-size: 14px;
 }
-
-.filter-select:focus, .filter-input:focus {
-  outline: none;
-  border-color: var(--brand);
-}
-
+.filter-select:focus, .filter-input:focus { outline: none; border-color: rgba(231,180,88,0.5); }
 .clear-filters {
-  margin-left: auto;
-  padding: 8px 12px;
-  background: var(--brand);
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
+  margin-left: auto; padding: 8px 14px; background: var(--gold-grad); color: var(--on-gold);
+  border: none; border-radius: 9px; font-family: 'Saira', sans-serif; font-weight: 600; cursor: pointer;
 }
+.clear-filters:hover { filter: brightness(1.05); }
+.results-count { color: var(--muted); font-size: 14px; }
 
-.clear-filters:hover { filter: brightness(0.95); }
+h1 { text-align: left; font-family: 'Saira', sans-serif; font-weight: 800; color: var(--text); font-size: 30px; letter-spacing: -0.01em; margin-bottom: 6px; }
 
-.results-count {
-  color: #666;
-  font-size: 14px;
-}
+/* Tournament section */
+.tournament { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 20px; box-shadow: none; }
+.tournament h2 { font-family: 'Saira', sans-serif; font-weight: 700; color: var(--text); font-size: 22px; margin-bottom: 10px; }
+.tournament-header { text-align: left; margin-bottom: 20px; }
+.futures-pending { text-align: center; color: var(--muted); font-style: italic; padding: 16px; background: var(--surface); border-radius: 12px; }
+.tournament-details { display: flex; gap: 30px; margin-top: 10px; }
+.tournament p { color: var(--text-muted); font-size: 15px; margin: 5px 0; }
 
-/* Header Styling */
-h1 {
-  text-align: center;
-  color: var(--brand);
-  font-size: 32px;
-  margin-bottom: 20px;
-}
+/* Game section */
+.game-section { margin: 20px 0; padding: 0 16px 16px; border: 1px solid var(--border); border-radius: 14px; background: var(--card); box-shadow: none; }
+.game-section h3 { font-family: 'Saira', sans-serif; font-size: 13px; margin: 0 0 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .07em; text-align: left; }
+.seed-caption { text-align: left; color: var(--faint); font-size: 12px; font-style: normal; margin: 4px 0 0; }
 
-/* Tournament Section */
-.tournament {
-  background-color: #fff;
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.tournament h2 {
-  color: var(--brand);
-  font-size: 24px;
-  margin-bottom: 10px;
-}
-
-.tournament-header {
-  text-align: center;
-  margin-bottom: 20px;
-}
-
-/* Segmented countdown styles now live in Countdown.css (shared component). */
-
-.futures-pending {
-  text-align: center;
-  color: #777;
-  font-style: italic;
-  padding: 16px;
-  background: #f6f8f6;
-  border-radius: 8px;
-}
-
-.tournament-details {
-  display: flex;
-  justify-content: center;
-  gap: 30px;
-  margin-top: 10px;
-}
-
-.tournament p {
-  color: #34495e;
-  font-size: 16px;
-  margin: 5px 0;
-}
-
-/* Game Section Styling */
-.game-section {
-  margin-top: 20px;
-  margin-bottom: 20px;
-  padding: 0 15px 15px 15px; /* remove top padding to eliminate gap above logo */
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  background-color: #f9f9f9;
-  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.game-section h3 {
-  font-size: 20px;
-  margin: 0 0 10px 0; /* remove default top margin */
-  color: #2c3e50;
-  font-weight: 600;
-  text-transform: uppercase;
-  text-align: center;
-}
-
-.seed-caption {
-  text-align: center;
-  color: #888;
-  font-size: 12px;
-  font-style: italic;
-  margin: 4px 0 0;
-}
-
-/* Tournament Table */
-.tournament-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 15px;
-}
-
-.tournament-table .seed-cell {
-  font-weight: 700;
-  color: #555;
-  font-variant-numeric: tabular-nums;
-}
-.tournament-table .winpct-cell {
-  font-weight: 600;
-  color: var(--brand);
-  font-variant-numeric: tabular-nums;
-}
-.tournament-table .field-row {
-  font-style: italic;
-  background: #f6f8f6;
-}
-
-.tournament-table th,
-.tournament-table td {
-  text-align: center;
-  padding: 10px;
-  border: 1px solid #ddd;
-  font-size: 14px;
-}
-
+/* Outright table */
+.tournament-table { width: 100%; border-collapse: separate; border-spacing: 0 8px; margin-top: 12px; }
+.tournament-table .seed-cell { font-family: 'Saira', sans-serif; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.tournament-table .winpct-cell { font-family: 'Saira', sans-serif; font-weight: 600; color: var(--gold); font-variant-numeric: tabular-nums; }
+.tournament-table .field-row { font-style: italic; }
+.tournament-table th, .tournament-table td { text-align: left; padding: 12px 14px; border: none; font-size: 14px; color: var(--text); }
 .tournament-table th {
-  background-color: #004d00;
-  color: white;
-  font-weight: bold;
-  text-transform: uppercase;
+  background: transparent; color: var(--muted); font-family: 'Saira', sans-serif;
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+  border-bottom: 1px solid var(--border);
 }
-
-.tournament-table tr:nth-child(even) {
-  background-color: #f2f2f2;
-}
-
-.tournament-table tr:hover {
-  background-color: #edf7ed;
-}
-
-/* Input Fields for Bet Amounts */
+.tournament-table tr { background: var(--surface); }
+.tournament-table tbody tr td:first-child { border-radius: 11px 0 0 11px; }
+.tournament-table tbody tr td:last-child { border-radius: 0 11px 11px 0; }
+.tournament-table tr:nth-child(even) { background: var(--surface); }
+.tournament-table tbody tr:hover { background: #222834; }
 .tournament-table input[type="number"] {
-  width: 80px;
-  padding: 5px;
-  text-align: right;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 14px;
+  width: 84px; padding: 8px; text-align: right; border: 1px solid var(--border-strong);
+  border-radius: 9px; background: var(--input); color: var(--text); font-size: 14px; font-variant-numeric: tabular-nums;
 }
 
-/* Submit Bet Button */
 .submit-bet-button {
-  display: inline-block;
-  margin-top: 15px;
-  padding: 10px 20px;
-  background-color: var(--brand);
-  color: #fff;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  text-transform: uppercase;
-  font-weight: bold;
+  display: inline-block; margin-top: 15px; padding: 11px 20px;
+  background: var(--gold-grad); color: var(--on-gold); border: none; border-radius: 10px;
+  cursor: pointer; text-transform: none; font-family: 'Saira', sans-serif; font-weight: 700;
 }
+.submit-bet-button:hover { filter: brightness(1.05); }
+.error-message { text-align: center; color: var(--live-text); font-size: 16px; margin-top: 20px; }
 
-.submit-bet-button:hover {
-  background-color: #003b00;
-}
-
-/* Error Message */
-.error-message {
-  text-align: center;
-  color: #e74c3c;
-  font-size: 16px;
-  margin-top: 20px;
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-  .future-tournaments-container {
-    padding: 15px;
-  }
-
-  h1 {
-    font-size: 24px;
-  }
-
-  .tournament {
-    padding: 15px;
-  }
-
-  .tournament h2 {
-    font-size: 20px;
-  }
-
-  .game-section {
-    padding: 10px;
-  }
-
-  .game-section h3 {
-    font-size: 18px;
-  }
-
-  .tournament-table th,
-  .tournament-table td {
-    font-size: 12px;
-    padding: 8px;
-  }
-
-  .tournament-table input[type="number"] {
-    width: 60px;
-    font-size: 12px;
-  }
-
-  .submit-bet-button {
-    width: 100%;
-    text-align: center;
-  }
-}
-
-/* React-Select Dropdown Styling */
-.react-select__control {
-  font-family: 'Poppins', sans-serif;
-  font-size: 14px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-  box-shadow: none;
-}
-
-.react-select__control:hover {
-  border-color: #004d00;
-}
-
-.react-select__control--is-focused {
-  border-color: #004d00;
-  box-shadow: 0 0 0 2px #e6ffe6;
-}
-
-/* Dropdown Menu */
-.react-select__menu {
-  font-family: 'Poppins', sans-serif;
-  font-size: 14px;
-  z-index: 9999;
-}
-
-.react-select__menu-list {
-  padding: 0;
-}
-
-.react-select__option {
-  font-family: 'Poppins', sans-serif;
-  font-size: 14px;
-  padding: 8px 12px;
-  cursor: pointer;
-  background-color: #fff;
-  color: #333;
-}
-
-.react-select__option--is-focused {
-  background-color: #edf7ed;
-  color: #004d00;
-}
-
-.react-select__option--is-selected {
-  background-color: #004d00;
-  color: #fff;
-}
-
-/* Placeholder Text */
-.react-select__placeholder {
-  font-family: 'Poppins', sans-serif;
-  font-size: 14px;
-  color: #999;
-}
-
-/* Single Selected Value */
-.react-select__single-value {
-  font-family: 'Poppins', sans-serif;
-  font-size: 14px;
-  color: #333;
-}
-
-/* Dropdown Indicator */
-.react-select__dropdown-indicator {
-  color: #004d00;
-}
-
-.react-select__dropdown-indicator:hover {
-  color: #002d00;
-}
+/* react-select (dark theme) */
+.react-select__control { font-family: 'Hanken Grotesk', sans-serif; font-size: 14px; border-radius: 9px; border: 1px solid var(--border-strong); background: var(--input); box-shadow: none; }
+.react-select__control:hover { border-color: rgba(231,180,88,0.5); }
+.react-select__control--is-focused { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold-tint); }
+.react-select__menu { font-family: 'Hanken Grotesk', sans-serif; font-size: 14px; z-index: 9999; background: var(--card); border: 1px solid var(--border); }
+.react-select__menu-list { padding: 0; }
+.react-select__option { font-size: 14px; padding: 8px 12px; cursor: pointer; background: var(--card); color: var(--text); }
+.react-select__option--is-focused { background: var(--surface); color: var(--gold); }
+.react-select__option--is-selected { background: var(--gold); color: var(--on-gold); }
+.react-select__placeholder { color: var(--faint); }
+.react-select__single-value { color: var(--text); }
+.react-select__input-container, .react-select__input { color: var(--text) !important; }
+.react-select__dropdown-indicator { color: var(--gold); }
+.react-select__indicator-separator { background: var(--border); }
 
 /* Collapsible game accordion */
 .game-toggle {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  margin: 6px 0 0;
-  background: #ffffff;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  cursor: pointer;
-  text-align: left;
-  font-family: inherit;
+  width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 16px; margin: 8px 0 0;
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px; cursor: pointer;
+  text-align: left; font-family: inherit;
 }
-.game-toggle:hover { background: #f0f7f0; }
-.game-toggle-name { flex: 1; font-size: 16px; font-weight: 700; color: #004d00; text-transform: uppercase; letter-spacing: .02em; }
-.game-toggle-meta { font-size: 12px; color: #6c6d75; white-space: nowrap; }
-.game-toggle-chevron { font-size: 13px; color: #004d00; transition: transform 160ms ease; }
+.game-toggle:hover { background: #171b23; border-color: rgba(231,180,88,0.25); }
+.game-toggle-name { flex: 1; font-family: 'Saira', sans-serif; font-size: 14px; font-weight: 700; color: var(--text); text-transform: uppercase; letter-spacing: .04em; }
+.game-toggle-meta { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.game-toggle-chevron { font-size: 13px; color: var(--gold); transition: transform 160ms ease; }
 .game-toggle-chevron.open { transform: rotate(180deg); }
-/* Collapsed: strip the old card so only the compact toggle row shows */
 .game-section.collapsed { margin: 0; padding: 0; border: none; background: none; box-shadow: none; }
-/* Expanded: keep the card; the toggle becomes a header with a divider */
-.game-section.expanded .game-toggle { margin-top: 0; border: none; border-bottom: 1px solid #e0e0e0; border-radius: 0; background: transparent; }
+.game-section.expanded .game-toggle { margin-top: 0; border: none; border-bottom: 1px solid var(--border); border-radius: 0; background: transparent; }
+
+@media (max-width: 768px) {
+  h1 { font-size: 24px; }
+  .tournament { padding: 15px; }
+  .tournament-table th, .tournament-table td { font-size: 12px; padding: 9px; }
+  .submit-bet-button { width: 100%; text-align: center; }
+}

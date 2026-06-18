@@ -14,23 +14,23 @@ const PastResults = () => {
   const GameTitle = ({ name, height = 22 }) => {
     const [error, setError] = useState(false);
     const [src, setSrc] = useState(null);
-    const { avif, webp, png, jpg, jpeg } = getGameLogoSources(name || '');
+    const { svg, avif, webp, png, jpg, jpeg } = getGameLogoSources(name || '');
 
     useEffect(() => {
       setError(false);
-      const candidates = [avif, webp, png, jpg, jpeg].filter(Boolean);
+      const candidates = [svg, avif, webp, png, jpg, jpeg].filter(Boolean);
       setSrc(candidates[0] || null);
-    }, [avif, webp, png, jpg, jpeg]);
+    }, [svg, avif, webp, png, jpg, jpeg]);
 
     if (process.env.NODE_ENV !== 'production') {
-      console.log('[GameTitle] name=', name, { avif, webp, png, jpg, jpeg, chosen: src });
+      console.log('[GameTitle] name=', name, { svg, avif, webp, png, jpg, jpeg, chosen: src });
     }
 
     const handleError = () => {
       if (process.env.NODE_ENV !== 'production') {
         console.error('[GameTitle] failed to load', src, 'for', name);
       }
-      const candidates = [avif, webp, png, jpg, jpeg].filter(Boolean);
+      const candidates = [svg, avif, webp, png, jpg, jpeg].filter(Boolean);
       const currentIndex = candidates.indexOf(src);
       if (currentIndex + 1 < candidates.length) {
         setSrc(candidates[currentIndex + 1]);
@@ -44,7 +44,7 @@ const PastResults = () => {
     if (error || !src) {
       return (
         <div style={{ display: 'flex', alignItems: 'center', minHeight: `${height}px` }}>
-          <span style={{ color: 'var(--brand)', fontWeight: 600 }}>{name}</span>
+          <span style={{ color: 'var(--gold)', fontWeight: 600 }}>{name}</span>
         </div>
       );
     }
@@ -106,11 +106,8 @@ const PastResults = () => {
     fetchPastResults();
   }, []);
 
-  // Unique filter option lists
-  const years = [...new Set(pastResults.map(result => (
-    new Date(result.date).getFullYear().toString()
-  )))].sort((a, b) => b - a);
-
+  // Filter option lists
+  const years = [...new Set(pastResults.map(r => new Date(r.date).getFullYear().toString()))].sort((a, b) => b - a);
   const tournaments = [...new Set(pastResults.map(r => r.tournament))].sort((a, b) => a.localeCompare(b));
   const games = [...new Set(pastResults.map(r => r.game))].sort((a, b) => a.localeCompare(b));
 
@@ -146,6 +143,8 @@ const PastResults = () => {
 
   return (
     <div className="past-results-container">
+      <h1>Results</h1>
+      <p className="results-subtitle">Every settled major — champions in gold, with the deciding score.</p>
 
       {/* Filters */}
       <div className="filter-section">
@@ -158,9 +157,7 @@ const PastResults = () => {
             className="filter-select"
           >
             <option value="all">All Years</option>
-            {years.map(year => (
-              <option key={year} value={year}>{year}</option>
-            ))}
+            {years.map((year) => (<option key={year} value={year}>{year}</option>))}
           </select>
         </div>
 
@@ -173,9 +170,7 @@ const PastResults = () => {
             className="filter-select"
           >
             <option value="all">All Tournaments</option>
-            {tournaments.map(name => (
-              <option key={name} value={name}>{name}</option>
-            ))}
+            {tournaments.map((name) => (<option key={name} value={name}>{name}</option>))}
           </select>
         </div>
 
@@ -188,15 +183,11 @@ const PastResults = () => {
             className="filter-select"
           >
             <option value="all">All Games</option>
-            {games.map(name => (
-              <option key={name} value={name}>{name}</option>
-            ))}
+            {games.map((name) => (<option key={name} value={name}>{name}</option>))}
           </select>
         </div>
 
-        <button className="clear-filters" onClick={clearFilters}>
-          Clear Filters
-        </button>
+        <button className="clear-filters" onClick={clearFilters}>Clear Filters</button>
 
         <span className="results-count">
           Showing {filteredResults.length} of {pastResults.length} results
