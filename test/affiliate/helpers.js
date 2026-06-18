@@ -34,4 +34,11 @@ async function resetTables(db) {
   await db.runAsync('DELETE FROM click_records');
 }
 
-module.exports = { freshDb, cleanup, resetTables };
+const express = require('express');
+function makeApp() {
+  const app = express();
+  app.use('/api/affiliate', require('../../affiliate/router'));
+  return app;
+}
+
+module.exports = { freshDb, cleanup, resetTables, makeApp };
