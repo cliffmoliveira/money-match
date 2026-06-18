@@ -201,7 +201,8 @@ conversion_records (
   commission_model  TEXT,                    -- cpa | revshare
   commission_value  INTEGER,                 -- minor units
   validation_status TEXT DEFAULT 'pending',  -- pending | validated | rejected (terminal: validated|rejected)
-  received_at TEXT, validated_at TEXT,
+  received_at TEXT,
+  resolved_at TEXT,                          -- set when leaving 'pending' (validated OR rejected)
   UNIQUE (book, external_ref)                -- DB-level idempotent dedupe
 )  -- idx: (click_id), (validation_status)
 ```
@@ -285,6 +286,34 @@ Backend module tests run against a temp SQLite DB; mock-book has its own signing
 - Real affiliate program onboarding (GG.bet, Thunderpick, Rivalry, Pinnacle); S2S postback
   formats per program; odds-feed display; multi-book best-price routing.
 - The production eligibility-gated "Place on [Book]" CTA replacing the minimal trigger.
+
+---
+
+## 11. Implementation refinements (binding on the plan)
+
+These tighten §4–§9 and are binding on the implementation:
+
+1. **Dedupe = the atomic insert, not a pre-SELECT.** Reconcile by *attempting* the
+   `conversion_records` insert and catching the `UNIQUE(book, external_ref)` violation as the
+   duplicate path. No `SELECT`-then-`INSERT` (which would race under concurrent resends).
+2. **Constant-time HMAC compare.** Verify with `crypto.timingSafeEqual` over equal-length
+   digests — never `===`.
+3. **HMAC over exact received bytes.** Capture the raw body *before* JSON parsing (via the
+   `express.json` `verify` callback or an `express.raw` body) so the signature is checked
+   against precisely what the book sent — parsing must not alter what was signed.
+4. **One click → many conversions is valid.** A click may yield registration, then
+   first-time-deposit, then bet-placed (distinct `external_ref`s). Never add a guard that
+   blocks a new conversion because the click is already `converted`; dedupe is on
+   `(book, external_ref)` only.
+5. **Mock "Resend last postback".** The mock retains the exact last signed payload and
+   re-posts the identical bytes on demand, so the idempotency/dedupe path is demonstrable
+   through the UI, not only in unit tests.
+6. **`resolved_at` for terminal states.** `conversion_records.resolved_at` is set when a
+   conversion leaves `pending` for either `validated` or `rejected` (replaces `validated_at`);
+   `validation_status` records which.
+7. **Expiry boundary is inclusive.** In-window ⇔ `received_at − created_at ≤ ATTRIBUTION_WINDOW`
+   (a postback landing exactly at `created_at + window` is still in-window); strictly beyond is
+   `expired`. Computed from the `created_at` column. Include a boundary-exact test.
 
 ---
 
