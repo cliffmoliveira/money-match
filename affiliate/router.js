@@ -99,4 +99,11 @@ router.post('/postback', express.raw({ type: '*/*' }), async (req, res) => {
   return res.status(200).json(ACK);
 });
 
+async function resolve(req, res, status) {
+  await repo.resolveConversion(req.params.id, status, new Date().toISOString());
+  res.status(200).json({ conversion_id: req.params.id, validation_status: status });
+}
+router.post('/conversions/:id/validate', (req, res) => resolve(req, res, 'validated'));
+router.post('/conversions/:id/reject', (req, res) => resolve(req, res, 'rejected'));
+
 module.exports = router;
