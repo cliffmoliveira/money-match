@@ -17,6 +17,11 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors());
+// Affiliate attribution loop — mounted BEFORE the global express.json so the
+// router's own body parsers run: express.json() on /click, and express.raw() on
+// /postback (which must read the exact raw bytes to verify the HMAC before
+// parsing). Self-contained; shares no state with the rest of the app.
+app.use('/api/affiliate', require('./affiliate/router'));
 app.use(express.json()); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
 app.use(morgan('dev'));
