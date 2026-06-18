@@ -83,24 +83,71 @@ export function getGameAlt(name) {
   return `${name} logo`;
 }
 
+// The exact logo file that ships for each game slug, preferring transparent
+// vector, then webp/png. Loading this one URL avoids a fallback storm of 404s
+// (which on the dev server return index.html and can make a logo flicker to its
+// text label) and keeps each logo to a single network hit.
+const logoFileBySlug = {
+  '2xko': '2xko.svg',
+  'blazblue-central-fiction': 'blazblue-central-fiction.webp',
+  'capcom-vs-snk-2': 'capcom-vs-snk-2.png',
+  'dragon-ball-fighterz': 'dragon-ball-fighterz.png',
+  'fatal-fury-city-of-the-wolves': 'fatal-fury-city-of-the-wolves.png',
+  'granblue-fantasy-versus-rising': 'granblue-fantasy-versus-rising.webp',
+  'guilty-gear-strive': 'guilty-gear-strive.png',
+  'invincible-vs': 'invincible-vs.svg',
+  'king-of-fighters-xv': 'king-of-fighters-xv.png',
+  'marvel-vs-capcom-2': 'marvel-vs-capcom-2.webp',
+  'mortal-kombat-1': 'mortal-kombat-1.png',
+  'rivals-of-aether-ii': 'rivals-of-aether-ii.png',
+  'street-fighter-6': 'street-fighter-6.webp',
+  'street-fighter-iii-third-strike': 'street-fighter-iii-third-strike.webp',
+  'super-smash-bros-melee': 'super-smash-bros-melee.webp',
+  'super-smash-bros-ultimate': 'super-smash-bros-ultimate.png',
+  'super-street-fighter-ii-turbo': 'super-street-fighter-ii-turbo.png',
+  'tekken-8': 'tekken-8.png',
+  'ultimate-marvel-vs-capcom-3': 'ultimate-marvel-vs-capcom-3.webp',
+  'under-night-in-birth-2-sysceles': 'under-night-in-birth-2-sysceles.webp',
+  'vampire-savior': 'vampire-savior.png',
+  'virtua-fighter-5-revo': 'virtua-fighter-5-revo.png',
+};
+
 export function getGameLogoSources(name) {
+  const empty = { svg: null, avif: null, webp: null, png: null, jpg: null, jpeg: null };
   const slug = slugifyGameName(name);
-  if (!slug) return { svg: null, avif: null, webp: null, png: null, jpg: null, jpeg: null };
+  if (!slug) return empty;
   const base = process.env.PUBLIC_URL || '';
+  const file = logoFileBySlug[slug];
+  if (file) {
+    // Known game: one authoritative URL, keyed by its real extension.
+    const ext = file.slice(file.lastIndexOf('.') + 1);
+    return { ...empty, [ext]: `${base}/assets/games/${file}` };
+  }
+  // Unknown game (not in the manifest yet): try the extensions we might ship,
+  // skipping ones we never produce (.avif/.jpeg).
   return {
+    ...empty,
     svg: `${base}/assets/games/${slug}.svg`,
-    avif: `${base}/assets/games/${slug}.avif`,
     webp: `${base}/assets/games/${slug}.webp`,
     png: `${base}/assets/games/${slug}.png`,
     jpg: `${base}/assets/games/${slug}.jpg`,
-    jpeg: `${base}/assets/games/${slug}.jpeg`,
   };
 }
 
+// Color treatment so dark/black wordmarks read on the dark sportsbook theme.
+// brightness(0) invert(1) => flat white silhouette (these ship as dark artwork
+// on a transparent background). Super Smash Bros. and TEKKEN 8 are handled at
+// the asset level instead (Smash's white box baked to transparency + white
+// text; TEKKEN's lettering whitened while keeping its red "8").
+const logoTreatmentMap = {
+  'street-fighter-6': { filter: 'brightness(0) invert(1)' },
+  'guilty-gear-strive': { filter: 'brightness(0) invert(1)' },
+};
+
 export function getGameLogoStyle(name, baseHeight) {
   const slug = slugifyGameName(name);
-  
-  const baseStyle = { 
+
+  const baseStyle = {
     height: `${baseHeight || 32}px`, 
     maxHeight: `${baseHeight || 32}px`, 
     maxWidth: '180px', // Generous max-width for table cell
@@ -114,7 +161,7 @@ export function getGameLogoStyle(name, baseHeight) {
   // but keep other transforms like margins if needed.
   delete customStyle.height;
 
-  return { ...baseStyle, ...customStyle };
+  return { ...baseStyle, ...customStyle, ...(logoTreatmentMap[slug] || {}) };
 }
 
 export function getGameLogoSourcesList(name) {

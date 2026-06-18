@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Home from './components/Home';
 import FutureTournaments from './components/FutureTournaments';
@@ -8,12 +8,15 @@ import PastResults from './components/PastResults';
 import Login from './components/Login';
 import Signup from './components/Signup';
 
-function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('authToken'));
+// Inner shell so we can read the current route (useLocation must be inside
+// <Router>) and hide the navbar on the auth screens, per the redesign.
+function AppShell({ isLoggedIn, setIsLoggedIn }) {
+  const { pathname } = useLocation();
+  const hideNav = pathname === '/login' || pathname === '/signup';
 
   return (
-    <Router>
-      <Navbar isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} />
+    <>
+      {!hideNav && <Navbar isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} />}
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={isLoggedIn ? <Navigate to="/" /> : <Login setIsLoggedIn={setIsLoggedIn} />} />
@@ -31,6 +34,16 @@ function App() {
           element={isLoggedIn ? <LiveBetting /> : <Navigate to="/login" />}
         />
       </Routes>
+    </>
+  );
+}
+
+function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('authToken'));
+
+  return (
+    <Router>
+      <AppShell isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} />
     </Router>
   );
 }

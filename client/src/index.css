@@ -1,58 +1,22 @@
-:root {
-  --brand: #004d00; /* Navbar green */
-  --brand-alt: #ffd700; /* Gold */
-  --bg: #f4f8f4; /* Subtle green-tinted background */
-  --text: #0b0b0f;
-}
+/* Global base: resets + body typography.
+   The app-wide design tokens (dark/gold sportsbook theme) live in
+   components/Home.css :root, and each component owns its own styles.
+   Keep this file free of theme colors so nothing overrides those tokens. */
 
-/* Reserve space for the vertical scrollbar so the viewport width does not jump
-   when content height crosses the fold. This prevents a feedback loop with the
-   auto-scaling bracket (scrollbar toggling -> width change -> rescale) without
-   painting an empty scrollbar track on short pages. */
 html {
+  /* Reserve space for the vertical scrollbar so the viewport width does not jump
+     when content height crosses the fold. This prevents a feedback loop with the
+     auto-scaling bracket (scrollbar toggling -> width change -> rescale). */
   scrollbar-gutter: stable;
+  background: var(--bg);
 }
 
 body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  margin: 0;
+  font-family: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   font-weight: 400;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-a { color: var(--brand); }
-a:hover { color: var(--brand-alt); }
-
-.login-container {
-  max-width: 400px;
-  margin: 50px auto;
-  padding: 20px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  text-align: center;
-}
-
-.login-container input {
-  width: 100%;
-  margin: 10px 0;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-}
-
-.login-container button {
-  width: 100%;
-  padding: 10px;
-  background-color: #0078ff;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.error-message {
-  color: red;
-  margin-top: 10px;
-}
+a { color: var(--gold); }
