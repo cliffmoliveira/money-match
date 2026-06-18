@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import './DepositModal.css';
 
 const PRESETS = [50, 100, 250, 500];
@@ -65,7 +66,10 @@ const DepositModal = ({ isOpen, onClose, balanceCents, onConfirm }) => {
 
   if (!isOpen) return null;
 
-  return (
+  // Render into document.body so the fixed overlay is positioned against the
+  // viewport — not the navbar, whose backdrop-filter would otherwise become the
+  // containing block for position: fixed and pin the modal to the top.
+  return createPortal(
     <div className="deposit-overlay" onClick={onClose}>
       <div
         className="deposit-modal"
@@ -128,7 +132,8 @@ const DepositModal = ({ isOpen, onClose, balanceCents, onConfirm }) => {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
