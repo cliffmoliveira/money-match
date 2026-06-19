@@ -539,6 +539,17 @@ app.get('/api/live/bets', async (req, res) => {
   }
 });
 
+// Read-only: the next tracked tournament + its games, for the Live page's
+// pre-Top-8 "waiting room". No auth, no writes.
+app.get('/api/live/upcoming', async (req, res) => {
+  try {
+    res.json(await liveMarkets.getUpcoming());
+  } catch (err) {
+    console.error('Error fetching upcoming tournament:', err.message);
+    res.status(500).json({ error: 'Failed to fetch upcoming tournament' });
+  }
+});
+
 // Demo tools: seed markets and simulate set outcomes without a real event.
 // Off by default; enable with ENABLE_DEMO=1. Remove/keep gated before any
 // real-money launch.

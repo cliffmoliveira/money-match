@@ -93,3 +93,16 @@
 .bnode-pool-bar span { display: block; height: 100%; background: linear-gradient(90deg,#E7B458,#caa044); }
 .bnode-pool-amts { display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: var(--muted); margin-top: 4px; font-variant-numeric: tabular-nums; }
 .bnode-pool-mid { color: var(--faint); font-size: 9px; text-transform: uppercase; letter-spacing: .04em; }
+
+/* Waiting room: pulse the empty slots so it's clear what we're waiting to fill */
+.bracket-waiting .bnode.tbd {
+  animation: bracketWait 1.8s ease-in-out infinite;
+}
+.bracket-waiting .bnode.tbd .bnode-head {
+  color: var(--gold);
+  letter-spacing: 0.04em;
+}
+@keyframes bracketWait {
+  0%, 100% { border-color: var(--border-strong); box-shadow: 0 0 0 0 rgba(231, 180, 88, 0); }
+  50%      { border-color: rgba(231, 180, 88, 0.55); box-shadow: 0 0 14px 0 rgba(231, 180, 88, 0.18); }
+}
