@@ -93,6 +93,7 @@ const Navbar = ({ isLoggedIn }) => {
           </li>
           <li><NavLink to="/future-tournaments" className={linkClass} onClick={close}>Futures</NavLink></li>
           <li><NavLink to="/past-results" className={linkClass} onClick={close}>Results</NavLink></li>
+          <li><NavLink to="/leaderboard" className={linkClass} onClick={close}>Leaderboard</NavLink></li>
         </ul>
 
         {/* Account / wallet */}
