@@ -35,6 +35,7 @@
 
 /* Inputs */
 .login-container input {
+  box-sizing: border-box;
   width: 100%;
   margin: 0 0 4px;
   padding: 12px 13px;
