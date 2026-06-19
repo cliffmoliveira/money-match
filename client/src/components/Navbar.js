@@ -93,6 +93,7 @@ const Navbar = ({ isLoggedIn }) => {
           </li>
           <li><NavLink to="/future-tournaments" className={linkClass} onClick={close}>Futures</NavLink></li>
           <li><NavLink to="/past-results" className={linkClass} onClick={close}>Results</NavLink></li>
+          <li><NavLink to="/leaderboard" className={linkClass} onClick={close}>Leaderboard</NavLink></li>
         </ul>
 
         {/* Account / wallet */}
@@ -117,6 +118,7 @@ const Navbar = ({ isLoggedIn }) => {
                 {accountOpen && (
                   <div className="account-menu" role="menu">
                     {userName && <div className="account-menu-name">{userName}</div>}
+                    <NavLink to="/profile" className="account-menu-item" role="menuitem" onClick={() => setAccountOpen(false)}>My Pick&rsquo;em</NavLink>
                     <button className="account-menu-item" role="menuitem" onClick={logout}>Log out</button>
                   </div>
                 )}

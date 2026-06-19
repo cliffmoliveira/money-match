@@ -106,3 +106,24 @@
   0%, 100% { border-color: var(--border-strong); box-shadow: 0 0 0 0 rgba(231, 180, 88, 0); }
   50%      { border-color: rgba(231, 180, 88, 0.55); box-shadow: 0 0 14px 0 rgba(231, 180, 88, 0.18); }
 }
+
+/* Free pick'em strip on each match card (separate lane from the money bet rows) */
+.bnode-pickem { padding: 6px 9px 8px; border-top: 1px dashed var(--border-soft); }
+.bnode-pickem-label {
+  font-family: 'Saira', sans-serif; font-size: 9px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 4px;
+}
+.bnode-pickem-opts { display: flex; gap: 5px; }
+.bnode-pick {
+  flex: 1; min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 5px;
+  padding: 4px 7px; border-radius: 7px; border: 1px solid var(--border-strong);
+  background: transparent; color: var(--muted); cursor: pointer;
+  font-family: 'Saira', sans-serif; font-size: 10px; font-weight: 600;
+}
+.bnode-pick:disabled { cursor: default; }
+.bnode-pick-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bnode-pick-share { font-weight: 700; color: var(--text); flex-shrink: 0; }
+.bnode-pick.mine { border-color: var(--gold); background: var(--gold-tint); color: var(--gold); }
+.bnode-pick.mine .bnode-pick-share { color: var(--gold); }
+.bnode-pick.won { border-color: var(--win); }
+.bnode-pick.won .bnode-pick-share { color: var(--win); }
