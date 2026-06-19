@@ -8,12 +8,14 @@ import PastResults from './components/PastResults';
 import Login from './components/Login';
 import Signup from './components/Signup';
 import AffiliateDemo from './components/AffiliateDemo';
+import ForgotPassword from './components/ForgotPassword';
+import ResetPassword from './components/ResetPassword';
 
 // Inner shell so we can read the current route (useLocation must be inside
 // <Router>) and hide the navbar on the auth screens, per the redesign.
 function AppShell({ isLoggedIn, setIsLoggedIn }) {
   const { pathname } = useLocation();
-  const hideNav = pathname === '/login' || pathname === '/signup';
+  const hideNav = ['/login', '/signup', '/forgot-password', '/reset-password'].includes(pathname);
 
   return (
     <>
@@ -22,6 +24,8 @@ function AppShell({ isLoggedIn, setIsLoggedIn }) {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={isLoggedIn ? <Navigate to="/" /> : <Login setIsLoggedIn={setIsLoggedIn} />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route
           path="/past-results"
           element={isLoggedIn ? <PastResults /> : <Navigate to="/login" />}

@@ -81,3 +81,9 @@
 .signup-link p { margin: 0; }
 .signup-link a { color: var(--gold); text-decoration: none; font-weight: 700; }
 .signup-link a:hover { text-decoration: underline; }
+
+/* Forgot / reset password */
+.forgot-link { text-align: center; margin-top: 14px; font-size: 13px; }
+.forgot-link a { color: var(--gold); text-decoration: none; }
+.forgot-link a:hover { text-decoration: underline; }
+.reset-note { color: var(--muted); font-size: 14px; line-height: 1.55; margin: 0 0 16px; text-align: center; }
