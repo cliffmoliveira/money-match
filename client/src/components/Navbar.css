@@ -251,10 +251,75 @@
 .navbar-toggle.open span:nth-child(2) { opacity: 0; }
 .navbar-toggle.open span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
 
+/* Mobile bottom tab bar — hidden on desktop, shown under 860px */
+.mobile-tabbar { display: none; }
+
 @media (max-width: 860px) {
+  /* Slim top header: just logo + balance / Deposit / avatar */
   .navbar { padding: 8px 14px; }
-  .navbar-inner { height: auto; padding: 6px 0; }
-  .navbar-toggle { display: flex; }
-  .navbar-links { display: none; width: 100%; margin-top: 10px; }
-  .navbar-links.open { display: flex; flex-direction: column; gap: 6px; }
+  .navbar-inner { height: 48px; padding: 0; }
+  .navbar-toggle { display: none; }   /* hamburger retired in favor of the tab bar */
+  .navbar-links { display: none; }    /* primary nav now lives in the bottom tab bar */
+
+  /* Compact the right-side group so it can't overflow on narrow screens */
+  .navbar-username { gap: 8px; }
+  .navbar-balance { font-size: 13px; padding: 6px 10px; }
+  .navbar-deposit { font-size: 13px; padding: 8px 12px; }
+  .navbar-avatar { width: 32px; height: 32px; }
+
+  /* Fixed bottom tab bar */
+  .mobile-tabbar {
+    display: flex;
+    justify-content: space-around;
+    align-items: stretch;
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 1000;
+    background: rgba(10, 12, 16, 0.92);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-top: 1px solid var(--border);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .tabbar-item {
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 9px 0 7px;
+    text-decoration: none;
+    color: var(--muted);
+    font-family: 'Saira', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 0.15s ease;
+  }
+  .tabbar-item .tabbar-icon { position: relative; line-height: 0; }
+  .tabbar-item svg { width: 22px; height: 22px; display: block; }
+  .tabbar-item.active { color: var(--gold); }
+  .tabbar-item.active::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 26px; height: 3px;
+    border-radius: 0 0 3px 3px;
+    background: var(--gold);
+  }
+  .tabbar-live-dot {
+    position: absolute;
+    top: -3px; right: -5px;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--live);
+    animation: mmPulse 1.6s infinite;
+  }
+
+  /* Keep page content from hiding behind the fixed bar */
+  body { padding-bottom: calc(58px + env(safe-area-inset-bottom, 0px)); }
 }
