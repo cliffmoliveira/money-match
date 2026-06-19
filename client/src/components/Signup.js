@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Login.css';
 import logo from '../assets/images/MoneyMatch.png';
+import PasswordInput from './PasswordInput';
 
 const Signup = () => {
   const [form, setForm] = useState({ username: '', email: '', password: '' });
@@ -71,14 +72,13 @@ const Signup = () => {
           required
         />
         <label htmlFor="signup-password">Password</label>
-        <input
+        <PasswordInput
           id="signup-password"
-          type="password"
           name="password"
-          placeholder="••••••••"
           value={form.password}
           onChange={handleChange}
           required
+          autoComplete="new-password"
         />
         <button type="submit">Create account</button>
       </form>
