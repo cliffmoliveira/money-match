@@ -1,0 +1,65 @@
+.profile-page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 34px 28px 90px;
+  font-family: 'Hanken Grotesk', sans-serif;
+  color: var(--text);
+}
+.pf-head h1 {
+  font-family: 'Saira', sans-serif;
+  font-weight: 800;
+  font-size: 28px;
+  margin: 0 0 4px;
+}
+.pf-sub { color: var(--muted); font-size: 15px; margin: 0 0 22px; }
+.pf-muted { color: var(--muted); text-align: center; padding: 30px 0; }
+
+.pf-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.pf-stat {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 18px;
+  text-align: center;
+}
+.pf-stat.gold { border-color: rgba(231, 180, 88, 0.35); background: var(--gold-tint); }
+.pf-stat-value {
+  font-family: 'Saira', sans-serif;
+  font-weight: 800;
+  font-size: 26px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.pf-stat.gold .pf-stat-value { color: var(--gold); }
+.pf-stat-label {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--muted); margin-top: 4px; font-weight: 600;
+}
+
+.pf-recent-title { font-family: 'Saira', sans-serif; font-size: 16px; font-weight: 700; margin: 0 0 12px; }
+.pf-picks { display: flex; flex-direction: column; gap: 8px; }
+.pf-pick {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 11px; padding: 11px 14px; font-size: 14px;
+}
+.pf-pick-badge {
+  font-family: 'Saira', sans-serif; font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  padding: 3px 9px; border-radius: 6px;
+}
+.pf-pick-badge.correct { background: var(--win-tint); color: var(--win); }
+.pf-pick-badge.incorrect { background: var(--live-tint); color: var(--live-text); }
+.pf-pick-badge.pending { background: var(--gold-tint); color: var(--gold); }
+.pf-pick-meta { font-family: 'Saira', sans-serif; font-weight: 600; color: var(--muted); }
+.pf-pick-reward { margin-left: auto; font-family: 'Saira', sans-serif; font-weight: 700; color: var(--win); font-variant-numeric: tabular-nums; }
+
+@media (max-width: 600px) {
+  .profile-page { padding: 22px 14px 90px; }
+  .pf-stats { grid-template-columns: repeat(2, 1fr); }
+}

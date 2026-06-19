@@ -9,6 +9,7 @@ import Login from './components/Login';
 import Signup from './components/Signup';
 import AffiliateDemo from './components/AffiliateDemo';
 import Leaderboard from './components/Leaderboard';
+import Profile from './components/Profile';
 
 // Inner shell so we can read the current route (useLocation must be inside
 // <Router>) and hide the navbar on the auth screens, per the redesign.
@@ -36,6 +37,7 @@ function AppShell({ isLoggedIn, setIsLoggedIn }) {
           element={isLoggedIn ? <LiveBetting /> : <Navigate to="/login" />}
         />
         <Route path="/leaderboard" element={<Leaderboard />} />
+        <Route path="/profile" element={isLoggedIn ? <Profile /> : <Navigate to="/login" />} />
         <Route path="/affiliate-demo" element={<AffiliateDemo />} />
       </Routes>
     </>

@@ -118,6 +118,7 @@ const Navbar = ({ isLoggedIn }) => {
                 {accountOpen && (
                   <div className="account-menu" role="menu">
                     {userName && <div className="account-menu-name">{userName}</div>}
+                    <NavLink to="/profile" className="account-menu-item" role="menuitem" onClick={() => setAccountOpen(false)}>My Pick&rsquo;em</NavLink>
                     <button className="account-menu-item" role="menuitem" onClick={logout}>Log out</button>
                   </div>
                 )}
