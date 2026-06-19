@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Login.css';
 import logo from '../assets/images/MoneyMatch.png';
+import PasswordInput from './PasswordInput';
 
 const Login = ({ setIsLoggedIn }) => {
   const [email, setEmail] = useState('');
@@ -58,12 +59,11 @@ const Login = ({ setIsLoggedIn }) => {
           onChange={(e) => setEmail(e.target.value)}
         />
         <label htmlFor="login-password">Password</label>
-        <input
+        <PasswordInput
           id="login-password"
-          type="password"
-          placeholder="••••••••"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          autoComplete="current-password"
         />
         <button type="submit">Log in</button>
       </form>
