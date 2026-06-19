@@ -400,8 +400,32 @@ async function clearDemoMarkets() {
   return { cleared: bets.length };
 }
 
+// Read-only: the soonest active/upcoming tracked tournament that has tracked
+// games, plus its games. Powers the Live page's "waiting room" before any Top 8
+// markets exist. Returns { tournament: null, games: [] } when nothing is coming.
+async function getUpcoming() {
+  const tournament = await db.getAsync(
+    `SELECT id, name, date FROM tournaments t
+     WHERE startgg_id IS NOT NULL
+       AND (is_live = 1 OR date(date) >= date('now','-1 day'))
+       AND EXISTS (SELECT 1 FROM players_games_tournaments pgt WHERE pgt.tournament_id = t.id)
+     ORDER BY is_live DESC, date(date) ASC
+     LIMIT 1`
+  );
+  if (!tournament) return { tournament: null, games: [] };
+  const games = await db.allAsync(
+    `SELECT DISTINCT g.id, g.name
+     FROM players_games_tournaments pgt
+     JOIN games g ON g.id = pgt.game_id
+     WHERE pgt.tournament_id = ?
+     ORDER BY g.name`,
+    [tournament.id]
+  );
+  return { tournament, games };
+}
+
 module.exports = {
   ensureOpenMarket, fillBracketSlot, closeMarket, settleMarket, voidMarket,
   placeBet, recomputeOdds, getMarkets, getUserBets, houseBankrollCents, sideRates,
-  seedDemoMarkets, advanceDemoBracket, clearDemoMarkets,
+  seedDemoMarkets, advanceDemoBracket, clearDemoMarkets, getUpcoming,
 };
