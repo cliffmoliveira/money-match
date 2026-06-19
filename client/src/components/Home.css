@@ -247,6 +247,15 @@ body { background: var(--bg); color: var(--text); }
   .live-hero-sets, .spotlight-grid, .champion-grid, .stat-strip, .bets-grid { grid-template-columns: 1fr; }
   .hero { padding: 32px 22px; }
   .hero h1 { font-size: 28px; }
+
+  /* Your Bets: the dense single-row card can't fit a phone — let it reflow to
+     two lines (tournament on top; game / kind / pick / amount / outcome below)
+     and force the column to the viewport so nothing scrolls sideways. */
+  .bets-grid { grid-template-columns: minmax(0, 1fr); }
+  .bet-card { flex-wrap: wrap; gap: 8px 10px; }
+  .bet-tournament { flex: 1 1 100%; }
+  .bet-player { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bet-amount { flex: 0 0 auto; }
 }
 
 /* leaf helpers reconciled from current JSX */

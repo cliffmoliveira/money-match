@@ -56,6 +56,15 @@
 
 .no-results { text-align: center; padding: 50px; color: var(--muted); font-size: 1.05em; }
 
+/* Mobile: keep the filter controls from overflowing. A native <select> sizes to
+   its widest option (a full tournament name), which can render hundreds of px
+   wide and drag the whole page — and the fixed bottom tab bar — sideways. */
+@media (max-width: 760px) {
+  .filter-group { flex: 1 1 100%; flex-wrap: wrap; min-width: 0; }
+  .year-filter, .filter-select { flex: 1 1 140px; min-width: 0; max-width: 100%; width: 100%; }
+  .results-count, .clear-filters { margin-left: 0; }
+}
+
 /* Results table */
 .results-table-container {
   overflow-x: auto; margin-bottom: 30px; border-radius: 16px;
