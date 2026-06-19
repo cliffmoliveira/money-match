@@ -1,0 +1,32 @@
+.waiting-room {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 22px;
+}
+.wr-header {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 18px; flex-wrap: wrap; margin-bottom: 18px;
+}
+.wr-brand { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.wr-title h2 {
+  font-family: 'Saira', sans-serif; font-weight: 800; font-size: 22px;
+  margin: 0; color: var(--text);
+}
+.wr-sub { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+.wr-tname-fallback { font-family: 'Saira', sans-serif; font-weight: 800; font-size: 20px; color: var(--text); }
+.wr-clock { flex-shrink: 0; }
+.wr-standby {
+  font-family: 'Saira', sans-serif; font-weight: 700; font-size: 14px;
+  color: var(--gold); background: var(--gold-tint);
+  border: 1px solid rgba(231, 180, 88, 0.28); border-radius: 10px; padding: 10px 14px;
+}
+.wr-game-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+.wr-game-tabs .filter-tab { display: inline-flex; align-items: center; gap: 8px; }
+.wr-bracket { overflow-x: auto; }
+
+@media (max-width: 760px) {
+  .waiting-room { padding: 14px; }
+  .wr-header { gap: 12px; }
+  .wr-title h2 { font-size: 19px; }
+}
