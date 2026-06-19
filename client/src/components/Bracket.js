@@ -142,7 +142,7 @@ const Column = ({ col, markets, slip, onPick, demoControls, registerRef }) => {
   );
 };
 
-const Bracket = ({ markets = [], slip = {}, onPick, demoControls }) => {
+const Bracket = ({ markets = [], slip = {}, onPick, demoControls, waiting = false }) => {
   const fitRef = useRef(null);    // available-width container (overflow hidden)
   const innerRef = useRef(null);  // natural-size, scaled to fit
   const nodeRefs = useRef({});
@@ -252,7 +252,11 @@ const Bracket = ({ markets = [], slip = {}, onPick, demoControls }) => {
   const common = { markets, slip, onPick, demoControls, registerRef };
 
   return (
-    <div className="bracket-fit" ref={fitRef} style={{ height: dims.h ? dims.h * scale : undefined }}>
+    <div
+      className={`bracket-fit${waiting ? ' bracket-waiting' : ''}`}
+      ref={fitRef}
+      style={{ height: dims.h ? dims.h * scale : undefined }}
+    >
       <div
         className="bracket-scale"
         ref={innerRef}
