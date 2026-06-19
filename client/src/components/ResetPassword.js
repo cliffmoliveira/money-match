@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import './Login.css';
 import logo from '../assets/images/MoneyMatch.png';
+import PasswordInput from './PasswordInput';
 
 const ResetPassword = () => {
   const [params] = useSearchParams();
@@ -57,22 +58,20 @@ const ResetPassword = () => {
           <p className="tagline">Set a new password for your account.</p>
           <form onSubmit={submit}>
             <label htmlFor="rp-pw">New password</label>
-            <input
+            <PasswordInput
               id="rp-pw"
-              type="password"
-              placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              autoComplete="new-password"
             />
             <label htmlFor="rp-pw2">Confirm password</label>
-            <input
+            <PasswordInput
               id="rp-pw2"
-              type="password"
-              placeholder="••••••••"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               required
+              autoComplete="new-password"
             />
             <button type="submit" disabled={busy}>{busy ? 'Updating…' : 'Update password'}</button>
           </form>
