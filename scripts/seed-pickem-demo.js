@@ -33,6 +33,25 @@ const M = 900001; // high id; won't collide with poller markets
 
   await engine.lockMarket(M);
   await engine.settleMarket(M, p1.id, new Date().toISOString());
-  console.log(`Seeded pick'em demo market ${M}: ${p1.name} vs ${p2.name}, winner ${p1.name}.`);
+
+  // Surface these on the Live page, and add a second OPEN/UNLOCKED market so the
+  // pick action can be exercised in the UI.
+  await db.runAsync('UPDATE tournaments SET is_live = 1 WHERE id = ?', [t.id]);
+  const M2 = 900002;
+  const p3 = await db.getAsync('SELECT id, name FROM players ORDER BY id LIMIT 1 OFFSET 2');
+  const p4 = await db.getAsync('SELECT id, name FROM players ORDER BY id LIMIT 1 OFFSET 3');
+  await db.runAsync('DELETE FROM pickem_picks WHERE market_id = ?', [M2]);
+  await db.runAsync('DELETE FROM set_markets WHERE id = ?', [M2]);
+  await db.runAsync(
+    `INSERT INTO set_markets
+      (id, tournament_id, game_id, player1_id, player2_id, state, round, round_text, locks_at,
+       p1_prob, p2_prob, seed_k_cents, p1_live_odds, p2_live_odds)
+     VALUES (?,?,?,?,?,'open','top8','Top 8','2099-01-01T00:00:00Z',0.5,0.5,20000,1.9,1.9)`,
+    [M2, t.id, g.id, p3.id, p4.id]
+  );
+  await engine.placePick({ userId: 2, marketId: M2, pickedPlayerId: p3.id });
+  await engine.placePick({ userId: 3, marketId: M2, pickedPlayerId: p4.id });
+
+  console.log(`Seeded pick'em: settled ${M} (${p1.name} beat ${p2.name}), open ${M2} (${p3.name} vs ${p4.name}).`);
   process.exit(0);
 })().catch((e) => { console.error(e); process.exit(1); });
