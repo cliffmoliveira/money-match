@@ -67,6 +67,9 @@ const Login = ({ setIsLoggedIn }) => {
         />
         <button type="submit">Log in</button>
       </form>
+      <p className="forgot-link">
+        <a href="/forgot-password" onClick={(e) => { e.preventDefault(); navigate('/forgot-password'); }}>Forgot password?</a>
+      </p>
       {error && <p className="error-message">{error}</p>}
     </div>
   );

@@ -27,7 +27,10 @@ app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
 app.use(morgan('dev'));
 app.use(express.static(path.join(__dirname, 'client', 'build')));
 
-// API Routes 
+// Password reset (forgot-password / reset-password) — uses the global express.json above.
+app.use('/api/auth', require('./auth/passwordReset'));
+
+// API Routes
 app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
 
