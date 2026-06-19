@@ -81,3 +81,27 @@
 .signup-link p { margin: 0; }
 .signup-link a { color: var(--gold); text-decoration: none; font-weight: 700; }
 .signup-link a:hover { text-decoration: underline; }
+
+/* Password field with a show/hide visibility toggle (.password-field wraps the
+   input + eye button; scoped class beats the generic .login-container button). */
+.password-field { position: relative; margin: 0 0 4px; }
+.password-field input { margin: 0; padding-right: 44px; }
+.password-field .password-toggle {
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  width: 42px;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 0 10px 10px 0;
+  box-shadow: none;
+  color: var(--faint);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.password-field .password-toggle:hover { background: transparent; color: var(--text); filter: none; }
+.password-field .password-toggle:focus-visible { outline: 2px solid rgba(231,180,88,0.5); outline-offset: -2px; }
