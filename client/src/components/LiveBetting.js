@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import './LiveBetting.css';
 import Bracket from './Bracket';
+import WaitingRoom from './WaitingRoom';
 import { getGameLogoSources, getGameAlt, getGameLogoStyle } from '../utils/gameLogos';
 
 const fmt = (cents) => `$${(cents / 100).toFixed(2)}`;
@@ -29,6 +30,8 @@ const GameLogo = ({ name, height = 30 }) => {
 
 const LiveBetting = () => {
   const [markets, setMarkets] = useState([]);
+  const [upcoming, setUpcoming] = useState(null);
+  const [pickem, setPickem] = useState({}); // free pick'em overlay, keyed by market id
   const [balanceCents, setBalanceCents] = useState(null);
   const [slip, setSlip] = useState({}); // key: `${marketId}_${playerId}`
   const [placing, setPlacing] = useState(false);
@@ -50,14 +53,18 @@ const LiveBetting = () => {
 
   const refresh = useCallback(async () => {
     try {
-      const [mRes, wRes, bRes] = await Promise.all([
+      const [mRes, wRes, bRes, uRes, pRes] = await Promise.all([
         fetch('/api/live/markets'),
         fetch(`/api/wallet?userId=${userId}`),
         fetch(`/api/live/bets?userId=${userId}`),
+        fetch('/api/live/upcoming'),
+        fetch(`/api/pickem/overlay?userId=${userId}`),
       ]);
       if (mRes.ok) setMarkets(await mRes.json());
       if (wRes.ok) setBalanceCents((await wRes.json()).balanceCents);
       if (bRes.ok) setMyBets(await bRes.json());
+      if (uRes.ok) setUpcoming(await uRes.json());
+      if (pRes.ok) setPickem(await pRes.json());
       setError(null);
     } catch (err) {
       setError('Failed to load live markets.');
@@ -65,6 +72,19 @@ const LiveBetting = () => {
       setLoading(false);
     }
   }, [userId]);
+
+  // Free pick'em: place/edit a winner pick (no money), then refresh the overlay.
+  const makePick = async (marketId, playerId) => {
+    if (!userId) return;
+    try {
+      const res = await fetch('/api/pickem/pick', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: Number(userId), marketId, pickedPlayerId: playerId }),
+      });
+      if (res.ok) refresh();
+    } catch { /* ignore transient errors */ }
+  };
 
   useEffect(() => {
     refresh();
@@ -306,10 +326,14 @@ const LiveBetting = () => {
         )}
         {error && <p className="error-message">{error}</p>}
         {markets.length === 0 ? (
-          <div className="live-empty">
-            <h2>No live markets right now</h2>
-            <p>Markets open automatically when a tracked tournament reaches Top 8.</p>
-          </div>
+          upcoming && upcoming.tournament ? (
+            <WaitingRoom tournament={upcoming.tournament} games={upcoming.games} />
+          ) : (
+            <div className="live-empty">
+              <h2>No live markets right now</h2>
+              <p>Markets open automatically when a tracked tournament reaches Top 8.</p>
+            </div>
+          )
         ) : (
           Object.entries(groups).map(([tournamentName, games]) => (
             <section key={tournamentName} className="live-tournament">
@@ -322,6 +346,8 @@ const LiveBetting = () => {
                     slip={slip}
                     onPick={addToSlip}
                     demoControls={demo ? renderDemoControls : null}
+                    pickem={pickem}
+                    onPickem={makePick}
                   />
                 </div>
               ))}

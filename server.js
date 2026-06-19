@@ -17,8 +17,14 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors());
+// Affiliate attribution loop — mounted BEFORE the global express.json so the
+// router's own body parsers run: express.json() on /click, and express.raw() on
+// /postback (which must read the exact raw bytes to verify the HMAC before
+// parsing). Self-contained; shares no state with the rest of the app.
+app.use('/api/affiliate', require('./affiliate/router'));
 app.use(express.json()); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
+app.use('/api/pickem', require('./pickem/router'));
 app.use(morgan('dev'));
 app.use(express.static(path.join(__dirname, 'client', 'build')));
 
@@ -531,6 +537,17 @@ app.get('/api/live/bets', async (req, res) => {
   } catch (err) {
     console.error('Error fetching live bets:', err.message);
     res.status(500).json({ error: 'Failed to fetch live bets' });
+  }
+});
+
+// Read-only: the next tracked tournament + its games, for the Live page's
+// pre-Top-8 "waiting room". No auth, no writes.
+app.get('/api/live/upcoming', async (req, res) => {
+  try {
+    res.json(await liveMarkets.getUpcoming());
+  } catch (err) {
+    console.error('Error fetching upcoming tournament:', err.message);
+    res.status(500).json({ error: 'Failed to fetch upcoming tournament' });
   }
 });
 
