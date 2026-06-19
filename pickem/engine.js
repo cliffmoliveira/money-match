@@ -10,6 +10,18 @@ function getMarket(marketId) {
   return db.getAsync('SELECT * FROM set_markets WHERE id = ?', [marketId]);
 }
 
+// Real bracket markets (from the live poller) carry round_text, not the pick'em
+// `round`. Resolve to a pick'em round so scoring works without changing the
+// poller. An explicit `round` (used in tests/seeds) always wins.
+function resolveRound(market) {
+  if (market && market.round) return market.round;
+  const t = ((market && market.round_text) || '').toLowerCase();
+  if (t.includes('grand final')) return 'gf';
+  if (t.includes('final')) return 'top4';   // winners/losers final
+  if (t.includes('semi') || t.includes('quarter')) return 'top8';
+  return 'top8'; // sensible default for a Top-8 bracket set
+}
+
 // Live community split — count-weighted (free mode has no stake). { total, split }
 // where split = { player_id: share(0..1) }. Drives pre-lock "people's odds".
 async function liveSplit(marketId) {
@@ -43,7 +55,7 @@ async function lockMarket(marketId) {
   if (!market) throw new Error('market not found');
   if (market.community_split != null) return market; // already locked
   const { split } = await liveSplit(marketId);
-  const rm = roundMultiplier(market.round);
+  const rm = roundMultiplier(resolveRound(market));
   await db.runAsync(
     'UPDATE set_markets SET community_split = ?, round_multiplier = ? WHERE id = ?',
     [JSON.stringify(split), rm, marketId]
@@ -138,7 +150,7 @@ async function settleMarket(marketId, winnerPlayerId, nowIso = new Date().toISOS
     let points = 0, coins = 0;
     if (correct) {
       const share = split[pick.picked_player_id] ?? 0;
-      points = computePoints({ round: m.round, communityShare: share });
+      points = computePoints({ round: resolveRound(m), communityShare: share });
       coins = computeCoins(points);
     }
     await db.runAsync(
@@ -175,6 +187,6 @@ function getLeaderboardEntry(userId, scope, ref = '') {
 }
 
 module.exports = {
-  getMarket, liveSplit, isLocked, lockMarket, placePick,
+  getMarket, resolveRound, liveSplit, isLocked, lockMarket, placePick,
   getActiveSeason, settleMarket, getCoinBalance, getLeaderboardEntry,
 };
