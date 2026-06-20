@@ -28,7 +28,7 @@ const Leaderboard = () => {
   return (
     <div className="leaderboard-page">
       <div className="lb-head">
-        <h1>Pick&rsquo;em Leaderboard</h1>
+        <h1>Ranked Leaderboard</h1>
         <p className="lb-sub">Predict bracket winners — bolder, later-round, against-the-crowd calls score more.</p>
       </div>
 
@@ -42,7 +42,7 @@ const Leaderboard = () => {
         <div className="lb-table" role="table">
           <div className="lb-row lb-colhead" role="row">
             <span className="lb-rank">#</span>
-            <span className="lb-user">Player</span>
+            <span className="lb-user">Gamer Tag</span>
             <span className="lb-num">Points</span>
             <span className="lb-num">Acc</span>
             <span className="lb-num">Streak</span>
