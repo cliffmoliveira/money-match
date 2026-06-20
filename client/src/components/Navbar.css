@@ -209,6 +209,8 @@
   border-radius: 8px;
   padding: 9px 10px;
   cursor: pointer;
+  text-decoration: none;
+  box-sizing: border-box;
 }
 .account-menu-item:hover { background: var(--surface); color: var(--gold); }
 

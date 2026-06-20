@@ -5,6 +5,9 @@
   font-family: 'Hanken Grotesk', sans-serif;
   color: var(--text);
 }
+.pf-head {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 14px;
+}
 .pf-head h1 {
   font-family: 'Saira', sans-serif;
   font-weight: 800;
@@ -12,6 +15,14 @@
   margin: 0 0 4px;
 }
 .pf-sub { color: var(--muted); font-size: 15px; margin: 0 0 22px; }
+.pf-edit {
+  flex-shrink: 0; margin-top: 6px;
+  font-family: 'Saira', sans-serif; font-weight: 700; font-size: 13px;
+  color: var(--gold); background: var(--gold-tint);
+  border: 1px solid var(--gold); border-radius: 9px; padding: 7px 12px;
+  text-decoration: none; white-space: nowrap;
+}
+.pf-edit:hover { background: var(--gold); color: var(--on-gold); }
 .pf-muted { color: var(--muted); text-align: center; padding: 30px 0; }
 
 .pf-stats {

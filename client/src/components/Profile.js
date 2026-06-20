@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import './Profile.css';
 
 // Pick'em profile (spec §7.6): coins, points, accuracy, streaks, recent picks.
@@ -41,8 +42,11 @@ const Profile = () => {
   return (
     <div className="profile-page">
       <div className="pf-head">
-        <h1>{username || 'You'} &middot; Pick&rsquo;em</h1>
-        <p className="pf-sub">{data.correct_count}/{data.total_picks} winners called.</p>
+        <div>
+          <h1>{data.display_name || username || 'You'} &middot; Pick&rsquo;em</h1>
+          <p className="pf-sub">{data.correct_count}/{data.total_picks} winners called.</p>
+        </div>
+        <Link to="/account" className="pf-edit">Edit profile</Link>
       </div>
 
       <div className="pf-stats">

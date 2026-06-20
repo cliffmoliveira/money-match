@@ -62,7 +62,8 @@ router.get('/leaderboard', async (req, res) => {
     const ref = req.query.ref != null ? String(req.query.ref) : '';
     const limit = Math.min(100, Number(req.query.limit) || 25);
     const rows = await db.allAsync(
-      `SELECT l.user_id, u.username, l.points, l.correct_count, l.total_picks,
+      `SELECT l.user_id, COALESCE(u.display_name, u.username) AS username,
+              l.points, l.correct_count, l.total_picks,
               l.current_streak, l.best_streak, u.coin_balance
        FROM leaderboard_entries l JOIN users u ON u.id = l.user_id
        WHERE l.scope = ? AND l.scope_ref = ?
@@ -89,7 +90,9 @@ router.get('/profile', async (req, res) => {
       `SELECT market_id, picked_player_id, result, points_awarded, coins_awarded, created_at
        FROM pickem_picks WHERE user_id = ? ORDER BY id DESC LIMIT 20`, [userId]
     );
+    const u = await db.getAsync('SELECT COALESCE(display_name, username) AS display_name FROM users WHERE id = ?', [userId]);
     res.json({
+      display_name: u ? u.display_name : null,
       coin_balance: await engine.getCoinBalance(userId),
       points: g ? g.points : 0,
       correct_count: g ? g.correct_count : 0,

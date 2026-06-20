@@ -12,6 +12,7 @@ import ForgotPassword from './components/ForgotPassword';
 import ResetPassword from './components/ResetPassword';
 import Leaderboard from './components/Leaderboard';
 import Profile from './components/Profile';
+import AccountSettings from './components/AccountSettings';
 
 // Inner shell so we can read the current route (useLocation must be inside
 // <Router>) and hide the navbar on the auth screens, per the redesign.
@@ -42,6 +43,7 @@ function AppShell({ isLoggedIn, setIsLoggedIn }) {
         />
         <Route path="/leaderboard" element={<Leaderboard />} />
         <Route path="/profile" element={isLoggedIn ? <Profile /> : <Navigate to="/login" />} />
+        <Route path="/account" element={isLoggedIn ? <AccountSettings /> : <Navigate to="/login" />} />
         <Route path="/affiliate-demo" element={<AffiliateDemo />} />
       </Routes>
     </>

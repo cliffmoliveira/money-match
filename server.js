@@ -12,6 +12,7 @@ const { syncUpcoming, syncRecentResults } = require('./scripts/sync-upcoming');
 const wallet = require('./wallet');
 const liveMarkets = require('./liveMarkets');
 const economy = require('./economy');
+const account = require('./account');
 const { syncLive } = require('./scripts/sync-live');
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -37,7 +38,7 @@ app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const query = 'SELECT id, username, password FROM users WHERE email = ?';
+    const query = 'SELECT id, username, display_name, password FROM users WHERE email = ?';
     const user = await db.getAsync(query, [email]);
 
     if (!user) {
@@ -55,7 +56,7 @@ app.post('/api/auth/login', async (req, res) => {
       message: 'Login successful',
       token,
       userId: user.id,
-      username: user.username, // Ensure username is sent in the response
+      username: user.display_name || user.username, // public display name (falls back to handle)
     });
   } catch (err) {
     console.error('Login error:', err.message);
@@ -538,6 +539,34 @@ app.post('/api/wallet/daily-bonus', async (req, res) => {
   }
 });
 
+// Account / profile: read + update the editable profile fields.
+app.get('/api/account', async (req, res) => {
+  const userId = Number(req.query.userId);
+  if (!userId) return res.status(400).json({ error: 'userId is required' });
+  try {
+    const acct = await account.getAccount(userId);
+    if (!acct) return res.status(404).json({ error: 'User not found' });
+    res.json(acct);
+  } catch (err) {
+    console.error('Account read error:', err.message);
+    res.status(500).json({ error: 'Failed to load account' });
+  }
+});
+
+app.put('/api/account', async (req, res) => {
+  const { userId, ...patch } = req.body || {};
+  if (!userId) return res.status(400).json({ error: 'userId is required' });
+  try {
+    const result = await account.updateAccount(Number(userId), patch);
+    if (result.error === 'NOT_FOUND') return res.status(404).json({ error: 'User not found' });
+    res.json(result.account);
+  } catch (err) {
+    if (err.code === 'VALIDATION') return res.status(400).json({ error: err.message, field: err.field });
+    console.error('Account update error:', err.message);
+    res.status(500).json({ error: 'Failed to update account' });
+  }
+});
+
 // Live per-set betting
 app.get('/api/live/markets', async (req, res) => {
   try {
@@ -754,9 +783,10 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'client', 'build', 'index.html'));
 });
 
-// Ensure the Fight Money economy columns exist (idempotent), then start.
+// Ensure the Fight Money economy + account columns exist (idempotent), then start.
 economy.applyEconomySchema()
-  .catch((err) => console.error('Economy schema init failed:', err.message))
+  .then(() => account.applyAccountSchema())
+  .catch((err) => console.error('Schema init failed:', err.message))
   .finally(() => {
     app.listen(PORT, () => {
       console.log(`Server running on http://localhost:${PORT}`);

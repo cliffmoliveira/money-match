@@ -44,8 +44,11 @@ const Navbar = ({ isLoggedIn }) => {
   const accountRef = useRef(null);
 
   useEffect(() => {
-    const storedUserName = localStorage.getItem('username');
-    if (storedUserName) setUserName(storedUserName);
+    const read = () => { const u = localStorage.getItem('username'); if (u) setUserName(u); };
+    read();
+    // Refresh the greeting immediately when the account page changes the display name.
+    window.addEventListener('mm-user-updated', read);
+    return () => window.removeEventListener('mm-user-updated', read);
   }, [isLoggedIn]);
 
   // Keep the wallet badge fresh while logged in.
@@ -172,6 +175,8 @@ const Navbar = ({ isLoggedIn }) => {
                   {accountOpen && (
                     <div className="account-menu" role="menu">
                       {userName && <div className="account-menu-name">{userName}</div>}
+                      <NavLink to="/account" className="account-menu-item" role="menuitem" onClick={() => setAccountOpen(false)}>Account &amp; profile</NavLink>
+                      <NavLink to="/profile" className="account-menu-item" role="menuitem" onClick={() => setAccountOpen(false)}>My Pick&rsquo;em</NavLink>
                       <button className="account-menu-item" role="menuitem" onClick={logout}>Log out</button>
                     </div>
                   )}

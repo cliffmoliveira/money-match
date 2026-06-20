@@ -1,0 +1,76 @@
+.account-page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 30px 22px 90px;
+  font-family: 'Hanken Grotesk', sans-serif;
+  color: var(--text);
+}
+.account-loading { text-align: center; padding: 48px; color: var(--muted); }
+
+.account-head { margin-bottom: 22px; }
+.account-head h1 {
+  font-family: 'Saira', sans-serif; font-weight: 800; font-size: 26px; margin: 0;
+}
+.account-sub { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+
+.account-form { display: flex; flex-direction: column; gap: 16px; }
+.account-section {
+  background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+  padding: 18px 18px 20px;
+}
+.account-section h2 {
+  font-family: 'Saira', sans-serif; font-size: 13px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.06em; color: var(--gold);
+  margin: 0 0 14px;
+}
+
+.account-row { display: flex; gap: 14px; flex-wrap: wrap; }
+.account-row .account-field { flex: 1; min-width: 180px; }
+
+.account-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.account-field:last-child { margin-bottom: 0; }
+.account-field > span {
+  font-size: 12px; font-weight: 600; color: var(--muted);
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+}
+.account-field em { font-style: normal; color: var(--faint); font-size: 11px; }
+.account-field em.req { color: var(--gold); }
+
+.account-field input,
+.account-field textarea {
+  width: 100%; box-sizing: border-box;
+  padding: 10px 12px; border: 1px solid var(--border-strong); border-radius: 9px;
+  background: var(--input); color: var(--text);
+  font-family: 'Hanken Grotesk', sans-serif; font-size: 14px;
+}
+.account-field textarea { resize: vertical; min-height: 64px; }
+.account-field input:focus,
+.account-field textarea:focus { outline: none; border-color: rgba(231, 180, 88, 0.55); }
+.account-field input::placeholder,
+.account-field textarea::placeholder { color: var(--faint); }
+
+.account-error {
+  color: var(--live-text); background: var(--live-tint);
+  border: 1px solid rgba(255, 81, 89, 0.3); border-radius: 9px;
+  padding: 10px 14px; font-size: 13px; margin: 0;
+}
+.account-success {
+  color: var(--win); background: var(--win-tint);
+  border: 1px solid rgba(67, 209, 136, 0.3); border-radius: 9px;
+  padding: 10px 14px; font-size: 13px; font-weight: 600; margin: 0;
+}
+
+.account-actions { display: flex; justify-content: flex-end; }
+.account-save {
+  font-family: 'Saira', sans-serif; font-weight: 700; font-size: 15px;
+  color: var(--on-gold); background: var(--gold-grad); border: none;
+  padding: 12px 26px; border-radius: 11px; cursor: pointer;
+  box-shadow: 0 8px 22px rgba(231, 180, 88, 0.25);
+}
+.account-save:hover:not(:disabled) { filter: brightness(1.05); }
+.account-save:disabled { opacity: 0.6; cursor: default; box-shadow: none; }
+
+@media (max-width: 600px) {
+  .account-page { padding: 20px 14px 90px; }
+  .account-row { gap: 0; }
+}
