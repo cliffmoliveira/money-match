@@ -64,7 +64,7 @@ const PoolBar = ({ p1 = 0, p2 = 0 }) => {
   );
 };
 
-const Node = ({ market, slip, onPick, demoControls, registerRef }) => {
+const Node = ({ market, slip, onPick, demoControls, registerRef, pickemFor, onPickem }) => {
   const setRef = (el) => registerRef(el);
   if (!market) {
     return (
@@ -110,12 +110,37 @@ const Node = ({ market, slip, onPick, demoControls, registerRef }) => {
       {row(market.player1_id, market.player1_name, market.p1_live_odds, market.p1_score, p1Win, p2Win)}
       {row(market.player2_id, market.player2_name, market.p2_live_odds, market.p2_score, p2Win, p1Win)}
       {(open || closed) && <PoolBar p1={market.p1_pool_cents} p2={market.p2_pool_cents} />}
+      {pickemFor && (open || closed || settled) && (
+        <div className="bnode-pickem">
+          <div className="bnode-pickem-label">{pickemFor.locked ? "Pick'em (locked)" : "Free pick'em"}</div>
+          <div className="bnode-pickem-opts">
+            {[[market.player1_id, market.player1_name], [market.player2_id, market.player2_name]].map(([pid, name]) => {
+              const share = (pickemFor.split && (pickemFor.split[pid] ?? pickemFor.split[String(pid)])) || 0;
+              const mine = pickemFor.myPick === pid;
+              const won = settled && pickemFor.winnerId === pid;
+              return (
+                <button
+                  key={pid}
+                  type="button"
+                  className={`bnode-pick${mine ? ' mine' : ''}${won ? ' won' : ''}`}
+                  disabled={pickemFor.locked || !name || !onPickem}
+                  onClick={() => onPickem && onPickem(market.id, pid)}
+                  title={pickemFor.locked ? 'Picks are locked' : `Free pick: ${name || 'TBD'}`}
+                >
+                  <span className="bnode-pick-name">{name || 'TBD'}</span>
+                  <span className="bnode-pick-share">{Math.round(share * 100)}%</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
       {demoControls && demoControls(market)}
     </div>
   );
 };
 
-const Column = ({ col, markets, slip, onPick, demoControls, registerRef }) => {
+const Column = ({ col, markets, slip, onPick, demoControls, registerRef, pickem, onPickem }) => {
   const nodes = markets.filter((m) => classify(m) === col.key).sort((a, b) => a.id - b.id);
   // Render at least `cap` cells (TBD placeholders before markets exist), but more
   // if a column actually holds extra markets — notably the Grand Final + its
@@ -130,6 +155,8 @@ const Column = ({ col, markets, slip, onPick, demoControls, registerRef }) => {
         slip={slip}
         onPick={onPick}
         demoControls={demoControls}
+        pickemFor={pickem ? pickem[nodes[i]?.id] : null}
+        onPickem={onPickem}
         registerRef={(el) => registerRef(`${col.key}-${i}`, el)}
       />
     );
@@ -142,7 +169,7 @@ const Column = ({ col, markets, slip, onPick, demoControls, registerRef }) => {
   );
 };
 
-const Bracket = ({ markets = [], slip = {}, onPick, demoControls, waiting = false }) => {
+const Bracket = ({ markets = [], slip = {}, onPick, demoControls, waiting = false, pickem = {}, onPickem }) => {
   const fitRef = useRef(null);    // available-width container (overflow hidden)
   const innerRef = useRef(null);  // natural-size, scaled to fit
   const nodeRefs = useRef({});
@@ -249,7 +276,7 @@ const Bracket = ({ markets = [], slip = {}, onPick, demoControls, waiting = fals
   const colFor = (key) => COLUMNS.find((c) => c.key === key);
   const winners = ['WSF', 'WF'];
   const losers = ['LR1', 'LR2', 'LSF', 'LF'];
-  const common = { markets, slip, onPick, demoControls, registerRef };
+  const common = { markets, slip, onPick, demoControls, registerRef, pickem, onPickem };
 
   return (
     <div

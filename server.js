@@ -24,6 +24,7 @@ app.use(cors());
 app.use('/api/affiliate', require('./affiliate/router'));
 app.use(express.json()); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
+app.use('/api/pickem', require('./pickem/router'));
 app.use(morgan('dev'));
 app.use(express.static(path.join(__dirname, 'client', 'build')));
 
