@@ -45,7 +45,7 @@ const Leaderboard = () => {
             <span className="lb-user">Player</span>
             <span className="lb-num">Points</span>
             <span className="lb-num">Acc</span>
-            <span className="lb-num">Best&nbsp;Streak</span>
+            <span className="lb-num">Streak</span>
           </div>
           {rows.map((r) => (
             <div key={r.user_id} className={`lb-row${String(r.user_id) === userId ? ' me' : ''}`} role="row">
