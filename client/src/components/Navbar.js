@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import './Navbar.css';
 import logo from '../assets/images/MoneyMatch.png';
-import DepositModal from './DepositModal';
 import { fm } from '../utils/money';
 import { apiFetch } from '../utils/api';
 
@@ -47,7 +46,6 @@ const Navbar = ({ isLoggedIn }) => {
   const [balanceCents, setBalanceCents] = useState(null);
   const [dailyBonus, setDailyBonus] = useState(null);
   const [claiming, setClaiming] = useState(false);
-  const [depositOpen, setDepositOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const accountRef = useRef(null);
 
@@ -99,17 +97,6 @@ const Navbar = ({ isLoggedIn }) => {
     document.addEventListener('mousedown', onDocClick);
     return () => document.removeEventListener('mousedown', onDocClick);
   }, [accountOpen]);
-
-  // Play-money top-up: credit the wallet, refresh the badge.
-  const addFunds = async (cents) => {
-    const res = await apiFetch('/api/wallet/deposit', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ amountCents: cents }),
-    });
-    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Top-up failed');
-    setBalanceCents((await res.json()).balanceCents);
-  };
 
   // Claim the free daily Fight Money bonus (login streak), then refresh the badge.
   const claimDaily = async () => {
@@ -174,7 +161,6 @@ const Navbar = ({ isLoggedIn }) => {
                     {claiming ? '…' : `🎁 Claim ${fm(dailyBonus.amountCents)}`}
                   </button>
                 )}
-                <button className="navbar-deposit" onClick={() => setDepositOpen(true)}>Get FM</button>
                 {userName && <span className="navbar-displayname" title={userName}>{userName}</span>}
                 <div className="navbar-account" ref={accountRef}>
                   <button
@@ -215,13 +201,6 @@ const Navbar = ({ isLoggedIn }) => {
           </NavLink>
         ))}
       </nav>
-
-      <DepositModal
-        isOpen={depositOpen}
-        onClose={() => setDepositOpen(false)}
-        balanceCents={balanceCents}
-        onConfirm={addFunds}
-      />
     </>
   );
 };
