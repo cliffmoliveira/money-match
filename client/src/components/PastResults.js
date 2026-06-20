@@ -269,7 +269,7 @@ const PastResults = () => {
             </span>
           </div>
           <div className="stat-item">
-            <span className="stat-label">Players:</span>
+            <span className="stat-label">Competitors:</span>
             <span className="stat-value">
               {new Set([
                 ...pastResults.map(r => r.winner),

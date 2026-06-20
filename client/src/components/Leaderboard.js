@@ -42,7 +42,7 @@ const Leaderboard = () => {
         <div className="lb-table" role="table">
           <div className="lb-row lb-colhead" role="row">
             <span className="lb-rank">#</span>
-            <span className="lb-user">Gamer Tag</span>
+            <span className="lb-user">Gamertag</span>
             <span className="lb-num">Points</span>
             <span className="lb-num">Acc</span>
             <span className="lb-num">Streak</span>

@@ -321,7 +321,7 @@ const FutureTournaments = () => {
       return {
         tournamentName: t?.name || 'Tournament',
         gameName: g?.game_name || 'Game',
-        playerName: p?.player_name || 'Player',
+        playerName: p?.player_name || 'Competitor',
       };
     };
 
@@ -548,7 +548,7 @@ const FutureTournaments = () => {
                   <thead>
                     <tr>
                       <th>Seed</th>
-                      <th>Player</th>
+                      <th>Competitor</th>
                       <th>Win %</th>
                       <th>Odds</th>
                       <th>Total Bets</th>
