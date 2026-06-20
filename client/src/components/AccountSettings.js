@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './AccountSettings.css';
+import { apiFetch } from '../utils/api';
 
 const GENDERS = ['Male', 'Female', 'Non-binary', 'Prefer not to say'];
 const PRONOUNS = ['he/him', 'she/her', 'they/them'];
@@ -8,8 +9,43 @@ const PRONOUNS = ['he/him', 'she/her', 'they/them'];
 const EMPTY = {
   display_name: '', full_name: '', birthday: '', gender: '', pronouns: '',
   country: '', team: '', favorite_game: '', main_character: '', bio: '',
-  twitch: '', twitter: '', discord: '',
+  twitch: '', twitter: '', discord: '', avatar: '',
 };
+
+// Person outline shown when no avatar is uploaded.
+const PersonIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
+  </svg>
+);
+
+// Resize/crop an uploaded image to a small square JPEG data URL so the avatar
+// stays a few KB and never carries an SVG/script payload.
+function fileToAvatarDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Could not read that file.'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('That file is not a valid image.'));
+      img.onload = () => {
+        const SIZE = 256;
+        const canvas = document.createElement('canvas');
+        canvas.width = SIZE;
+        canvas.height = SIZE;
+        const ctx = canvas.getContext('2d');
+        const scale = Math.max(SIZE / img.width, SIZE / img.height); // cover
+        const w = img.width * scale;
+        const h = img.height * scale;
+        ctx.drawImage(img, (SIZE - w) / 2, (SIZE - h) / 2, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.82));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 const AccountSettings = () => {
   const navigate = useNavigate();
@@ -23,7 +59,7 @@ const AccountSettings = () => {
 
   useEffect(() => {
     if (!userId) return;
-    fetch(`/api/account?userId=${userId}`)
+    apiFetch(`/api/account?userId=${userId}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error('load'))))
       .then((a) => {
         setHandle(a.username || '');
@@ -42,16 +78,34 @@ const AccountSettings = () => {
     setError(null);
   };
 
+  const onAvatarFile = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = ''; // let the same file be re-picked later
+    if (!file) return;
+    if (!/^image\/(png|jpe?g|webp|gif)$/i.test(file.type)) {
+      setError('Please choose a PNG, JPEG, WebP, or GIF image.');
+      return;
+    }
+    try {
+      const dataUrl = await fileToAvatarDataUrl(file);
+      setForm((f) => ({ ...f, avatar: dataUrl }));
+      setSuccess(false); setError(null);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+  const removeAvatar = () => { setForm((f) => ({ ...f, avatar: '' })); setSuccess(false); setError(null); };
+
   const submit = async (e) => {
     e.preventDefault();
     if (!form) return;
     if (!form.display_name.trim()) { setError('Display name is required.'); return; }
     setSaving(true); setError(null); setSuccess(false);
     try {
-      const res = await fetch('/api/account', {
+      const res = await apiFetch('/api/account', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: Number(userId), ...form }),
+        body: JSON.stringify(form),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Could not save your changes.');
@@ -85,6 +139,25 @@ const AccountSettings = () => {
       </div>
 
       <form className="account-form" onSubmit={submit}>
+        <section className="account-section">
+          <h2>Photo</h2>
+          <div className="account-avatar-row">
+            <div className="account-avatar-preview">
+              {form.avatar ? <img src={form.avatar} alt="Your avatar" /> : <PersonIcon />}
+            </div>
+            <div className="account-avatar-actions">
+              <label className="account-avatar-upload">
+                {form.avatar ? 'Change photo' : 'Upload photo'}
+                <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={onAvatarFile} hidden />
+              </label>
+              {form.avatar && (
+                <button type="button" className="account-avatar-remove" onClick={removeAvatar}>Remove</button>
+              )}
+              <p className="account-avatar-hint">Square images look best. With no photo, a person icon is shown.</p>
+            </div>
+          </div>
+        </section>
+
         <section className="account-section">
           <h2>Identity</h2>
           <label className="account-field">

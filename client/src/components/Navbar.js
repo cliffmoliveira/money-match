@@ -6,7 +6,13 @@ import DepositModal from './DepositModal';
 import { fm } from '../utils/money';
 import { apiFetch } from '../utils/api';
 
-const initials = (name) => (name || 'U').trim().replace(/[^a-zA-Z0-9]/g, '').slice(0, 2).toUpperCase() || 'U';
+// Person outline shown in the avatar circle when no photo is uploaded.
+const PersonIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
+  </svg>
+);
 
 // Icons for the mobile bottom tab bar (lucide-style; inherit color via currentColor).
 const IconHome = (
@@ -37,6 +43,7 @@ const NAV = [
 
 const Navbar = ({ isLoggedIn }) => {
   const [userName, setUserName] = useState('');
+  const [avatar, setAvatar] = useState(null);
   const [balanceCents, setBalanceCents] = useState(null);
   const [dailyBonus, setDailyBonus] = useState(null);
   const [claiming, setClaiming] = useState(false);
@@ -46,10 +53,20 @@ const Navbar = ({ isLoggedIn }) => {
 
   useEffect(() => {
     const read = () => { const u = localStorage.getItem('username'); if (u) setUserName(u); };
-    read();
-    // Refresh the greeting immediately when the account page changes the display name.
-    window.addEventListener('mm-user-updated', read);
-    return () => window.removeEventListener('mm-user-updated', read);
+    // Pull the avatar from the account (the only place it lives).
+    const loadAvatar = async () => {
+      const userId = localStorage.getItem('userId');
+      if (!isLoggedIn || !userId) { setAvatar(null); return; }
+      try {
+        const res = await apiFetch(`/api/account?userId=${userId}`);
+        if (res.ok) setAvatar((await res.json()).avatar || null);
+      } catch { /* ignore */ }
+    };
+    const refresh = () => { read(); loadAvatar(); };
+    refresh();
+    // Refresh the greeting + avatar immediately when the account page saves.
+    window.addEventListener('mm-user-updated', refresh);
+    return () => window.removeEventListener('mm-user-updated', refresh);
   }, [isLoggedIn]);
 
   // Keep the wallet badge fresh while logged in.
@@ -168,7 +185,9 @@ const Navbar = ({ isLoggedIn }) => {
                     aria-haspopup="menu"
                     aria-expanded={accountOpen}
                   >
-                    {initials(userName)}
+                    {avatar
+                      ? <img src={avatar} alt="" className="navbar-avatar-img" />
+                      : <PersonIcon />}
                   </button>
                   {accountOpen && (
                     <div className="account-menu" role="menu">

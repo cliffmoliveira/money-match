@@ -168,13 +168,15 @@
   background: var(--surface);
   border: 1px solid var(--border-strong);
   display: flex; align-items: center; justify-content: center;
-  font-family: 'Saira', sans-serif;
-  font-weight: 700; font-size: 13px;
   color: #C9CCD3;
   cursor: pointer;
+  overflow: hidden;
+  padding: 0;
   transition: border-color 0.15s ease;
 }
 .navbar-avatar:hover { border-color: rgba(231, 180, 88, 0.5); }
+.navbar-avatar-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.navbar-avatar svg { width: 20px; height: 20px; }
 
 /* Account dropdown (avatar -> Log out menu) */
 .navbar-account { position: relative; }

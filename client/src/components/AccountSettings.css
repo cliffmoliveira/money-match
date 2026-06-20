@@ -24,6 +24,29 @@
   margin: 0 0 14px;
 }
 
+/* Avatar upload */
+.account-avatar-row { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.account-avatar-preview {
+  width: 84px; height: 84px; border-radius: 50%; flex-shrink: 0; overflow: hidden;
+  background: var(--surface); border: 1px solid var(--border-strong);
+  display: flex; align-items: center; justify-content: center;
+}
+.account-avatar-preview img { width: 100%; height: 100%; object-fit: cover; }
+.account-avatar-preview svg { width: 46px; height: 46px; color: var(--faint); }
+.account-avatar-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.account-avatar-upload {
+  font-family: 'Saira', sans-serif; font-weight: 700; font-size: 13px;
+  color: var(--on-gold); background: var(--gold-grad); border: none;
+  padding: 9px 16px; border-radius: 9px; cursor: pointer;
+}
+.account-avatar-upload:hover { filter: brightness(1.05); }
+.account-avatar-remove {
+  font-family: 'Saira', sans-serif; font-weight: 600; font-size: 12px;
+  color: var(--muted); background: transparent; border: none; cursor: pointer; padding: 0;
+}
+.account-avatar-remove:hover { color: var(--live-text); }
+.account-avatar-hint { margin: 0; font-size: 11px; color: var(--faint); max-width: 240px; }
+
 .account-row { display: flex; gap: 14px; flex-wrap: wrap; }
 .account-row .account-field { flex: 1; min-width: 180px; }
 

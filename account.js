@@ -22,6 +22,9 @@ const FIELDS = {
   twitch:         { max: 40, handle: true, label: 'Twitch' },
   twitter:        { max: 40, handle: true, label: 'X / Twitter' },
   discord:        { max: 40, label: 'Discord' },
+  // Avatar as a small base64 image data URL (client resizes to ~256px). SVG is
+  // intentionally excluded. Generous cap as a safety backstop; blank clears it.
+  avatar:         { max: 1500000, image: true, label: 'Avatar' },
 };
 const COLUMNS = Object.keys(FIELDS);
 
@@ -69,6 +72,10 @@ function clean(field, raw) {
     const d = new Date(`${v}T00:00:00Z`);
     if (Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== v) throw fail(field, 'Birthday is not a real date.');
     if (d.getTime() > Date.now()) throw fail(field, 'Birthday can’t be in the future.');
+  }
+  if (spec.image && !/^data:image\/(png|jpe?g|webp|gif);base64,/i.test(v)) {
+    // Reject anything that isn't a raster image data URL (no SVG -> no script payloads).
+    throw fail(field, 'Avatar must be a PNG, JPEG, WebP, or GIF image.');
   }
   return v;
 }

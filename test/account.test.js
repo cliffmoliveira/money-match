@@ -98,3 +98,20 @@ test('ignores non-whitelisted fields (no mass assignment)', async () => {
 test('updateAccount on a missing user returns NOT_FOUND', async () => {
   assert.equal((await account.updateAccount(999, { display_name: 'Xen' })).error, 'NOT_FOUND');
 });
+
+test('avatar: accepts a raster image data URL, rejects non-images and SVG', async () => {
+  const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUg==';
+  const { account: a } = await account.updateAccount(1, { display_name: 'Xen', avatar: png });
+  assert.equal(a.avatar, png);
+  // a non-image data URL, a script-bearing SVG, and a plain URL are all rejected
+  await assert.rejects(() => account.updateAccount(1, { display_name: 'Xen', avatar: 'data:text/html;base64,PHNjcmlwdD4=' }), (e) => e.code === 'VALIDATION');
+  await assert.rejects(() => account.updateAccount(1, { display_name: 'Xen', avatar: 'data:image/svg+xml;base64,PHN2Zz4=' }), (e) => e.code === 'VALIDATION');
+  await assert.rejects(() => account.updateAccount(1, { display_name: 'Xen', avatar: 'https://evil.example/x.png' }), (e) => e.code === 'VALIDATION');
+});
+
+test('avatar: blank clears it to NULL', async () => {
+  const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUg==';
+  await account.updateAccount(1, { display_name: 'Xen', avatar: png });
+  await account.updateAccount(1, { display_name: 'Xen', avatar: '' });
+  assert.equal((await account.getAccount(1)).avatar, null);
+});
