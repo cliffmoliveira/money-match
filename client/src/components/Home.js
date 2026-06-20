@@ -4,8 +4,7 @@ import './Home.css';
 import { getTournamentLogoSources, getTournamentAlt, getTournamentLogoStyle } from '../utils/tournamentLogos';
 import { getGameLogoSources, getGameAlt, getGameLogoStyle } from '../utils/gameLogos';
 import Countdown from './Countdown';
-
-const fmt = (cents) => `$${((cents || 0) / 100).toFixed(2)}`;
+import { fm as fmt, fmAmount } from '../utils/money';
 
 // Hoisted to module scope so their component identity is stable across Home
 // re-renders — defining them inside the parent recreates the type every render,
@@ -304,7 +303,7 @@ const Home = () => {
           <div className="stat-card">
             <div className="label">7-day P&amp;L</div>
             <div className={`value ${pnl7Cents >= 0 ? 'up' : 'down'}`}>
-              {pnl7Cents >= 0 ? '+' : '−'}{Math.abs(pnl7Cents / 100).toFixed(2)}
+              {pnl7Cents >= 0 ? '+' : '−'}{fmAmount(Math.abs(pnl7Cents))} FM
             </div>
           </div>
         </div>
@@ -392,10 +391,10 @@ const Home = () => {
                     <GameLogo name={b.game} height={24} />
                   </div>
                   <div className="bet-player">{b.pick}</div>
-                  <div className="bet-amount">${b.stake.toFixed(2)}</div>
+                  <div className="bet-amount">{fmAmount(Math.round(b.stake * 100))} FM</div>
                   <div className={`bet-outcome ${b.status === 'win' ? 'win' : b.status === 'loss' ? 'loss' : 'pending'}`}>
                     {b.status === 'win' ? 'Won' : b.status === 'loss' ? 'Lost' : b.status === 'refunded' ? 'Refunded' : 'Pending'}
-                    {b.result != null && <span className="bet-result">{b.result >= 0 ? ' +' : ' −'}${Math.abs(b.result).toFixed(2)}</span>}
+                    {b.result != null && <span className="bet-result">{b.result >= 0 ? ' +' : ' −'}{fmAmount(Math.round(Math.abs(b.result) * 100))} FM</span>}
                   </div>
                 </div>
               ))}

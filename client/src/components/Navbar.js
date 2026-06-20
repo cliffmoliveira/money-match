@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import './Navbar.css';
 import logo from '../assets/images/MoneyMatch.png';
 import DepositModal from './DepositModal';
+import { fm } from '../utils/money';
 
 const initials = (name) => (name || 'U').trim().replace(/[^a-zA-Z0-9]/g, '').slice(0, 2).toUpperCase() || 'U';
 
@@ -36,6 +37,8 @@ const NAV = [
 const Navbar = ({ isLoggedIn }) => {
   const [userName, setUserName] = useState('');
   const [balanceCents, setBalanceCents] = useState(null);
+  const [dailyBonus, setDailyBonus] = useState(null);
+  const [claiming, setClaiming] = useState(false);
   const [depositOpen, setDepositOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const accountRef = useRef(null);
@@ -54,7 +57,11 @@ const Navbar = ({ isLoggedIn }) => {
     const load = async () => {
       try {
         const res = await fetch(`/api/wallet?userId=${userId}`);
-        if (res.ok && active) setBalanceCents((await res.json()).balanceCents);
+        if (res.ok && active) {
+          const data = await res.json();
+          setBalanceCents(data.balanceCents);
+          setDailyBonus(data.dailyBonus || null);
+        }
       } catch { /* ignore transient errors */ }
     };
     load();
@@ -80,8 +87,29 @@ const Navbar = ({ isLoggedIn }) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId: Number(userId), amountCents: cents }),
     });
-    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Deposit failed');
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Top-up failed');
     setBalanceCents((await res.json()).balanceCents);
+  };
+
+  // Claim the free daily Fight Money bonus (login streak), then refresh the badge.
+  const claimDaily = async () => {
+    const userId = localStorage.getItem('userId');
+    if (!userId || claiming) return;
+    setClaiming(true);
+    try {
+      const res = await fetch('/api/wallet/daily-bonus', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: Number(userId) }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.balanceCents != null) setBalanceCents(data.balanceCents);
+        setDailyBonus((b) => (b ? { ...b, available: false } : b));
+      }
+    } catch { /* ignore */ } finally {
+      setClaiming(false);
+    }
   };
 
   const logout = () => {
@@ -117,9 +145,19 @@ const Navbar = ({ isLoggedIn }) => {
             {isLoggedIn ? (
               <>
                 {balanceCents !== null && (
-                  <span className="navbar-balance">${(balanceCents / 100).toFixed(2)}</span>
+                  <span className="navbar-balance" title="Fight Money — play-money, no cash value">{fm(balanceCents)}</span>
                 )}
-                <button className="navbar-deposit" onClick={() => setDepositOpen(true)}>Deposit</button>
+                {dailyBonus && dailyBonus.available && (
+                  <button
+                    className="navbar-bonus"
+                    onClick={claimDaily}
+                    disabled={claiming}
+                    title={`Day ${dailyBonus.day} login streak — free Fight Money`}
+                  >
+                    {claiming ? '…' : `🎁 Claim ${fm(dailyBonus.amountCents)}`}
+                  </button>
+                )}
+                <button className="navbar-deposit" onClick={() => setDepositOpen(true)}>Get FM</button>
                 <div className="navbar-account" ref={accountRef}>
                   <button
                     className="navbar-avatar"

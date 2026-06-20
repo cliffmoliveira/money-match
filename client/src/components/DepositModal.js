@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import './DepositModal.css';
+import { fm } from '../utils/money';
 
 const PRESETS = [50, 100, 250, 500];
-const fmt = (cents) => `$${((cents || 0) / 100).toFixed(2)}`;
 
 /**
  * Play-money top-up modal.
@@ -75,18 +75,18 @@ const DepositModal = ({ isOpen, onClose, balanceCents, onConfirm }) => {
         className="deposit-modal"
         role="dialog"
         aria-modal="true"
-        aria-label="Add play money"
+        aria-label="Get Fight Money"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="deposit-header">
-          <span className="deposit-title">Add play money</span>
+          <span className="deposit-title">Get Fight Money</span>
           <button className="deposit-close" aria-label="Close" onClick={onClose}>×</button>
         </div>
 
         <div className="deposit-body">
           <div className="deposit-balance">
             <span>Current balance</span>
-            <span className="deposit-balance-val">{fmt(balanceCents)}</span>
+            <span className="deposit-balance-val">{fm(balanceCents)}</span>
           </div>
 
           <div className="deposit-label">Choose an amount</div>
@@ -98,14 +98,14 @@ const DepositModal = ({ isOpen, onClose, balanceCents, onConfirm }) => {
                 className={`deposit-preset${Number(amount) === p ? ' active' : ''}`}
                 onClick={() => setAmount(String(p))}
               >
-                ${p}
+                {p} FM
               </button>
             ))}
           </div>
 
           <div className="deposit-label">Or enter your own</div>
           <div className="deposit-input">
-            <span className="deposit-input-prefix">$</span>
+            <span className="deposit-input-prefix">FM</span>
             <input
               type="number"
               min="0"
@@ -117,8 +117,8 @@ const DepositModal = ({ isOpen, onClose, balanceCents, onConfirm }) => {
           </div>
 
           <p className="deposit-note">
-            Play money only — MoneyMatch never uses real funds. Top up instantly and keep the
-            bragging rights.
+            Fight Money is play-money only — it has no cash value and MoneyMatch never uses real
+            funds. Top up instantly and keep the bragging rights.
           </p>
 
           {error && <p className="deposit-error">{error}</p>}
@@ -128,7 +128,7 @@ const DepositModal = ({ isOpen, onClose, balanceCents, onConfirm }) => {
             disabled={!valid || placing}
             onClick={confirm}
           >
-            {placing ? 'Adding…' : `Add ${fmt(Math.round(dollars * 100))}`}
+            {placing ? 'Adding…' : `Add ${fm(Math.round(dollars * 100))}`}
           </button>
         </div>
       </div>

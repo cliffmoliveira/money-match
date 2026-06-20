@@ -11,6 +11,7 @@ const { syncTournamentBySlug, syncRecent } = require('./syncStartgg');
 const { syncUpcoming, syncRecentResults } = require('./scripts/sync-upcoming');
 const wallet = require('./wallet');
 const liveMarkets = require('./liveMarkets');
+const economy = require('./economy');
 const { syncLive } = require('./scripts/sync-live');
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -485,10 +486,13 @@ app.get('/api/wallet', async (req, res) => {
   const { userId } = req.query;
   if (!userId) return res.status(400).json({ error: 'userId is required' });
   try {
-    const balanceCents = await wallet.getBalance(userId);
-    if (balanceCents === null) return res.status(404).json({ error: 'User not found' });
+    const exists = await wallet.getBalance(userId);
+    if (exists === null) return res.status(404).json({ error: 'User not found' });
+    // Bust recovery: never leave the user stuck below one min bet.
+    const balanceCents = await economy.applyMercyFloor(userId);
     const transactions = await wallet.getTransactions(userId);
-    res.json({ balanceCents, transactions });
+    const dailyBonus = await economy.dailyBonusStatus(userId);
+    res.json({ balanceCents, transactions, dailyBonus });
   } catch (err) {
     console.error('Error fetching wallet:', err.message);
     res.status(500).json({ error: 'Failed to fetch wallet' });
@@ -516,6 +520,21 @@ app.post('/api/wallet/deposit', async (req, res) => {
   } catch (err) {
     console.error('Deposit failed:', err.message);
     res.status(500).json({ error: 'Deposit failed' });
+  }
+});
+
+// Daily Fight Money bonus: free login-streak refill (ramps Day 1 -> Day 7,
+// resets on a missed day). Idempotent within a 24h window.
+app.post('/api/wallet/daily-bonus', async (req, res) => {
+  const { userId } = req.body || {};
+  if (!userId) return res.status(400).json({ error: 'userId is required' });
+  try {
+    const result = await economy.claimDailyBonus(Number(userId));
+    if (result.error === 'NOT_FOUND') return res.status(404).json({ error: 'User not found' });
+    res.status(result.claimed ? 201 : 200).json(result);
+  } catch (err) {
+    console.error('Daily bonus failed:', err.message);
+    res.status(500).json({ error: 'Daily bonus failed' });
   }
 });
 
@@ -640,11 +659,14 @@ app.post('/api/live/bets', async (req, res) => {
     res.status(201).json(result);
   } catch (err) {
     const map = {
-      INSUFFICIENT_FUNDS: [402, 'Insufficient balance'],
+      INSUFFICIENT_FUNDS: [402, 'Insufficient Fight Money'],
       MARKET_CLOSED: [409, 'Market is no longer open for betting'],
       NOT_FOUND: [404, 'Market not found'],
       BAD_PLAYER: [400, 'Player is not in this market'],
       BAD_AMOUNT: [400, 'Invalid bet amount'],
+      // min-bet / cap violations carry a user-ready message — surface it verbatim.
+      BELOW_MIN: [400, err.message],
+      ABOVE_CAP: [400, err.message],
     };
     const [code, msg] = map[err.code] || [500, 'Failed to place bet'];
     if (code === 500) console.error('Error placing live bet:', err.message);
@@ -732,7 +754,11 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'client', 'build', 'index.html'));
 });
 
-// Start the server
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-});
+// Ensure the Fight Money economy columns exist (idempotent), then start.
+economy.applyEconomySchema()
+  .catch((err) => console.error('Economy schema init failed:', err.message))
+  .finally(() => {
+    app.listen(PORT, () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
+  });

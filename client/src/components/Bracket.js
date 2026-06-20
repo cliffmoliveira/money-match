@@ -51,7 +51,7 @@ function classify(market) {
 const PoolBar = ({ p1 = 0, p2 = 0 }) => {
   const total = p1 + p2;
   const pct = total > 0 ? (p1 / total) * 100 : 50;
-  const usd = (c) => `$${Math.round(c / 100)}`;
+  const usd = (c) => `${Math.round(c / 100).toLocaleString('en-US')} FM`;
   return (
     <div className="bnode-pool" title="Live betting pool — odds are parimutuel and move as money comes in">
       <div className="bnode-pool-bar"><span style={{ width: `${pct}%` }} /></div>

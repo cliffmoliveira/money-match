@@ -5,6 +5,7 @@
  */
 const db = require('./db/db');
 const wallet = require('./wallet');
+const economy = require('./economy');
 const { openingProbabilities, computeLiveOdds, effectiveSubsidyCents, RAKE, round2 } = require('./liveOdds');
 
 const TBD = 0; // player id placeholder for an unfilled bracket slot
@@ -222,6 +223,12 @@ async function placeBet({ userId, marketId, playerId, amountCents }) {
 
   const lockedOdds = sideOdds(market, playerId);
   if (lockedOdds == null) { const e = new Error('Player is not in this market'); e.code = 'BAD_PLAYER'; throw e; }
+
+  // Enforce the Fight Money bet sizing rules (min bet + % cap) against the
+  // current balance, so the starting grant buys real runway and a single bet
+  // can't bust the user.
+  const balanceBefore = await wallet.getBalance(userId);
+  economy.assertBetWithinLimits(amountCents, balanceBefore);
 
   // Record the bet first so the wallet ledger can reference it; on a funds
   // failure, undo the row.
