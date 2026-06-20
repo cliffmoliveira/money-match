@@ -5,6 +5,7 @@ import { getTournamentLogoSources, getTournamentAlt, getTournamentLogoStyle } fr
 import { getGameLogoSources, getGameAlt, getGameLogoStyle } from '../utils/gameLogos';
 import Countdown from './Countdown';
 import { fm as fmt, fmAmount } from '../utils/money';
+import { apiFetch } from '../utils/api';
 
 // Hoisted to module scope so their component identity is stable across Home
 // re-renders — defining them inside the parent recreates the type every render,
@@ -142,8 +143,8 @@ const Home = () => {
       setBetsLoading(true);
       try {
         const [fRes, lRes] = await Promise.all([
-          fetch(`/api/bets?userId=${userId}`),
-          fetch(`/api/live/bets?userId=${userId}`),
+          apiFetch(`/api/bets?userId=${userId}`),
+          apiFetch(`/api/live/bets?userId=${userId}`),
         ]);
         if (fRes.ok) setBets(await fRes.json());
         if (lRes.ok) setLiveBets(await lRes.json());
@@ -163,7 +164,7 @@ const Home = () => {
     const load = async () => {
       try {
         const reqs = [fetch('/api/live/markets')];
-        if (userId) reqs.push(fetch(`/api/wallet?userId=${userId}`));
+        if (userId) reqs.push(apiFetch(`/api/wallet?userId=${userId}`));
         const [mRes, wRes] = await Promise.all(reqs);
         if (!active) return;
         if (mRes && mRes.ok) setLiveMarkets(await mRes.json());
@@ -309,6 +310,42 @@ const Home = () => {
         </div>
       )}
 
+      {/* Your Bets — live per-set + futures, unified (above Next Up) */}
+      {userId && (
+        <section className="bets">
+          <div className="section-header">
+            <h2>Your Bets</h2>
+            <Link to="/live" className="link">Place bets</Link>
+          </div>
+          {betsLoading ? (
+            <div className="skeleton">Loading bets…</div>
+          ) : yourBets.length === 0 ? (
+            <p className="muted">No bets yet.</p>
+          ) : (
+            <div className="bets-grid">
+              {yourBets.slice(0, 6).map((b) => (
+                <div key={b.key} className="bet-card">
+                  <div className="bet-tournament">
+                    <TournamentLogo name={b.tournament} height={20} />
+                    <span className="bet-tournament-name">{b.tournament}</span>
+                  </div>
+                  <span className={`bet-kind ${b.kind === 'Live' ? 'live' : ''}`}>{b.kind}</span>
+                  <div className="bet-game">
+                    <GameLogo name={b.game} height={24} />
+                  </div>
+                  <div className="bet-player">{b.pick}</div>
+                  <div className="bet-amount">{fmAmount(Math.round(b.stake * 100))} FM</div>
+                  <div className={`bet-outcome ${b.status === 'win' ? 'win' : b.status === 'loss' ? 'loss' : 'pending'}`}>
+                    {b.status === 'win' ? 'Won' : b.status === 'loss' ? 'Lost' : b.status === 'refunded' ? 'Refunded' : 'Pending'}
+                    {b.result != null && <span className="bet-result">{b.result >= 0 ? ' +' : ' −'}{fmAmount(Math.round(Math.abs(b.result) * 100))} FM</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
       {/* Upcoming Spotlight */}
       {spotlight && spotlight.length > 0 && (
         <section className="spotlight">
@@ -321,7 +358,7 @@ const Home = () => {
               <div key={t.id} className="spotlight-card">
                 <div className="spotlight-header">
                   <h3>
-                    <TournamentLogo name={t.name} height={24} />
+                    <TournamentLogo name={t.name} height={44} />
                     <span style={{ marginLeft: '10px' }}>{t.name}</span>
                   </h3>
                 </div>
@@ -367,41 +404,6 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Your Bets — live per-set + futures, unified */}
-      {userId && (
-        <section className="bets">
-          <div className="section-header">
-            <h2>Your Bets</h2>
-            <Link to="/live" className="link">Place bets</Link>
-          </div>
-          {betsLoading ? (
-            <div className="skeleton">Loading bets…</div>
-          ) : yourBets.length === 0 ? (
-            <p className="muted">No bets yet.</p>
-          ) : (
-            <div className="bets-grid">
-              {yourBets.slice(0, 6).map((b) => (
-                <div key={b.key} className="bet-card">
-                  <div className="bet-tournament">
-                    <TournamentLogo name={b.tournament} height={20} />
-                    <span className="bet-tournament-name">{b.tournament}</span>
-                  </div>
-                  <span className={`bet-kind ${b.kind === 'Live' ? 'live' : ''}`}>{b.kind}</span>
-                  <div className="bet-game">
-                    <GameLogo name={b.game} height={24} />
-                  </div>
-                  <div className="bet-player">{b.pick}</div>
-                  <div className="bet-amount">{fmAmount(Math.round(b.stake * 100))} FM</div>
-                  <div className={`bet-outcome ${b.status === 'win' ? 'win' : b.status === 'loss' ? 'loss' : 'pending'}`}>
-                    {b.status === 'win' ? 'Won' : b.status === 'loss' ? 'Lost' : b.status === 'refunded' ? 'Refunded' : 'Pending'}
-                    {b.result != null && <span className="bet-result">{b.result >= 0 ? ' +' : ' −'}{fmAmount(Math.round(Math.abs(b.result) * 100))} FM</span>}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      )}
     </div>
   );
 };

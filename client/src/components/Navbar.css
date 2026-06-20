@@ -34,7 +34,7 @@
 
 /* Logo */
 .navbar-logo img {
-  height: 38px;
+  height: 52px;
   width: auto;
   object-fit: contain;
   cursor: pointer;
@@ -108,6 +108,11 @@
   padding: 0;
 }
 .navbar-username span { font-size: 14px; color: var(--text); }
+/* Full display name shown in the header (upper-right) */
+.navbar-displayname {
+  font-family: 'Saira', sans-serif; font-weight: 700; font-size: 14px;
+  color: var(--text); white-space: nowrap; margin-right: 2px;
+}
 
 /* Balance pill */
 .navbar-balance {
@@ -282,6 +287,8 @@
   .navbar-balance { font-size: 13px; padding: 6px 10px; }
   .navbar-deposit { font-size: 13px; padding: 8px 12px; }
   .navbar-avatar { width: 32px; height: 32px; }
+  .navbar-logo img { height: 40px; }       /* fits the slim 48px mobile header */
+  .navbar-displayname { display: none; }   /* avatar is enough on the narrow header */
 
   /* Fixed bottom tab bar */
   .mobile-tabbar {

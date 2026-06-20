@@ -4,6 +4,7 @@ import './Navbar.css';
 import logo from '../assets/images/MoneyMatch.png';
 import DepositModal from './DepositModal';
 import { fm } from '../utils/money';
+import { apiFetch } from '../utils/api';
 
 const initials = (name) => (name || 'U').trim().replace(/[^a-zA-Z0-9]/g, '').slice(0, 2).toUpperCase() || 'U';
 
@@ -59,7 +60,7 @@ const Navbar = ({ isLoggedIn }) => {
     let active = true;
     const load = async () => {
       try {
-        const res = await fetch(`/api/wallet?userId=${userId}`);
+        const res = await apiFetch(`/api/wallet?userId=${userId}`);
         if (res.ok && active) {
           const data = await res.json();
           setBalanceCents(data.balanceCents);
@@ -84,11 +85,10 @@ const Navbar = ({ isLoggedIn }) => {
 
   // Play-money top-up: credit the wallet, refresh the badge.
   const addFunds = async (cents) => {
-    const userId = localStorage.getItem('userId');
-    const res = await fetch('/api/wallet/deposit', {
+    const res = await apiFetch('/api/wallet/deposit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: Number(userId), amountCents: cents }),
+      body: JSON.stringify({ amountCents: cents }),
     });
     if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Top-up failed');
     setBalanceCents((await res.json()).balanceCents);
@@ -100,11 +100,7 @@ const Navbar = ({ isLoggedIn }) => {
     if (!userId || claiming) return;
     setClaiming(true);
     try {
-      const res = await fetch('/api/wallet/daily-bonus', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: Number(userId) }),
-      });
+      const res = await apiFetch('/api/wallet/daily-bonus', { method: 'POST' });
       if (res.ok) {
         const data = await res.json();
         if (data.balanceCents != null) setBalanceCents(data.balanceCents);
@@ -118,6 +114,7 @@ const Navbar = ({ isLoggedIn }) => {
   const logout = () => {
     localStorage.removeItem('authToken');
     localStorage.removeItem('username');
+    localStorage.removeItem('userId');
     window.location.href = '/login';
   };
 
@@ -161,6 +158,7 @@ const Navbar = ({ isLoggedIn }) => {
                   </button>
                 )}
                 <button className="navbar-deposit" onClick={() => setDepositOpen(true)}>Get FM</button>
+                {userName && <span className="navbar-displayname" title={userName}>{userName}</span>}
                 <div className="navbar-account" ref={accountRef}>
                   <button
                     className="navbar-avatar"
