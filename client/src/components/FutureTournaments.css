@@ -176,8 +176,14 @@ h1 { text-align: left; font-family: 'Saira', sans-serif; font-weight: 800; color
   cursor: pointer; text-align: left; font-family: inherit;
 }
 .game-toggle:hover { background: #171b23; }
-.game-toggle-name { flex: 1; font-family: 'Saira', sans-serif; font-size: 14px; font-weight: 700; color: var(--text); text-transform: uppercase; letter-spacing: .04em; }
+.game-toggle-name { flex: 1; min-width: 0; font-family: 'Saira', sans-serif; font-size: 14px; font-weight: 700; color: var(--text); text-transform: uppercase; letter-spacing: .04em; }
 .game-toggle-meta { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.game-entrants {
+  font-family: 'Saira', sans-serif; font-size: 11px; font-weight: 700;
+  color: var(--muted); background: var(--surface); border: 1px solid var(--border);
+  border-radius: 999px; padding: 3px 10px; white-space: nowrap;
+  letter-spacing: .03em; font-variant-numeric: tabular-nums;
+}
 .game-toggle-chevron { font-size: 13px; color: var(--gold); transition: transform 160ms ease; }
 .game-toggle-chevron.open { transform: rotate(180deg); }
 /* The card box is identical collapsed vs expanded; expanding only reveals the
@@ -191,4 +197,7 @@ h1 { text-align: left; font-family: 'Saira', sans-serif; font-weight: 800; color
   .tournament { padding: 15px; }
   .tournament-table th, .tournament-table td { font-size: 12px; padding: 9px; }
   .submit-bet-button { width: 100%; text-align: center; }
+  /* Let wide game logos scale down so the entrant badge + chevron stay on-screen
+     (overrides the inline 180px cap from getGameLogoStyle). */
+  .game-toggle-name img { max-width: 100% !important; }
 }

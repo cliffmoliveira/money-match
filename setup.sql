@@ -8,6 +8,7 @@ DROP TABLE IF EXISTS games;
 DROP TABLE IF EXISTS tournaments;
 DROP TABLE IF EXISTS tournament_players
 DROP TABLE IF EXISTS players_games_tournaments;
+DROP TABLE IF EXISTS tournament_games;
 DROP TABLE IF EXISTS bets;
 
 -- Create the 'users' table
@@ -75,6 +76,17 @@ CREATE TABLE IF NOT EXISTS players_games_tournaments (
     FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE,
     FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE,
     UNIQUE (tournament_id, game_id, player_id) -- Ensure unique assignment
+);
+
+-- Per-(tournament, game) futures metadata (start.gg entrant count, etc.)
+CREATE TABLE IF NOT EXISTS tournament_games (
+    tournament_id INTEGER NOT NULL,
+    game_id       INTEGER NOT NULL,
+    num_entrants  INTEGER,
+    updated_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (tournament_id, game_id),
+    FOREIGN KEY (tournament_id) REFERENCES tournaments(id) ON DELETE CASCADE,
+    FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
 );
 
 UPDATE players_games_tournaments

@@ -20,6 +20,7 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const db = require('../db/db');
 const { startgg } = require('../startggClient');
 const { fieldProbabilities } = require('../liveOdds');
+const { applyFuturesMetaSchema, upsertEntrantCount } = require('../futuresMeta');
 
 const FIELD_PLAYER_NAME = 'The Field';
 // Futures open only within this many days of the event (seeding is finalized
@@ -263,6 +264,8 @@ async function processTournament(slug, args) {
     }
 
     const gameId = await upsertGame(ev.videogame);
+    // Record the event's start.gg entrant count for the Futures page badge.
+    await upsertEntrantCount(tournamentId, gameId, ev.numEntrants);
 
     // Replace this game's prior futures entrants (those with no bets and no
     // result) with the current top 16, so re-syncs don't accumulate stale or
@@ -326,6 +329,7 @@ async function findBrandTournaments(query, after, before) {
 
 // Future page: upcoming major tournaments + their top seeds.
 async function syncUpcoming({ months = 12, top = 8, dryRun = false } = {}) {
+  if (!dryRun) await applyFuturesMetaSchema();
   const now = Math.floor(Date.now() / 1000);
   const before = now + months * 30 * 86400;
   console.log(`[sync-upcoming] next ${months} months, top ${top} seeds${dryRun ? ' [DRY RUN]' : ''}`);
@@ -375,7 +379,7 @@ async function syncRecentResults({ days = 30, minEntrants = 0 } = {}) {
   return { tournaments: withData, matches: totalMatches };
 }
 
-module.exports = { syncUpcoming, syncRecentResults, processTournament, pickTopSeeds };
+module.exports = { syncUpcoming, syncRecentResults, processTournament, pickTopSeeds, GAME_IDS };
 
 // CLI: `node scripts/sync-upcoming.js [--months N] [--top N] [--dry-run] [--results]`
 if (require.main === module) {

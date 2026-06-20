@@ -521,9 +521,13 @@ const FutureTournaments = () => {
   
           {(() => {
             const gamesForTournament = tournamentGames[tournament.id] || [];
+            // Most-entered game first; games without a count sort to the bottom.
+            const sortedGames = [...gamesForTournament].sort(
+              (a, b) => (b.num_entrants || 0) - (a.num_entrants || 0)
+            );
             const gamesToShow = filterGame
-              ? gamesForTournament.filter(g => g.game_name === filterGame)
-              : gamesForTournament;
+              ? sortedGames.filter(g => g.game_name === filterGame)
+              : sortedGames;
             if (gamesToShow.length === 0) {
               return (
                 <p className="futures-pending">
@@ -538,6 +542,11 @@ const FutureTournaments = () => {
               <div key={game.game_id} className={`game-section ${isExpanded ? 'expanded' : 'collapsed'}`}>
                 <button type="button" className="game-toggle" onClick={() => { toggleGame(gameKey); loadPlayers(tournament.id, game.game_id); }} aria-expanded={isExpanded}>
                   <span className="game-toggle-name"><GameTitle name={game.game_name} height={34} /></span>
+                  {game.num_entrants > 0 && (
+                    <span className="game-entrants" title={`${game.num_entrants.toLocaleString()} entrants on Start.gg`}>
+                      {game.num_entrants.toLocaleString()} <span className="ge-label">entrants</span>
+                    </span>
+                  )}
                   <span className={`game-toggle-chevron ${isExpanded ? 'open' : ''}`} aria-hidden="true">▾</span>
                 </button>
                 {isExpanded && (

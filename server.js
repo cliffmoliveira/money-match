@@ -14,6 +14,7 @@ const wallet = require('./wallet');
 const liveMarkets = require('./liveMarkets');
 const economy = require('./economy');
 const account = require('./account');
+const futuresMeta = require('./futuresMeta');
 const { syncLive } = require('./scripts/sync-live');
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -234,9 +235,11 @@ app.get('/api/tournament/:tournamentId/games', async (req, res) => {
     console.log('Fetching games for tournamentId:', tournamentId);
 
     const games = await db.allAsync(
-      `SELECT DISTINCT g.id AS game_id, g.name AS game_name 
+      `SELECT DISTINCT g.id AS game_id, g.name AS game_name, tg.num_entrants
        FROM games g
        JOIN players_games_tournaments pgt ON g.id = pgt.game_id
+       LEFT JOIN tournament_games tg
+         ON tg.tournament_id = pgt.tournament_id AND tg.game_id = g.id
        WHERE pgt.tournament_id = ?`,
       [tournamentId]
     );
@@ -768,6 +771,7 @@ app.get('*', (req, res) => {
 // Ensure the Fight Money economy + account columns exist (idempotent), then start.
 economy.applyEconomySchema()
   .then(() => account.applyAccountSchema())
+  .then(() => futuresMeta.applyFuturesMetaSchema())
   .catch((err) => console.error('Schema init failed:', err.message))
   .finally(() => {
     app.listen(PORT, () => {
