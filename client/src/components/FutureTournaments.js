@@ -546,6 +546,7 @@ const FutureTournaments = () => {
                   <GameTitle name={game.game_name} height={96} />
                 </h3>
                 <p className="seed-caption">Win % implied from Start.gg seeding.</p>
+                <div className="table-scroll">
                 <table className="tournament-table">
                   <thead>
                     <tr>
@@ -614,6 +615,7 @@ const FutureTournaments = () => {
                     )}
                   </tbody>
                 </table>
+                </div>
                   </>
                 )}
               </div>

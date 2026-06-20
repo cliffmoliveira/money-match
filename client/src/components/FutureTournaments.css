@@ -123,7 +123,9 @@ h1 { text-align: left; font-family: 'Saira', sans-serif; font-weight: 800; color
 .game-section h3 { font-family: 'Saira', sans-serif; font-size: 13px; margin: 0 0 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .07em; text-align: left; }
 .seed-caption { text-align: left; color: var(--faint); font-size: 12px; font-style: normal; margin: 4px 0 0; }
 
-/* Outright table */
+/* Outright table — keep the wide seed table scrolling inside its card instead of
+   widening the whole page (which would stretch the fixed mobile tab bar). */
+.table-scroll { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .tournament-table { width: 100%; border-collapse: separate; border-spacing: 0 8px; margin-top: 12px; }
 .tournament-table .seed-cell { font-family: 'Saira', sans-serif; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
 .tournament-table .winpct-cell { font-family: 'Saira', sans-serif; font-weight: 600; color: var(--gold); font-variant-numeric: tabular-nums; }
