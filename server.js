@@ -6,7 +6,8 @@ const db = require('./db/db'); // Your database connection module
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const morgan = require('morgan');
-const secretKey = 'your_secret_key'; // Use an environment variable in production
+const { secretKey } = require('./auth/secret'); // shared with the requireAuth middleware
+const requireAuth = require('./auth/requireAuth');
 const { syncTournamentBySlug, syncRecent } = require('./syncStartgg');
 const { syncUpcoming, syncRecentResults } = require('./scripts/sync-upcoming');
 const wallet = require('./wallet');
@@ -286,9 +287,9 @@ app.get('/api/players', async (req, res) => {
   }
 });
 
-// ✅ GET /api/bets - Fetch user bets
-app.get('/api/bets', async (req, res) => {
-  const { userId } = req.query;
+// ✅ GET /api/bets - Fetch the authenticated user's bets
+app.get('/api/bets', requireAuth, async (req, res) => {
+  const userId = req.userId;
 
   try {
     const bets = await db.allAsync(
@@ -327,8 +328,9 @@ app.get('/api/bets', async (req, res) => {
 
 
 // Endpoint: Submit or Update a Bet
-app.post('/api/bets', async (req, res) => {
-  const { userId, tournamentId, gameId, playerId, amount } = req.body;
+app.post('/api/bets', requireAuth, async (req, res) => {
+  const userId = req.userId;
+  const { tournamentId, gameId, playerId, amount } = req.body;
 
   console.log('Incoming Bet Payload:', {
     userId,
@@ -435,11 +437,12 @@ app.get('/api/game/:tournamentId/:gameId/players', async (req, res) => {
 
 
 
-app.delete('/api/bets', async (req, res) => {
-  const { userId, tournamentId, gameId } = req.body;
+app.delete('/api/bets', requireAuth, async (req, res) => {
+  const userId = req.userId;
+  const { tournamentId, gameId } = req.body;
 
-  if (!userId || !tournamentId || !gameId) {
-    return res.status(400).json({ error: 'Missing required fields: userId, tournamentId, or gameId' });
+  if (!tournamentId || !gameId) {
+    return res.status(400).json({ error: 'Missing required fields: tournamentId or gameId' });
   }
 
   try {
@@ -455,12 +458,12 @@ app.delete('/api/bets', async (req, res) => {
   }
 });
 
-app.post('/api/bets/outcome', async (req, res) => {
-  const { userId, tournamentId, gameId, playerId, isWinner } = req.body;
+app.post('/api/bets/outcome', requireAuth, async (req, res) => {
+  const userId = req.userId;
+  const { tournamentId, gameId, playerId, isWinner } = req.body;
 
   try {
     if (
-      !userId ||
       !tournamentId ||
       !gameId ||
       !playerId ||
@@ -485,9 +488,8 @@ app.post('/api/bets/outcome', async (req, res) => {
 });
 
 // Wallet: balance + recent transactions
-app.get('/api/wallet', async (req, res) => {
-  const { userId } = req.query;
-  if (!userId) return res.status(400).json({ error: 'userId is required' });
+app.get('/api/wallet', requireAuth, async (req, res) => {
+  const userId = req.userId;
   try {
     const exists = await wallet.getBalance(userId);
     if (exists === null) return res.status(404).json({ error: 'User not found' });
@@ -502,35 +504,12 @@ app.get('/api/wallet', async (req, res) => {
   }
 });
 
-// Deposit (play-money top-up): credit the wallet and return the new balance.
-// Mirrors the /api/wallet read + wallet.js ledger logic.
-app.post('/api/wallet/deposit', async (req, res) => {
-  const { userId, amountCents } = req.body || {};
-  const amount = Number(amountCents);
-  if (!userId || !Number.isInteger(amount) || amount <= 0) {
-    return res.status(400).json({ error: 'userId and a positive integer amountCents are required' });
-  }
-  try {
-    // Guard against crediting a non-existent user, which would otherwise write a
-    // phantom ledger row and return balanceCents:null. Mirrors the 404 the
-    // /api/wallet read returns for an unknown user.
-    const current = await wallet.getBalance(Number(userId));
-    if (current === null) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    const balanceCents = await wallet.credit(Number(userId), amount, 'deposit');
-    res.status(201).json({ balanceCents });
-  } catch (err) {
-    console.error('Deposit failed:', err.message);
-    res.status(500).json({ error: 'Deposit failed' });
-  }
-});
+// (Removed: POST /api/wallet/deposit — Fight Money is earned, not topped up.)
 
 // Daily Fight Money bonus: free login-streak refill (ramps Day 1 -> Day 7,
 // resets on a missed day). Idempotent within a 24h window.
-app.post('/api/wallet/daily-bonus', async (req, res) => {
-  const { userId } = req.body || {};
-  if (!userId) return res.status(400).json({ error: 'userId is required' });
+app.post('/api/wallet/daily-bonus', requireAuth, async (req, res) => {
+  const userId = req.userId;
   try {
     const result = await economy.claimDailyBonus(Number(userId));
     if (result.error === 'NOT_FOUND') return res.status(404).json({ error: 'User not found' });
@@ -542,9 +521,8 @@ app.post('/api/wallet/daily-bonus', async (req, res) => {
 });
 
 // Account / profile: read + update the editable profile fields.
-app.get('/api/account', async (req, res) => {
-  const userId = Number(req.query.userId);
-  if (!userId) return res.status(400).json({ error: 'userId is required' });
+app.get('/api/account', requireAuth, async (req, res) => {
+  const userId = req.userId;
   try {
     const acct = await account.getAccount(userId);
     if (!acct) return res.status(404).json({ error: 'User not found' });
@@ -555,11 +533,13 @@ app.get('/api/account', async (req, res) => {
   }
 });
 
-app.put('/api/account', async (req, res) => {
-  const { userId, ...patch } = req.body || {};
-  if (!userId) return res.status(400).json({ error: 'userId is required' });
+app.put('/api/account', requireAuth, async (req, res) => {
+  const userId = req.userId;
+  // Drop any client-supplied userId; the account is always the authenticated
+  // one (updateAccount also whitelists fields, so this is belt-and-suspenders).
+  const { userId: _ignored, ...patch } = req.body || {};
   try {
-    const result = await account.updateAccount(Number(userId), patch);
+    const result = await account.updateAccount(userId, patch);
     if (result.error === 'NOT_FOUND') return res.status(404).json({ error: 'User not found' });
     res.json(result.account);
   } catch (err) {
@@ -581,9 +561,8 @@ app.get('/api/live/markets', async (req, res) => {
   }
 });
 
-app.get('/api/live/bets', async (req, res) => {
-  const { userId } = req.query;
-  if (!userId) return res.status(400).json({ error: 'userId is required' });
+app.get('/api/live/bets', requireAuth, async (req, res) => {
+  const userId = req.userId;
   try {
     const bets = await liveMarkets.getUserBets(userId);
     res.json(bets);
@@ -677,10 +656,11 @@ app.post('/api/live/sync', async (req, res) => {
   }
 });
 
-app.post('/api/live/bets', async (req, res) => {
-  const { userId, marketId, playerId, amountCents } = req.body || {};
-  if (!userId || !marketId || !playerId || amountCents === undefined) {
-    return res.status(400).json({ error: 'userId, marketId, playerId, amountCents are required' });
+app.post('/api/live/bets', requireAuth, async (req, res) => {
+  const userId = req.userId;
+  const { marketId, playerId, amountCents } = req.body || {};
+  if (!marketId || !playerId || amountCents === undefined) {
+    return res.status(400).json({ error: 'marketId, playerId, amountCents are required' });
   }
   try {
     const result = await liveMarkets.placeBet({
