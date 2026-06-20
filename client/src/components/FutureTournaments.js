@@ -537,7 +537,7 @@ const FutureTournaments = () => {
               return (
               <div key={game.game_id} className={`game-section ${isExpanded ? 'expanded' : 'collapsed'}`}>
                 <button type="button" className="game-toggle" onClick={() => { toggleGame(gameKey); loadPlayers(tournament.id, game.game_id); }} aria-expanded={isExpanded}>
-                  <span className="game-toggle-name">{game.game_name}</span>
+                  <span className="game-toggle-name"><GameTitle name={game.game_name} height={34} /></span>
                   <span className={`game-toggle-chevron ${isExpanded ? 'open' : ''}`} aria-hidden="true">▾</span>
                 </button>
                 {isExpanded && (

@@ -5,6 +5,7 @@ import WaitingRoom from './WaitingRoom';
 import { getGameLogoSources, getGameAlt, getGameLogoStyle } from '../utils/gameLogos';
 // Fight Money formatters (fmt/signed kept as names so call sites are unchanged).
 import { fm as fmt, fmSigned as signed, fmAmount } from '../utils/money';
+import { apiFetch } from '../utils/api';
 
 const POLL_MS = 6000; // refresh markets/odds/pick'em every 6s while the Live page is open
 
@@ -12,16 +13,19 @@ const POLL_MS = 6000; // refresh markets/odds/pick'em every 6s while the Live pa
 // back to the game name as text if none load.
 const GameLogo = ({ name, height = 30 }) => {
   const [index, setIndex] = useState(0);
+  const [failed, setFailed] = useState(false);
   if (!name) return null;
   const candidates = Object.values(getGameLogoSources(name)).filter(Boolean);
   const src = candidates[index];
-  if (!src) return <>{name}</>;
+  // Fall back to the game name as text if there's no logo, or every candidate
+  // fails to load.
+  if (failed || !src) return <>{name}</>;
   return (
     <img
       src={src}
       alt={getGameAlt(name)}
       style={getGameLogoStyle(name, height)}
-      onError={() => setIndex((i) => (i + 1 < candidates.length ? i + 1 : i))}
+      onError={() => (index + 1 < candidates.length ? setIndex(index + 1) : setFailed(true))}
     />
   );
 };
@@ -54,8 +58,8 @@ const LiveBetting = () => {
     try {
       const [mRes, wRes, bRes, uRes, pRes] = await Promise.all([
         fetch('/api/live/markets'),
-        fetch(`/api/wallet?userId=${userId}`),
-        fetch(`/api/live/bets?userId=${userId}`),
+        apiFetch(`/api/wallet?userId=${userId}`),
+        apiFetch(`/api/live/bets?userId=${userId}`),
         fetch('/api/live/upcoming'),
         fetch(`/api/pickem/overlay?userId=${userId}`),
       ]);
@@ -133,11 +137,10 @@ const LiveBetting = () => {
     setPlaceMsg(null);
     try {
       for (const e of entries) {
-        const res = await fetch('/api/live/bets', {
+        const res = await apiFetch('/api/live/bets', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            userId: Number(userId),
             marketId: e.marketId,
             playerId: e.playerId,
             amountCents: Math.round(Number(e.stake) * 100),
@@ -340,7 +343,7 @@ const LiveBetting = () => {
               <h2>{tournamentName}</h2>
               {Object.entries(games).map(([gameName, mkts]) => (
                 <div key={gameName} className="live-game">
-                  <h3 className="live-game-title"><GameLogo name={gameName} height={30} /><span>{gameName}</span></h3>
+                  <h3 className="live-game-title"><GameLogo name={gameName} height={40} /></h3>
                   <Bracket
                     markets={mkts}
                     slip={slip}

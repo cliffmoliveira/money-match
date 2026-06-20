@@ -17,11 +17,12 @@ const TournamentLogo = ({ name, height = 44 }) => {
 };
 const GameTabLogo = ({ name, height = 20 }) => {
   const [i, setI] = useState(0);
+  const [failed, setFailed] = useState(false);
   const candidates = Object.values(getGameLogoSources(name)).filter(Boolean);
   const src = candidates[i];
-  if (!src) return <>{name}</>;
+  if (failed || !src) return <>{name}</>; // text fallback if no logo / all candidates fail
   return <img src={src} alt={getGameAlt(name)} style={getGameLogoStyle(name, height)}
-    onError={() => setI((x) => (x + 1 < candidates.length ? x + 1 : x))} />;
+    onError={() => (i + 1 < candidates.length ? setI(i + 1) : setFailed(true))} />;
 };
 
 // Pre-Top-8 view: countdown to the tournament, per-game tabs, and the empty
@@ -96,8 +97,10 @@ const WaitingRoom = ({ tournament, games = [] }) => {
               type="button"
               className={`filter-tab ${g.id === activeGame ? 'active' : ''}`}
               onClick={() => setActiveGame(g.id)}
+              title={g.name}
+              aria-label={g.name}
             >
-              <GameTabLogo name={g.name} /> <span>{g.name}</span>
+              <GameTabLogo name={g.name} height={28} />
             </button>
           ))}
         </div>
