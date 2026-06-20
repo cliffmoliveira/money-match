@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import './FutureTournaments.css';
 import { getGameAlt, getGameLogoSources, getGameLogoStyle } from '../utils/gameLogos';
 import { getTournamentLogoSources, getTournamentAlt, getTournamentLogoStyle } from '../utils/tournamentLogos';
@@ -6,6 +6,7 @@ import Countdown from './Countdown';
 // Futures stakes/payouts are stored in whole Fight Money units, so convert to
 // cents (×100) before the FM formatter, matching Home.js.
 import { fmAmount } from '../utils/money';
+import { apiFetch } from '../utils/api';
 
 // Defined at module scope so their component identity is stable across
 // FutureTournaments re-renders (e.g. every stake keystroke). Defining them
@@ -102,6 +103,27 @@ const FutureTournaments = () => {
     return next;
   });
 
+  // Players/odds are loaded lazily — only when a game table is opened — so the
+  // initial page load isn't blocked fetching seeds for collapsed games. The ref
+  // guards against duplicate fetches on repeated toggles.
+  const requestedPlayers = useRef(new Set());
+  const loadPlayers = useCallback(async (tournamentId, gameId) => {
+    const key = `${tournamentId}_${gameId}`;
+    if (requestedPlayers.current.has(key)) return;
+    requestedPlayers.current.add(key);
+    try {
+      const res = await fetch(`/api/game/${tournamentId}/${gameId}/players`);
+      if (res.ok) {
+        const players = await res.json();
+        setPlayerStats((prev) => ({ ...prev, [key]: players }));
+      } else {
+        requestedPlayers.current.delete(key); // allow a retry next time
+      }
+    } catch {
+      requestedPlayers.current.delete(key);
+    }
+  }, []);
+
   const userId = localStorage.getItem('userId');
 
   useEffect(() => {
@@ -109,7 +131,7 @@ const FutureTournaments = () => {
       try {
         const [tournamentsResponse, betsResponse] = await Promise.all([
           fetch('/api/tournaments'),
-          fetch(`/api/bets?userId=${userId}`),
+          apiFetch(`/api/bets?userId=${userId}`),
         ]);
 
         if (!tournamentsResponse.ok) {
@@ -161,24 +183,9 @@ const FutureTournaments = () => {
         });
         setTournamentGames(updatedTournamentGames);
   
-        // Fetch players for all games
-        const playerRequests = gameResults.flatMap(({ tournamentId, games }) => 
-          games.map(async (game) => {
-            const response = await fetch(`/api/game/${tournamentId}/${game.game_id}/players`);
-            if (response.ok) {
-              const playersData = await response.json();
-              return { key: `${tournamentId}_${game.game_id}`, players: playersData };
-            }
-            return { key: `${tournamentId}_${game.game_id}`, players: [] };
-          })
-        );
-  
-        const playerResults = await Promise.all(playerRequests);
-        const updatedPlayerStats = {};
-        playerResults.forEach(({ key, players }) => {
-          updatedPlayerStats[key] = players;
-        });
-        setPlayerStats(updatedPlayerStats);
+        // Players/seeds are no longer fetched here — they load lazily when a
+        // game table is expanded (loadPlayers), so the page renders as soon as
+        // the tournament + game lists are in.
   
       } catch (err) {
         console.error('Error fetching tournaments, games, or players:', err.message);
@@ -242,11 +249,10 @@ const FutureTournaments = () => {
     try {
       // POST is one bet at a time; submit each selection in turn.
       for (const e of entries) {
-        const response = await fetch('/api/bets', {
+        const response = await apiFetch('/api/bets', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            userId,
             tournamentId: e.tournamentId,
             gameId: e.gameId,
             playerId: e.playerId,
@@ -278,7 +284,7 @@ const FutureTournaments = () => {
 
       // Re-read placed bets so rows show "Adjust" with the authoritative
       // blended odds the server just computed.
-      const betsRes = await fetch(`/api/bets?userId=${userId}`);
+      const betsRes = await apiFetch(`/api/bets?userId=${userId}`);
       if (betsRes.ok) {
         const betsData = await betsRes.json();
         const placed = {};
@@ -531,7 +537,7 @@ const FutureTournaments = () => {
               const seedCount = (playerStats[gameKey] || []).filter((p) => p.player_name !== 'The Field').length;
               return (
               <div key={game.game_id} className={`game-section ${isExpanded ? 'expanded' : 'collapsed'}`}>
-                <button type="button" className="game-toggle" onClick={() => toggleGame(gameKey)} aria-expanded={isExpanded}>
+                <button type="button" className="game-toggle" onClick={() => { toggleGame(gameKey); loadPlayers(tournament.id, game.game_id); }} aria-expanded={isExpanded}>
                   <span className="game-toggle-name">{game.game_name}</span>
                   {seedCount > 0 && <span className="game-toggle-meta">{seedCount} seeds</span>}
                   <span className={`game-toggle-chevron ${isExpanded ? 'open' : ''}`} aria-hidden="true">▾</span>
@@ -605,6 +611,9 @@ const FutureTournaments = () => {
                         </tr>
                       );
                     })}
+                    {!playerStats[gameKey] && (
+                      <tr><td colSpan="8" className="seed-caption" style={{ textAlign: 'center', padding: '18px' }}>Loading players…</td></tr>
+                    )}
                   </tbody>
                 </table>
                   </>
