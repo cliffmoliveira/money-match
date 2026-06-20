@@ -87,12 +87,14 @@ app.post('/api/auth/signup', async (req, res) => {
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Insert the new user into the database
+    // Insert the new user into the database. Seed display_name from the chosen
+    // username so a fresh account has a public name immediately (editable later
+    // at /account); the boot backfill only covers pre-existing rows.
     const insertQuery = `
-      INSERT INTO users (username, email, password)
-      VALUES (?, ?, ?)
+      INSERT INTO users (username, email, password, display_name)
+      VALUES (?, ?, ?, ?)
     `;
-    const result = await db.runAsync(insertQuery, [username, email, hashedPassword]);
+    const result = await db.runAsync(insertQuery, [username, email, hashedPassword, username]);
 
     // Grant the new user a starting play-money balance via the wallet ledger.
     try {
