@@ -58,12 +58,17 @@ function clean(field, raw) {
   }
   if (spec.min && v.length < spec.min) throw fail(field, `${spec.label} must be at least ${spec.min} characters.`);
   if (spec.max && v.length > spec.max) throw fail(field, `${spec.label} must be ${spec.max} characters or fewer.`);
-  if (spec.handle) v = v.replace(/^@+/, ''); // accept "@name" or "name"
+  if (spec.handle) {
+    v = v.replace(/^@+/, ''); // accept "@name" or "name"
+    if (v === '') return null; // an all-@ handle clears the field, like any blank optional
+  }
   if (spec.date) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) throw fail(field, 'Birthday must be a valid date (YYYY-MM-DD).');
-    const t = Date.parse(`${v}T00:00:00Z`);
-    if (Number.isNaN(t)) throw fail(field, 'Birthday is not a real date.');
-    if (t > Date.now()) throw fail(field, 'Birthday can’t be in the future.');
+    // Date.parse rolls impossible dates forward (Feb 30 -> Mar 2), so round-trip
+    // and reject anything that doesn't normalize back to the same calendar day.
+    const d = new Date(`${v}T00:00:00Z`);
+    if (Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== v) throw fail(field, 'Birthday is not a real date.');
+    if (d.getTime() > Date.now()) throw fail(field, 'Birthday can’t be in the future.');
   }
   return v;
 }

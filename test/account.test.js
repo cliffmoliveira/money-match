@@ -76,6 +76,18 @@ test('strips leading @ from social handles', async () => {
   assert.equal(a.twitch, 'daigothebeast');
 });
 
+test('an all-@ handle clears to NULL (not empty string)', async () => {
+  const { account: a } = await account.updateAccount(1, { display_name: 'Xen', twitch: '@@@', twitter: '@' });
+  assert.equal(a.twitch, null);
+  assert.equal(a.twitter, null);
+});
+
+test('rejects impossible calendar dates (Feb 30, Feb 29 in a non-leap year)', async () => {
+  await assert.rejects(() => account.updateAccount(1, { display_name: 'Xen', birthday: '2026-02-30' }), (e) => e.code === 'VALIDATION');
+  await assert.rejects(() => account.updateAccount(1, { display_name: 'Xen', birthday: '2025-02-29' }), (e) => e.code === 'VALIDATION');
+  await assert.rejects(() => account.updateAccount(1, { display_name: 'Xen', birthday: '2026-04-31' }), (e) => e.code === 'VALIDATION');
+});
+
 test('ignores non-whitelisted fields (no mass assignment)', async () => {
   await account.updateAccount(1, { display_name: 'Xen', password: 'hacked', id: 999, username: 'newhandle', balance_cents: 999999 });
   const row = await db.getAsync('SELECT password, username FROM users WHERE id = 1');
