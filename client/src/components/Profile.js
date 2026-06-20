@@ -31,8 +31,7 @@ const Profile = () => {
   if (error) return <div className="profile-page"><p className="error-message">{error}</p></div>;
 
   const stats = [
-    { label: 'Coins', value: data.coin_balance.toLocaleString(), gold: true },
-    { label: 'Points', value: data.points.toLocaleString() },
+    { label: 'Points', value: data.points.toLocaleString(), gold: true },
     { label: 'Accuracy', value: `${Math.round((data.accuracy || 0) * 100)}%` },
     { label: 'Current streak', value: data.current_streak },
     { label: 'Best streak', value: data.best_streak },
@@ -68,7 +67,7 @@ const Profile = () => {
               <span className={`pf-pick-badge ${p.result}`}>{p.result}</span>
               <span className="pf-pick-meta">Match #{p.market_id}</span>
               <span className="pf-pick-reward">
-                {p.result === 'correct' ? `+${p.points_awarded} pts · +${p.coins_awarded} coins` : ''}
+                {p.result === 'correct' ? `+${p.points_awarded} pts` : ''}
               </span>
             </div>
           ))}

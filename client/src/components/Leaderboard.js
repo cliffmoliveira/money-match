@@ -46,7 +46,6 @@ const Leaderboard = () => {
             <span className="lb-num">Points</span>
             <span className="lb-num">Acc</span>
             <span className="lb-num">Best&nbsp;Streak</span>
-            <span className="lb-num">Coins</span>
           </div>
           {rows.map((r) => (
             <div key={r.user_id} className={`lb-row${String(r.user_id) === userId ? ' me' : ''}`} role="row">
@@ -55,7 +54,6 @@ const Leaderboard = () => {
               <span className="lb-num lb-points">{r.points.toLocaleString()}</span>
               <span className="lb-num">{Math.round((r.accuracy || 0) * 100)}%</span>
               <span className="lb-num">{r.best_streak}</span>
-              <span className="lb-num lb-coins">{r.coin_balance.toLocaleString()}</span>
             </div>
           ))}
         </div>

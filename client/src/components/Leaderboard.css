@@ -23,7 +23,7 @@
 }
 .lb-row {
   display: grid;
-  grid-template-columns: 44px 1fr 90px 64px 110px 90px;
+  grid-template-columns: 44px 1fr 90px 64px 110px;
   align-items: center;
   gap: 8px;
   padding: 12px 16px;
@@ -42,15 +42,13 @@
 .lb-rank { font-family: 'Saira', sans-serif; font-weight: 700; color: var(--muted); }
 .lb-user { font-family: 'Saira', sans-serif; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lb-num { text-align: right; font-variant-numeric: tabular-nums; }
-.lb-points { font-family: 'Saira', sans-serif; font-weight: 700; color: var(--text); }
-.lb-coins { color: var(--gold); font-weight: 700; }
+.lb-points { font-family: 'Saira', sans-serif; font-weight: 700; color: var(--gold); }
 .lb-row.me { background: var(--gold-tint); }
 .lb-row.me .lb-rank { color: var(--gold); }
 
 @media (max-width: 600px) {
   .leaderboard-page { padding: 22px 14px 90px; }
   .lb-row { grid-template-columns: 32px 1fr 64px 70px; gap: 6px; padding: 11px 12px; }
-  /* hide accuracy + best-streak on narrow screens to keep it readable */
-  .lb-row > .lb-num:nth-child(4),
-  .lb-row > .lb-num:nth-child(5) { display: none; }
+  /* hide accuracy on narrow screens; keep rank, player, points, best streak */
+  .lb-row > .lb-num:nth-child(4) { display: none; }
 }
