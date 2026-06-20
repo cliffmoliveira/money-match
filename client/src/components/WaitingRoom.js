@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import './WaitingRoom.css';
 import Bracket from './Bracket';
 import Countdown from './Countdown';
@@ -28,11 +28,48 @@ const GameTabLogo = ({ name, height = 20 }) => {
 // Top 8 bracket skeleton with highlighted waiting slots.
 const WaitingRoom = ({ tournament, games = [] }) => {
   const [activeGame, setActiveGame] = useState(games[0]?.id ?? null);
+  const [seeds, setSeeds] = useState([]);
 
   // The tournament date is a calendar day (UTC midnight); once it passes we
   // can't count down precisely, so show a standby status instead of a clock.
   const target = new Date(`${tournament.date}T00:00:00`).getTime();
   const started = !isNaN(target) && target <= Date.now();
+
+  // Pull the top-8 Start.gg seeds for the active game (same source the Futures
+  // page uses). These are *projected* finalists — shown view-only, never as
+  // markets — so the empty pre-Top-8 bracket reads as real names.
+  useEffect(() => {
+    if (!activeGame || !tournament?.id) { setSeeds([]); return; }
+    let active = true;
+    setSeeds([]);
+    fetch(`/api/game/${tournament.id}/${activeGame}/players`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((rows) => {
+        if (!active) return;
+        const top = (Array.isArray(rows) ? rows : [])
+          .filter((r) => r.seed_num != null)
+          .slice(0, 8)
+          .map((r) => ({ seed: r.seed_num, name: r.player_name }));
+        setSeeds(top);
+      })
+      .catch(() => { if (active) setSeeds([]); });
+    return () => { active = false; };
+  }, [activeGame, tournament]);
+
+  // Place the 8 seeds into the standard Top-8 double-elim entry slots: top 4
+  // seeds cross-paired in Winners Semis (1v4, 2v3), seeds 5-8 in Losers Round 1
+  // (5v8, 6v7). Everything downstream stays TBD — results aren't known yet.
+  const projected = useMemo(() => {
+    if (seeds.length < 2) return {};
+    const s = seeds;
+    return {
+      'WSF-0': [s[0], s[3]],
+      'WSF-1': [s[1], s[2]],
+      'LR1-0': [s[4], s[7]],
+      'LR1-1': [s[5], s[6]],
+    };
+  }, [seeds]);
+  const hasProjection = seeds.length >= 2;
 
   return (
     <div className="waiting-room">
@@ -66,8 +103,14 @@ const WaitingRoom = ({ tournament, games = [] }) => {
         </div>
       )}
 
+      {hasProjection && (
+        <p className="wr-proj-note">
+          Projected Top 8 from Start.gg seeding — not yet decided. Live odds and free pick’em open when the bracket starts.
+        </p>
+      )}
+
       <div className="wr-bracket">
-        <Bracket markets={[]} waiting />
+        <Bracket markets={[]} waiting projected={projected} />
       </div>
     </div>
   );

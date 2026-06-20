@@ -23,6 +23,11 @@
 }
 .wr-game-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
 .wr-game-tabs .filter-tab { display: inline-flex; align-items: center; gap: 8px; }
+.wr-proj-note {
+  margin: 0 0 12px; font-size: 12px; line-height: 1.4; color: var(--muted);
+  padding: 8px 12px; background: var(--surface); border: 1px solid var(--border-soft);
+  border-radius: 9px;
+}
 .wr-bracket { overflow-x: auto; }
 
 @media (max-width: 760px) {
