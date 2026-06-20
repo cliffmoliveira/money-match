@@ -558,12 +558,10 @@ const FutureTournaments = () => {
                     <tr>
                       <th>Seed</th>
                       <th>Competitor</th>
-                      <th>Win %</th>
+                      <th className="winpct-col">Win %</th>
                       <th>Odds</th>
-                      <th>Total Bets</th>
-                      <th>Total Amount</th>
-                      <th>Bet</th>
                       <th>Payout</th>
+                      <th>Bet</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -589,10 +587,9 @@ const FutureTournaments = () => {
                         <tr key={player.player_id} className={isField ? 'field-row' : ''}>
                           <td className="seed-cell">{player.seed_num != null ? `#${player.seed_num}` : (isField ? 'Field' : '—')}</td>
                           <td>{player.player_name}</td>
-                          <td className="winpct-cell">{winPct}</td>
+                          <td className="winpct-cell winpct-col">{winPct}</td>
                           <td>{player.live_odds?.toFixed(2)}</td>
-                          <td>{player.total_bets || 0}</td>
-                          <td>{fmAmount(Math.round((player.total_amount || 0) * 100))} FM</td>
+                          <td>{fmAmount(Math.round(rowPayout * 100))} FM</td>
                           <td>
                             <button
                               type="button"
@@ -612,12 +609,11 @@ const FutureTournaments = () => {
                               {label}
                             </button>
                           </td>
-                          <td>{fmAmount(Math.round(rowPayout * 100))} FM</td>
                         </tr>
                       );
                     })}
                     {!playerStats[gameKey] && (
-                      <tr><td colSpan="8" className="seed-caption" style={{ textAlign: 'center', padding: '18px' }}>Loading players…</td></tr>
+                      <tr><td colSpan="6" className="seed-caption" style={{ textAlign: 'center', padding: '18px' }}>Loading players…</td></tr>
                     )}
                   </tbody>
                 </table>

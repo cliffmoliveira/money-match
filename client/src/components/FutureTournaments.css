@@ -90,23 +90,37 @@
 }
 
 /* Filters */
-.filter-section {
-  display: flex; align-items: center; gap: 12px; margin: 12px 0 20px; padding: 12px 14px;
-  background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--gold);
-  border-radius: 12px; flex-wrap: wrap;
+.future-layout .filter-section {
+  display: flex; align-items: flex-end; gap: 14px; margin: 12px 0 22px; padding: 16px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 14px; flex-wrap: wrap;
 }
-.filter-group { display: flex; align-items: center; gap: 8px; }
-.filter-select, .filter-input {
-  padding: 8px 10px; border: 1px solid var(--border-strong); border-radius: 9px;
-  background: var(--input); color: var(--text); font-size: 14px;
+.future-layout .filter-group { display: flex; flex-direction: column; align-items: stretch; gap: 6px; }
+.future-layout .filter-group label {
+  font-family: 'Saira', sans-serif; font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .07em; color: var(--muted);
 }
-.filter-select:focus, .filter-input:focus { outline: none; border-color: rgba(231,180,88,0.5); }
-.clear-filters {
-  margin-left: auto; padding: 8px 14px; background: var(--gold-grad); color: var(--on-gold);
-  border: none; border-radius: 9px; font-family: 'Saira', sans-serif; font-weight: 600; cursor: pointer;
+.future-layout .filter-select, .future-layout .filter-input {
+  appearance: none; -webkit-appearance: none; -moz-appearance: none;
+  width: 175px; max-width: 100%; padding: 10px 36px 10px 13px;
+  text-overflow: ellipsis;
+  border: 1px solid var(--border); border-radius: 10px;
+  background-color: var(--input); color: var(--text);
+  font-size: 14px; font-family: 'Hanken Grotesk', sans-serif; cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238B909C' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 13px center; background-size: 11px;
+  transition: border-color 140ms ease, background-color 140ms ease;
 }
-.clear-filters:hover { filter: brightness(1.05); }
-.results-count { color: var(--muted); font-size: 14px; }
+.future-layout .filter-select:hover, .future-layout .filter-input:hover { border-color: var(--border-strong); }
+.future-layout .filter-select:focus, .future-layout .filter-input:focus { outline: none; border-color: var(--gold); }
+.future-layout .clear-filters {
+  padding: 10px 16px; background: transparent; color: var(--muted);
+  border: 1px solid var(--border-strong); border-radius: 10px;
+  font-family: 'Saira', sans-serif; font-weight: 600; font-size: 13px; cursor: pointer;
+  transition: color 140ms ease, border-color 140ms ease;
+}
+.future-layout .clear-filters:hover { color: var(--text); border-color: var(--gold); }
+.future-layout .results-count { margin-left: auto; align-self: center; color: var(--muted); font-size: 13px; }
 
 h1 { text-align: left; font-family: 'Saira', sans-serif; font-weight: 800; color: var(--text); font-size: 30px; letter-spacing: -0.01em; margin-bottom: 6px; }
 
@@ -195,9 +209,16 @@ h1 { text-align: left; font-family: 'Saira', sans-serif; font-weight: 800; color
 @media (max-width: 768px) {
   h1 { font-size: 24px; }
   .tournament { padding: 15px; }
+  /* Filters: stack full-width on phones instead of fixed 175px boxes. */
+  .future-layout .filter-group { flex: 1 1 calc(50% - 7px); min-width: 130px; }
+  /* flex:none cancels PastResults.css's global `.filter-select{flex:1 1 140px}`,
+     which would otherwise become a 140px HEIGHT inside this column group. */
+  .future-layout .filter-select, .future-layout .filter-input { width: 100%; flex: none; }
   .tournament-table th, .tournament-table td { font-size: 12px; padding: 9px; }
   .submit-bet-button { width: 100%; text-align: center; }
   /* Let wide game logos scale down so the entrant badge + chevron stay on-screen
      (overrides the inline 180px cap from getGameLogoStyle). */
   .game-toggle-name img { max-width: 100% !important; }
+  /* Win % is redundant with Odds on a phone — hide it so the table fits without scroll. */
+  .tournament-table .winpct-col { display: none; }
 }
