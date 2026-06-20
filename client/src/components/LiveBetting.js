@@ -41,6 +41,7 @@ const LiveBetting = () => {
   const [demo, setDemo] = useState(false);
   const [demoEnabled, setDemoEnabled] = useState(false);
   const [myBets, setMyBets] = useState([]);
+  const [slipOpen, setSlipOpen] = useState(false); // desktop bet-slip drawer
 
   const userId = localStorage.getItem('userId');
 
@@ -115,6 +116,7 @@ const LiveBetting = () => {
       };
     });
     setPlaceMsg(null);
+    setSlipOpen(true); // surface the slip drawer the moment a pick is added
   };
 
   const removeFromSlip = (key) => {
@@ -355,10 +357,37 @@ const LiveBetting = () => {
           ))
         )}
       </div>
-      <div className="live-rail">
-        {renderSlip()}
-        {renderMyBets()}
-      </div>
+
+      {/* Bet slip lives in a collapsible drawer so the bracket always gets the
+          full page width. Only present once markets are live (nothing to bet in
+          the waiting state). On mobile it stacks below the bracket (see CSS). */}
+      {markets.length > 0 && (
+        <>
+          {!slipOpen && (
+            <button
+              type="button"
+              className="live-drawer-tab"
+              onClick={() => setSlipOpen(true)}
+              aria-label="Open bet slip"
+            >
+              Slip ({Object.keys(slip).length})
+            </button>
+          )}
+          {slipOpen && <div className="live-drawer-scrim" onClick={() => setSlipOpen(false)} />}
+          <div className={`live-drawer${slipOpen ? ' open' : ''}`}>
+            <button
+              type="button"
+              className="live-drawer-close"
+              onClick={() => setSlipOpen(false)}
+              aria-label="Close bet slip"
+            >
+              ‹ Close
+            </button>
+            {renderSlip()}
+            {renderMyBets()}
+          </div>
+        </>
+      )}
     </div>
   );
 };
