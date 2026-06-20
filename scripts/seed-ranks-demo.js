@@ -15,21 +15,23 @@ const db = require('../db/db');
 const { applyPickemSchema } = require('../pickem/schema');
 const { applyAccountSchema } = require('../account');
 
-// display name, full name, country, favorite game, main, gender,
+// These are SITE USERS (fans/bettors), not the pros who play the matches — so the
+// names are gamertags; favorite_game/main reflect what the *fan* likes.
+// gamertag, full name, country, favorite game, main, gender,
 // [points, correct, total, currentStreak, bestStreak], balance (FM dollars)
 const ROSTER = [
-  ['WBG | MenaRD',    'Saul Leonardo Mena II', 'Dominican Republic', 'Street Fighter 6',     'Blanka',     'Male',   [6240, 38, 47,  9, 14], 4820],
-  ['FLY | Punk',      'Victor Woodley',        'United States',      'Street Fighter 6',     'Cammy',      'Male',   [5810, 41, 55,  4, 11], 3110],
-  ['Tokido',          'Hajime Taniguchi',      'Japan',              'Street Fighter 6',     'Ken',        'Male',   [5430, 33, 42, 12, 12], 6010],
-  ['FALCONS | Daigo', 'Daigo Umehara',         'Japan',              'Street Fighter 6',     'Guile',      'Male',   [4990, 35, 49,  0,  9], 2240],
-  ['Arslan Ash',      'Arslan Siddique',       'Pakistan',           'TEKKEN 8',             'Azucena',    'Male',   [4720, 29, 36,  7, 13], 5290],
-  ['ROX | Knee',      'Bae Jae-min',           'South Korea',        'TEKKEN 8',             'Bryan',      'Male',   [4380, 31, 45,  3,  8], 1880],
-  ['iDom',            'Derek Ruffin',          'United States',      'Street Fighter 6',     'Manon',      'Male',   [3910, 27, 40,  5, 10], 4470],
-  ['Kakeru',          'Kakeru Suzuki',         'Japan',              'Guilty Gear: Strive',  'Ramlethal',  'Male',   [3540, 24, 33,  2,  7], 900],
-  ['Chocoblanka',     'Ai Sakura',             'Japan',              'Street Fighter 6',     'Chun-Li',    'Female', [3120, 26, 41,  6,  9], 3360],
-  ['NuckleDu',        'Du Dang',               'United States',      'Street Fighter 6',     'Rashid',     'Male',   [2780, 21, 35,  0,  6], 2050],
-  ['DFM | Gachikun',  'Goichi Kishida',        'Japan',              'Street Fighter 6',     'Rashid',     'Male',   [2310, 19, 31,  4,  8], 1290],
-  ['Bonchan',         'Masato Takahashi',      'Japan',              'Street Fighter 6',     'Luke',       'Male',   [1870, 17, 29,  1,  5], 770],
+  ['ParryKing',      'Marcus Hale',    'United States',  'Street Fighter 6',    'Ken',        'Male',   [6240, 38, 47,  9, 14], 4820],
+  ['okizeme_andy',   'Andre Pruitt',   'United States',  'TEKKEN 8',            'Jin',        'Male',   [5810, 41, 55,  4, 11], 3110],
+  ['ComboQueen',     'Renee Vasquez',  'United States',  'Guilty Gear: Strive', 'Millia',     'Female', [5430, 33, 42, 12, 12], 6010],
+  ['frame_trap_kel', "Kelly O'Brien",  'Ireland',        'Street Fighter 6',    'Dhalsim',    'Female', [4990, 35, 49,  0,  9], 2240],
+  ['WakeupDP',       'Devon Park',     'Canada',         'Street Fighter 6',    'Ryu',        'Male',   [4720, 29, 36,  7, 13], 5290],
+  ['NeutralSkipper', 'Sam Idris',      'United Kingdom', 'TEKKEN 8',            'King',       'Male',   [4380, 31, 45,  3,  8], 1880],
+  ['saltmine_sven',  'Sven Larsson',   'Sweden',         'Guilty Gear: Strive', 'Sol',        'Male',   [3910, 27, 40,  5, 10], 4470],
+  ['HitConfirmHana', 'Hana Kim',       'South Korea',    'Street Fighter 6',    'Juri',       'Female', [3540, 24, 33,  2,  7], 900],
+  ['TechThrowTy',    'Tyrese Bell',    'United States',  'TEKKEN 8',            'Bryan',      'Male',   [3120, 26, 41,  6,  9], 3360],
+  ['ZonerSupreme',   'Diego Ramos',    'Mexico',         'Street Fighter 6',    'Guile',      'Male',   [2780, 21, 35,  0,  6], 2050],
+  ['MashGod99',      'Liam Nguyen',    'Australia',      'Street Fighter 6',    'Blanka',     'Male',   [2310, 19, 31,  4,  8], 1290],
+  ['TheLabMonster',  'Yuki Tanaka',    'Japan',          'Guilty Gear: Strive', 'Nagoriyuki', 'Other',  [1870, 17, 29,  1,  5], 770],
 ];
 
 const handle = (dn) => dn.replace(/[^a-z0-9]/gi, '').toLowerCase();
