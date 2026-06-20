@@ -3,6 +3,9 @@ import './FutureTournaments.css';
 import { getGameAlt, getGameLogoSources, getGameLogoStyle } from '../utils/gameLogos';
 import { getTournamentLogoSources, getTournamentAlt, getTournamentLogoStyle } from '../utils/tournamentLogos';
 import Countdown from './Countdown';
+// Futures stakes/payouts are stored in whole Fight Money units, so convert to
+// cents (×100) before the FM formatter, matching Home.js.
+import { fmAmount } from '../utils/money';
 
 // Defined at module scope so their component identity is stable across
 // FutureTournaments re-renders (e.g. every stake keystroke). Defining them
@@ -339,7 +342,7 @@ const FutureTournaments = () => {
                       <span className="bet-slip-meta">{gameName} · {tournamentName}</span>
                       {blended && (
                         <span className="bet-slip-blend">
-                          ${eff.kept.toFixed(2)} @{(e.oldOdds || 0).toFixed(2)} + ${eff.added.toFixed(2)} @{(e.currentOdds || 0).toFixed(2)}
+                          {fmAmount(Math.round(eff.kept * 100))} FM @{(e.oldOdds || 0).toFixed(2)} + {fmAmount(Math.round(eff.added * 100))} FM @{(e.currentOdds || 0).toFixed(2)}
                         </span>
                       )}
                     </div>
@@ -351,7 +354,7 @@ const FutureTournaments = () => {
                         value={e.stake}
                         onChange={(ev) => updateStake(key, ev.target.value)}
                       />
-                      <span className="bet-slip-payout">→ ${eff.payout.toFixed(2)}</span>
+                      <span className="bet-slip-payout">→ {fmAmount(Math.round(eff.payout * 100))} FM</span>
                       <button
                         type="button"
                         className="bet-slip-remove"
@@ -366,8 +369,8 @@ const FutureTournaments = () => {
               })}
             </ul>
             <div className="bet-slip-totals">
-              <div><span>Stake</span><strong>${totalStake.toFixed(2)}</strong></div>
-              <div><span>Projected payout</span><strong>${totalPayout.toFixed(2)}</strong></div>
+              <div><span>Stake</span><strong>{fmAmount(Math.round(totalStake * 100))} FM</strong></div>
+              <div><span>Projected payout</span><strong>{fmAmount(Math.round(totalPayout * 100))} FM</strong></div>
             </div>
             <p className="bet-slip-note">
               Odds are pooled and may shift as bets are placed. When you adjust a bet,
@@ -578,7 +581,7 @@ const FutureTournaments = () => {
                           <td className="winpct-cell">{winPct}</td>
                           <td>{player.live_odds?.toFixed(2)}</td>
                           <td>{player.total_bets || 0}</td>
-                          <td>${player.total_amount || 0}</td>
+                          <td>{fmAmount(Math.round((player.total_amount || 0) * 100))} FM</td>
                           <td>
                             <button
                               type="button"
@@ -598,7 +601,7 @@ const FutureTournaments = () => {
                               {label}
                             </button>
                           </td>
-                          <td>${rowPayout.toFixed(2)}</td>
+                          <td>{fmAmount(Math.round(rowPayout * 100))} FM</td>
                         </tr>
                       );
                     })}

@@ -56,6 +56,25 @@ async function debit(userId, cents, type, ref = {}) {
   });
 }
 
+// Atomically top a balance up to `floorCents`, but only when it's below
+// `minCents`. Runs inside the same serialized chain as credit/debit so the
+// read-check-write can't interleave (no double mercy credit on concurrent
+// polls). Records a ledger row only when it actually credits. Returns the
+// resulting balance (or null if the user doesn't exist).
+async function creditToFloor(userId, floorCents, minCents, type, ref = {}) {
+  return serialize(async () => {
+    const before = await getBalance(userId);
+    if (before === null || before >= minCents) return before;
+    const delta = floorCents - before;
+    await db.runAsync('UPDATE users SET balance_cents = ? WHERE id = ?', [floorCents, userId]);
+    await db.runAsync(
+      `INSERT INTO wallet_transactions (user_id, amount_cents, type, ref_type, ref_id) VALUES (?, ?, ?, ?, ?)`,
+      [userId, delta, type, ref.type || null, ref.id || null]
+    );
+    return floorCents;
+  });
+}
+
 async function getTransactions(userId, limit = 50) {
   return db.allAsync(
     `SELECT id, amount_cents, type, ref_type, ref_id, created_at
@@ -64,4 +83,4 @@ async function getTransactions(userId, limit = 50) {
   );
 }
 
-module.exports = { STARTING_GRANT_CENTS, getBalance, credit, debit, getTransactions };
+module.exports = { STARTING_GRANT_CENTS, getBalance, credit, debit, creditToFloor, getTransactions };

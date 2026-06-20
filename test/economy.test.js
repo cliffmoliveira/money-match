@@ -97,3 +97,18 @@ test('dailyBonusStatus: availability + the amount a claim would grant', async ()
   assert.equal(s2.day, 2);
   assert.equal(s2.amountCents, 5000);
 });
+
+test('applyMercyFloor: concurrent calls credit exactly once (atomic)', async () => {
+  await db.runAsync('UPDATE users SET balance_cents = 0 WHERE id = 1');
+  await Promise.all([economy.applyMercyFloor(1), economy.applyMercyFloor(1), economy.applyMercyFloor(1)]);
+  assert.equal((await db.getAsync('SELECT balance_cents AS b FROM users WHERE id = 1')).b, 500);
+  const credits = (await db.getAsync("SELECT COUNT(*) AS n FROM wallet_transactions WHERE user_id = 1 AND type = 'mercy_floor'")).n;
+  assert.equal(credits, 1);
+});
+
+test('claimDailyBonus: concurrent claims credit exactly once (CAS guard)', async () => {
+  const [a, b] = await Promise.all([economy.claimDailyBonus(1, T0), economy.claimDailyBonus(1, T0)]);
+  assert.equal([a, b].filter((r) => r.claimed).length, 1);
+  assert.equal((await db.getAsync('SELECT balance_cents AS b FROM users WHERE id = 1')).b, 2500);
+  assert.equal((await db.getAsync('SELECT daily_streak AS s FROM users WHERE id = 1')).s, 1);
+});

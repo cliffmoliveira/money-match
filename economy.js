@@ -45,16 +45,10 @@ function assertBetWithinLimits(amountCents, balanceCents) {
 }
 
 // Bust recovery: if the user is below one min bet, mercy-credit up to the floor so
-// they're never stuck at an unplayable zero. Fires only while broke (after the
-// top-up the balance is >= MIN_BET, so repeated polls don't re-credit). Returns
-// the resulting balance.
+// they're never stuck at an unplayable zero. Atomic (via wallet.creditToFloor) so
+// concurrent wallet polls can't double-credit; a no-op once balance >= MIN_BET.
 async function applyMercyFloor(userId) {
-  const bal = await wallet.getBalance(userId);
-  if (bal === null) return null;
-  if (bal < MIN_BET_CENTS) {
-    return wallet.credit(userId, MERCY_FLOOR_CENTS - bal, 'mercy_floor');
-  }
-  return bal;
+  return wallet.creditToFloor(userId, MERCY_FLOOR_CENTS, MIN_BET_CENTS, 'mercy_floor');
 }
 
 // What the user would get by claiming right now (for the "Claim" button).
@@ -89,12 +83,18 @@ async function claimDailyBonus(userId, now = Date.now()) {
     };
   }
   const streak = last !== null && now - last < 2 * DAY_MS ? (row.daily_streak || 0) + 1 : 1;
+  // Compare-and-swap claim guard: stamp last_daily_bonus_at only if it still holds
+  // the value we read. Of two racing requests, exactly one matches and credits;
+  // the other sees the changed value, gets changes=0, and is treated as a no-op.
+  const guard = await db.runAsync(
+    'UPDATE users SET last_daily_bonus_at = ?, daily_streak = ? WHERE id = ? AND last_daily_bonus_at IS ?',
+    [new Date(now).toISOString(), streak, userId, row.last_daily_bonus_at]
+  );
+  if (guard.changes !== 1) {
+    return { claimed: false, streak: row.daily_streak || 0, balanceCents: await wallet.getBalance(userId), nextAt: new Date(now + DAY_MS).toISOString() };
+  }
   const amountCents = dailyBonusForStreak(streak);
   const balanceCents = await wallet.credit(userId, amountCents, 'daily_bonus');
-  await db.runAsync(
-    'UPDATE users SET last_daily_bonus_at = ?, daily_streak = ? WHERE id = ?',
-    [new Date(now).toISOString(), streak, userId]
-  );
   return { claimed: true, amountCents, streak, balanceCents, nextAt: new Date(now + DAY_MS).toISOString() };
 }
 
