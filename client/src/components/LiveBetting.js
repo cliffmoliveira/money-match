@@ -8,7 +8,7 @@ const fmt = (cents) => `$${(cents / 100).toFixed(2)}`;
 // Signed money: a parimutuel "won" pick can still net negative (e.g. a one-sided
 // pool), so format the +/− from the value rather than hard-coding a sign.
 const signed = (cents) => `${cents >= 0 ? '+' : '−'}$${(Math.abs(cents) / 100).toFixed(2)}`;
-const POLL_MS = 15000;
+const POLL_MS = 6000; // refresh markets/odds/pick'em every 6s while the Live page is open
 
 // Game logo for the live section headers; walks the asset candidates and falls
 // back to the game name as text if none load.

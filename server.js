@@ -708,15 +708,17 @@ function scheduleStartGgSync() {
   setInterval(runSync, 24 * 60 * 60 * 1000);
 }
 
-// Live poller: refresh Top 8 markets for active tournaments every 60s. Cheap
-// when nothing is live (one local query, no Start.gg call).
+// Live poller: refresh Top 8 markets for active tournaments. Cheap when nothing
+// is live (one local query, no Start.gg call). Default 60s — Start.gg rate-limits
+// (429) below this; LIVE_SYNC_MS can override but lower values risk throttling.
+const LIVE_SYNC_MS = Number(process.env.LIVE_SYNC_MS) || 60 * 1000;
 function scheduleLiveSync() {
   const run = async () => {
     try { await syncLive({}); }
     catch (err) { console.error('Live sync error:', err.message); }
   };
   run();
-  setInterval(run, 60 * 1000);
+  setInterval(run, LIVE_SYNC_MS);
 }
 
 // Kick off schedulers (skippable for tests via DISABLE_SYNC=1)
