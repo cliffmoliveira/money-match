@@ -64,7 +64,7 @@ router.get('/leaderboard', async (req, res) => {
     const rows = await db.allAsync(
       `SELECT l.user_id, COALESCE(u.display_name, u.username) AS username,
               l.points, l.correct_count, l.total_picks,
-              l.current_streak, l.best_streak, u.coin_balance
+              l.current_streak, l.best_streak, u.coin_balance, u.avatar
        FROM leaderboard_entries l JOIN users u ON u.id = l.user_id
        WHERE l.scope = ? AND l.scope_ref = ?
        ORDER BY l.points DESC, l.correct_count DESC, l.total_picks ASC

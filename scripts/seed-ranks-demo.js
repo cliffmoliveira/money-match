@@ -14,6 +14,7 @@ require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
 const db = require('../db/db');
 const { applyPickemSchema } = require('../pickem/schema');
 const { applyAccountSchema } = require('../account');
+const { beamAvatarDataUrl } = require('./lib/beam-avatar');
 
 // These are SITE USERS (fans/bettors), not the pros who play the matches — so the
 // names are gamertags; favorite_game/main reflect what the *fan* likes.
@@ -46,9 +47,9 @@ async function seed() {
     await db.runAsync(
       `INSERT OR REPLACE INTO users
          (id, username, email, password, display_name, full_name, country,
-          favorite_game, main_character, gender, balance_cents, coin_balance)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
-      [id, h, `${h}@demo.local`, 'demo-no-login', dn, full, country, game, main, gender, fm * 100, Math.round(points * 0.5)]
+          favorite_game, main_character, gender, balance_cents, coin_balance, avatar)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [id, h, `${h}@demo.local`, 'demo-no-login', dn, full, country, game, main, gender, fm * 100, Math.round(points * 0.5), beamAvatarDataUrl(dn)]
     );
     await db.runAsync(
       `INSERT OR REPLACE INTO leaderboard_entries
