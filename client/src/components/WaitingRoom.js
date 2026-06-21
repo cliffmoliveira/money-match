@@ -110,7 +110,7 @@ const WaitingRoom = ({ tournament, games = [] }) => {
 
       {hasProjection && (
         <p className="wr-proj-note">
-          Projected Top 8 from Start.gg seeding — not yet decided. Live odds and free pick’em open when the bracket starts.
+          Projected Top 8 from Start.gg seeding — not yet decided. Live odds and free picks open when the bracket starts.
         </p>
       )}
 

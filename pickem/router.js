@@ -34,7 +34,7 @@ router.get('/overlay', async (req, res) => {
     res.json(out);
   } catch (err) {
     console.error('pickem overlay error:', err.message);
-    res.status(500).json({ error: 'Failed to load pick\'em overlay' });
+    res.status(500).json({ error: 'Failed to load picks overlay' });
   }
 });
 

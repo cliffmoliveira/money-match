@@ -364,7 +364,7 @@ const Home = () => {
       {userId && (
         <Link to="/live" className="pickem-nudge">
           <span className="pn-icon" aria-hidden="true">🎯</span>
-          <span className="pn-text">Predict bracket winners — free Pick&rsquo;em earns ranked points.</span>
+          <span className="pn-text">Predict bracket winners — free picks earn ranked points.</span>
           <span className="pn-cta">Make picks →</span>
         </Link>
       )}

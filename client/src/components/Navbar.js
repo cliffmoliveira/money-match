@@ -271,7 +271,7 @@ const Navbar = ({ isLoggedIn }) => {
                   <span className="navbar-balance" title="Fight Money — virtual currency">{fm(balanceCents)}</span>
                 )}
                 {points !== null && (
-                  <span className="navbar-points" title="Ranked points — your Pick'em score">
+                  <span className="navbar-points" title="Ranked points — your Picks score">
                     {points.toLocaleString()} <span className="navbar-points-label">pts</span>
                   </span>
                 )}

@@ -134,7 +134,7 @@ const Node = ({ market, slip, onPick, demoControls, registerRef, pickemFor, onPi
       {(open || closed) && <PoolBar p1={market.p1_pool_cents} p2={market.p2_pool_cents} />}
       {pickemFor && (open || closed || settled) && (
         <div className="bnode-pickem">
-          <div className="bnode-pickem-label">{pickemFor.locked ? "Pick'em (locked)" : "Free pick'em"}</div>
+          <div className="bnode-pickem-label">{pickemFor.locked ? "Pick locked" : "Free pick"}</div>
           <div className="bnode-pickem-opts">
             {[[market.player1_id, market.player1_name], [market.player2_id, market.player2_name]].map(([pid, name]) => {
               const share = (pickemFor.split && (pickemFor.split[pid] ?? pickemFor.split[String(pid)])) || 0;
