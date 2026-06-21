@@ -42,7 +42,7 @@ const Profile = () => {
     <div className="profile-page">
       <div className="pf-head">
         <div>
-          <h1>{data.display_name || username || 'You'} &middot; Pick&rsquo;em</h1>
+          <h1>{data.display_name || username || 'You'} &middot; Picks</h1>
           <p className="pf-sub">{data.correct_count}/{data.total_picks} winners called.</p>
         </div>
         <Link to="/account" className="pf-edit">Edit profile</Link>
