@@ -233,11 +233,14 @@ async function processTournament(slug, args) {
   const t = data?.tournament;
   if (!t) return { events: 0, players: 0 };
 
-  const events = (t.events || []).filter((ev) => ev.videogame && GAME_IDS.includes(Number(ev.videogame.id)) && (ev.numEntrants || 0) > 0);
-  if (events.length === 0) return { events: 0, players: 0 };
+  // Events on a tracked game. numEntrants is often null for majors more than a
+  // few weeks out (registration data hasn't populated), so DON'T gate the
+  // tournament's existence on it — only its futures (priced below) need counts.
+  const trackedEvents = (t.events || []).filter((ev) => ev.videogame && GAME_IDS.includes(Number(ev.videogame.id)));
+  if (trackedEvents.length === 0) return { events: 0, players: 0, recorded: false };
 
   // Always record the tournament so it appears on the page (with a countdown),
-  // even before futures open.
+  // even before futures open or entrant counts are reported.
   const tournamentId = args.dryRun ? null : await upsertTournament(t);
 
   // Futures only open once an event is genuinely seeded. Far-future majors
@@ -250,7 +253,8 @@ async function processTournament(slug, args) {
   let eventCount = 0;
   let playerCount = 0;
 
-  for (const ev of events) {
+  for (const ev of trackedEvents) {
+    if ((ev.numEntrants || 0) <= 0) continue; // no entrant data yet -> countdown only
     const seedNodes = pickTopSeeds(ev, args.top);
     if (seedNodes.length === 0) continue;
     const minSeed = seedNodes[0].seedNum;
@@ -306,7 +310,7 @@ async function processTournament(slug, args) {
 
     eventCount++;
   }
-  return { events: eventCount, players: playerCount };
+  return { events: eventCount, players: playerCount, recorded: !args.dryRun };
 }
 
 // Find unique tournament slugs matching the curated brands in a date window.
@@ -318,6 +322,9 @@ async function findBrandTournaments(query, after, before) {
       for (const t of data?.tournaments?.nodes || []) {
         if (!t.slug || seen.has(t.slug)) continue;
         if (!brand.re.test(normalizeName(t.name))) continue;
+        // Skip the "... Community Tournaments" companion pages start.gg spins up
+        // for side/legacy games at a major — the main bracket is the real event.
+        if (/\bcommunity tournaments?\b/i.test(t.name)) continue;
         seen.set(t.slug, t.name);
       }
     } catch (err) {
@@ -337,20 +344,23 @@ async function syncUpcoming({ months = 12, top = 8, dryRun = false } = {}) {
   const seen = await findBrandTournaments(BRAND_SEARCH, now, before);
   console.log(`[sync-upcoming] found ${seen.size} upcoming major tournament(s).`);
 
-  let totalEvents = 0, totalPlayers = 0, withData = 0;
+  let totalEvents = 0, totalPlayers = 0, withData = 0, countdownOnly = 0;
   for (const [slug, name] of seen) {
     try {
-      const { events, players } = await processTournament(slug, { top, dryRun });
+      const { events, players, recorded } = await processTournament(slug, { top, dryRun });
       if (events > 0) {
         withData++; totalEvents += events; totalPlayers += players;
         console.log(`  ${name} [${slug}]: ${events} game(s), ${players} entrant(s)`);
+      } else if (recorded) {
+        countdownOnly++;
+        console.log(`  ${name} [${slug}]: countdown only (futures not open yet)`);
       }
     } catch (err) {
       console.error(`  Failed on ${slug}: ${err.message}`);
     }
   }
-  console.log(`[sync-upcoming] done: ${withData} tournaments, ${totalEvents} games, ${totalPlayers} entrants.`);
-  return { tournaments: withData, events: totalEvents, players: totalPlayers };
+  console.log(`[sync-upcoming] done: ${withData} with futures + ${countdownOnly} countdown-only, ${totalEvents} games, ${totalPlayers} entrants.`);
+  return { tournaments: withData, countdownOnly, events: totalEvents, players: totalPlayers };
 }
 
 // Past page: record recently-completed major Grand Finals winners.
