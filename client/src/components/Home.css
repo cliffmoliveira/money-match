@@ -132,6 +132,24 @@ body { background: var(--bg); color: var(--text); }
 }
 .live-hero-cta:hover { background: var(--gold-tint); }
 
+/* ---------- Next-up hero (idle: feature the immediate next event) ---------- */
+.next-hero {
+  border-radius: 22px; padding: 24px 28px; margin: 0 0 18px;
+  background: linear-gradient(155deg, #181208 0%, #11141b 58%);
+  border: 1px solid rgba(231, 180, 88, 0.22); box-shadow: var(--shadow);
+  display: flex; flex-direction: column; gap: 18px;
+}
+.next-hero-badge {
+  font-family: 'Saira', sans-serif; font-weight: 700; font-size: 13px;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--gold);
+}
+.next-hero-body { display: flex; align-items: center; gap: 18px; }
+.next-hero-info h2 {
+  margin: 0 0 4px; font-family: 'Saira', sans-serif; font-weight: 800;
+  font-size: clamp(22px, 3vw, 30px); letter-spacing: -0.01em; color: var(--text);
+}
+.next-hero-meta { margin: 0; color: var(--muted); font-size: 14px; }
+
 /* ---------- Buttons ---------- */
 .btn {
   display: inline-flex; align-items: center; gap: 8px;
@@ -152,13 +170,51 @@ body { background: var(--bg); color: var(--text); }
 .section-header .link { color: var(--gold); text-decoration: none; font-weight: 600; font-size: 14px; }
 .section-header .link:hover { text-decoration: underline; }
 
-/* ---------- Stat strip (add 3 .stat-card in a .stat-strip grid) ---------- */
-.stat-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 6px; }
+/* ---------- Stat strip (.stat-card cells; auto-fits 2–3 across) ---------- */
+.stat-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 6px; }
 .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; }
 .stat-card .label { font-size: 12px; color: var(--muted); letter-spacing: .04em; text-transform: uppercase; margin-bottom: 7px; }
 .stat-card .value { font-family: 'Saira', sans-serif; font-weight: 700; font-size: 24px; font-variant-numeric: tabular-nums; }
 .stat-card .value.up { color: var(--win); }
 .stat-card .value.down { color: var(--live-text); }
+/* Rank card links to the leaderboard */
+.stat-card-link { text-decoration: none; color: inherit; display: block; transition: border-color 140ms ease; }
+.stat-card-link:hover { border-color: var(--gold); }
+.stat-card-link .value { color: var(--gold); }
+
+/* Daily-bonus claim banner */
+.daily-bonus {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  margin-bottom: 14px; padding: 12px 16px;
+  background: var(--gold-tint); border: 1px solid var(--gold); border-radius: 12px;
+  color: var(--text); font-family: 'Hanken Grotesk', sans-serif; font-size: 14px;
+  cursor: pointer; text-align: left; transition: filter 140ms ease;
+}
+.daily-bonus:hover { filter: brightness(1.06); }
+.daily-bonus:disabled { opacity: .6; cursor: default; }
+.db-gift { font-size: 18px; flex: none; }
+.db-text { flex: 1; }
+.db-text strong { color: var(--gold); }
+.db-cta {
+  flex: none; font-family: 'Saira', sans-serif; font-weight: 700; font-size: 13px;
+  color: var(--on-gold); background: var(--gold-grad); padding: 6px 14px; border-radius: 8px;
+}
+
+/* Pick'em nudge */
+.pickem-nudge {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 18px; padding: 11px 16px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  color: var(--text); text-decoration: none; font-size: 14px;
+  transition: border-color 140ms ease;
+}
+.pickem-nudge:hover { border-color: var(--gold); }
+.pn-icon { font-size: 16px; flex: none; }
+.pn-text { flex: 1; color: var(--muted); }
+.pn-cta { flex: none; font-family: 'Saira', sans-serif; font-weight: 700; font-size: 13px; color: var(--gold); white-space: nowrap; }
+
+/* Entrant count on a Next Up card */
+.spotlight-entrants { font-family: 'Saira', sans-serif; font-weight: 600; font-size: 12px; color: var(--muted); margin-top: 2px; }
 
 /* ---------- Spotlight / Next Up ---------- */
 .spotlight-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
@@ -244,7 +300,12 @@ body { background: var(--bg); color: var(--text); }
 }
 
 @media (max-width: 760px) {
-  .live-hero-sets, .spotlight-grid, .champion-grid, .stat-strip, .bets-grid { grid-template-columns: 1fr; }
+  .live-hero-sets, .spotlight-grid, .champion-grid, .bets-grid { grid-template-columns: 1fr; }
+  /* Keep Rank / Open bets / 7-day P&L on one compact row on phones. */
+  .stat-strip { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .stat-card { padding: 12px 10px; }
+  .stat-card .label { font-size: 10px; letter-spacing: .02em; }
+  .stat-card .value { font-size: 19px; }
   .hero { padding: 32px 22px; }
   .hero h1 { font-size: 28px; }
 

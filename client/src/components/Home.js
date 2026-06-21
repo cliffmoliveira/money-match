@@ -4,7 +4,7 @@ import './Home.css';
 import { getTournamentLogoSources, getTournamentAlt, getTournamentLogoStyle } from '../utils/tournamentLogos';
 import { getGameLogoSources, getGameAlt, getGameLogoStyle } from '../utils/gameLogos';
 import Countdown from './Countdown';
-import { fm as fmt, fmAmount } from '../utils/money';
+import { fmAmount } from '../utils/money';
 import { apiFetch } from '../utils/api';
 
 // Hoisted to module scope so their component identity is stable across Home
@@ -60,7 +60,9 @@ const Home = () => {
   // Live betting + wallet — the marquee feature, surfaced here as a hero.
   const [liveMarkets, setLiveMarkets] = useState([]);
   const [liveBets, setLiveBets] = useState([]);
-  const [balanceCents, setBalanceCents] = useState(null);
+  const [profile, setProfile] = useState(null);      // pick'em rank/points
+  const [dailyBonus, setDailyBonus] = useState(null); // login-streak FM bonus
+  const [claiming, setClaiming] = useState(false);
 
   const userId = localStorage.getItem('userId');
   const [reloadKey, setReloadKey] = useState(0);
@@ -138,37 +140,39 @@ const Home = () => {
   }, [reloadKey]);
 
   useEffect(() => {
-    const fetchBets = async () => {
-      if (!userId) return;
-      setBetsLoading(true);
+    if (!userId) { setProfile(null); setDailyBonus(null); return; }
+    setBetsLoading(true);
+    const load = async () => {
       try {
-        const [fRes, lRes] = await Promise.all([
+        const [fRes, lRes, wRes] = await Promise.all([
           apiFetch(`/api/bets?userId=${userId}`),
           apiFetch(`/api/live/bets?userId=${userId}`),
+          apiFetch(`/api/wallet?userId=${userId}`),
         ]);
         if (fRes.ok) setBets(await fRes.json());
         if (lRes.ok) setLiveBets(await lRes.json());
+        if (wRes.ok) setDailyBonus((await wRes.json()).dailyBonus || null);
       } catch (err) {
         console.error('Bets load error:', err.message);
       } finally {
         setBetsLoading(false);
       }
+      // Pick'em rank/points (public endpoint, separate from the auth'd calls above).
+      try {
+        const pRes = await fetch(`/api/pickem/profile?userId=${userId}`);
+        if (pRes.ok) setProfile(await pRes.json());
+      } catch { /* non-fatal */ }
     };
-
-    fetchBets();
+    load();
   }, [userId]);
 
-  // Poll live markets + wallet so the "Live Now" hero stays current.
+  // Poll live markets so the "Live Now" hero stays current.
   useEffect(() => {
     let active = true;
     const load = async () => {
       try {
-        const reqs = [fetch('/api/live/markets')];
-        if (userId) reqs.push(apiFetch(`/api/wallet?userId=${userId}`));
-        const [mRes, wRes] = await Promise.all(reqs);
-        if (!active) return;
-        if (mRes && mRes.ok) setLiveMarkets(await mRes.json());
-        if (wRes && wRes.ok) setBalanceCents((await wRes.json()).balanceCents);
+        const mRes = await fetch('/api/live/markets');
+        if (active && mRes.ok) setLiveMarkets(await mRes.json());
       } catch {
         /* non-fatal — the hero just falls back to its idle state */
       }
@@ -176,11 +180,22 @@ const Home = () => {
     load();
     const id = setInterval(load, 20000);
     return () => { active = false; clearInterval(id); };
-  }, [userId]);
+  }, []);
 
   const getGameName = (id) => games.find(g => g.id === id)?.name || id;
   const getPlayerName = (id) => players.find(p => p.id === id)?.name || id;
   const getTournamentName = (id) => allTournaments.find(t => t.id === id)?.name || id;
+
+  const claimDaily = async () => {
+    if (claiming) return;
+    setClaiming(true);
+    try {
+      const res = await apiFetch('/api/wallet/daily-bonus', { method: 'POST' });
+      if (res.ok) setDailyBonus((b) => (b ? { ...b, available: false } : b));
+    } catch { /* ignore */ } finally {
+      setClaiming(false);
+    }
+  };
 
   if (loading) {
     return <div className="home-container"><div className="skeleton">Loading…</div></div>;
@@ -197,8 +212,11 @@ const Home = () => {
     );
   }
 
-  const spotlight = upcoming?.slice(0, 4);
   const liveNow = (liveMarkets || []).filter((m) => m.state === 'open' || m.state === 'closed');
+  // The idle hero features the immediate next event, so the "Next Up" list below
+  // skips it (when shown) to avoid surfacing the same event twice.
+  const heroShowsNext = !!userId && liveNow.length === 0 && (upcoming?.length || 0) > 0;
+  const spotlight = (heroShowsNext ? upcoming.slice(1) : (upcoming || [])).slice(0, 4);
 
   // One unified bet list: live per-set bets + futures, normalized to a common
   // shape, with unresolved (pending) bets surfaced first.
@@ -252,7 +270,6 @@ const Home = () => {
         <section className="live-hero">
           <div className="live-hero-top">
             <span className="live-hero-badge"><span className="live-dot" /> LIVE NOW</span>
-            {balanceCents != null && <span className="live-hero-balance">{fmt(balanceCents)}</span>}
           </div>
           <div className="live-hero-sets">
             {liveNow.slice(0, 3).map((m) => (
@@ -270,14 +287,37 @@ const Home = () => {
         </section>
       );
     }
-    // Logged-in, nothing live right now.
+    // Logged-in, nothing live — feature the immediate next event.
+    const next = upcoming?.[0];
+    if (next) {
+      return (
+        <section className="next-hero">
+          <span className="next-hero-badge">Next up</span>
+          <div className="next-hero-body">
+            <TournamentLogo name={next.name} height={52} />
+            <div className="next-hero-info">
+              <h2>{next.name}</h2>
+              <p className="next-hero-meta">
+                {new Date(next.date + 'T00:00:00').toLocaleDateString()}
+                {next.location?.city ? ` · ${next.location.city}, ${next.location.country}` : ''}
+                {next.numEntrants ? ` · ${next.numEntrants.toLocaleString()} entrants` : ''}
+              </p>
+            </div>
+          </div>
+          <Countdown date={next.date} compact />
+          <div className="hero-actions">
+            <Link to="/future-tournaments" className="btn primary">Browse futures</Link>
+            <Link to="/live" className="btn">Live betting</Link>
+          </div>
+        </section>
+      );
+    }
+    // No upcoming majors scheduled (rare) — minimal fallback.
     return (
       <section className="hero">
         <div className="hero-content">
           <h1>Welcome back.</h1>
-          <p>
-            No live matches right now.{balanceCents != null && <> Your balance is <strong>{fmt(balanceCents)}</strong>.</>} When a tracked major hits Top 8, live betting opens here.
-          </p>
+          <p>No upcoming majors scheduled yet — check back soon.</p>
           <div className="hero-actions">
             <Link to="/live" className="btn primary">Live betting</Link>
             <Link to="/future-tournaments" className="btn">Browse futures</Link>
@@ -293,10 +333,10 @@ const Home = () => {
 
       {userId && (
         <div className="stat-strip">
-          <div className="stat-card">
-            <div className="label">Balance</div>
-            <div className="value">{balanceCents != null ? fmt(balanceCents) : '—'}</div>
-          </div>
+          <Link to="/leaderboard" className="stat-card stat-card-link">
+            <div className="label">Rank</div>
+            <div className="value">{profile?.rank ? `#${profile.rank.toLocaleString()}` : '—'}</div>
+          </Link>
           <div className="stat-card">
             <div className="label">Open bets</div>
             <div className="value">{openBets}</div>
@@ -308,6 +348,22 @@ const Home = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {userId && dailyBonus && dailyBonus.available && (
+        <button type="button" className="daily-bonus" onClick={claimDaily} disabled={claiming}>
+          <span className="db-gift" aria-hidden="true">🎁</span>
+          <span className="db-text"><strong>Day {dailyBonus.day} login streak</strong> — claim your free {fmAmount(dailyBonus.amountCents)} FM</span>
+          <span className="db-cta">{claiming ? 'Claiming…' : 'Claim'}</span>
+        </button>
+      )}
+
+      {userId && (
+        <Link to="/live" className="pickem-nudge">
+          <span className="pn-icon" aria-hidden="true">🎯</span>
+          <span className="pn-text">Predict bracket winners — free Pick&rsquo;em earns ranked points.</span>
+          <span className="pn-cta">Make picks →</span>
+        </Link>
       )}
 
       {/* Your Bets — live per-set + futures, unified (above Next Up) */}
@@ -350,7 +406,7 @@ const Home = () => {
       {spotlight && spotlight.length > 0 && (
         <section className="spotlight">
           <div className="section-header">
-            <h2>Next Up</h2>
+            <h2>{heroShowsNext ? 'More upcoming' : 'Next Up'}</h2>
             <Link to="/future-tournaments" className="link">See all</Link>
           </div>
           <div className="spotlight-grid">
@@ -366,6 +422,9 @@ const Home = () => {
                 <div className="spotlight-location">
                   {t.location?.city}, {t.location?.country}
                 </div>
+                {t.numEntrants && (
+                  <div className="spotlight-entrants">{t.numEntrants.toLocaleString()} entrants on Start.gg</div>
+                )}
                 <div className="spotlight-games">
                   {(Object.values(t.games || {}) || []).slice(0, 4).map(g => (
                     <span key={g.id} className="pill">{g.name}</span>
