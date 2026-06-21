@@ -168,15 +168,16 @@ app.get('/api/tournaments', async (req, res) => {
   try {
     const query = `
       SELECT
-        id,
-        name,
-        date,
-        city,
-        country,
-        logo_url AS logoUrl
-      FROM tournaments
-      WHERE date >= DATE('now')
-      ORDER BY date ASC;
+        t.id,
+        t.name,
+        t.date,
+        t.city,
+        t.country,
+        t.logo_url AS logoUrl,
+        (SELECT SUM(num_entrants) FROM tournament_games tg WHERE tg.tournament_id = t.id) AS numEntrants
+      FROM tournaments t
+      WHERE t.date >= DATE('now')
+      ORDER BY t.date ASC;
     `;
     const tournaments = await db.allAsync(query);
 
@@ -186,7 +187,8 @@ app.get('/api/tournaments', async (req, res) => {
       name: t.name,
       date: t.date,
       logoUrl: t.logoUrl,
-      location: { city: t.city, country: t.country }
+      location: { city: t.city, country: t.country },
+      numEntrants: t.numEntrants || null
     }));
 
     res.json(formattedTournaments);

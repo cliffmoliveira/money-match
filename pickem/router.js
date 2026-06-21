@@ -86,6 +86,12 @@ router.get('/profile', async (req, res) => {
     const userId = Number(req.query.userId);
     if (!userId) return res.status(400).json({ error: 'userId is required' });
     const g = await engine.getLeaderboardEntry(userId, 'global', '');
+    // Global rank = how many entries sit strictly above this user's points, + 1.
+    const myPoints = g ? g.points : 0;
+    const rankRow = await db.getAsync(
+      `SELECT COUNT(*) + 1 AS rank FROM leaderboard_entries
+       WHERE scope = 'global' AND scope_ref = '' AND points > ?`, [myPoints]
+    );
     const recent = await db.allAsync(
       `SELECT market_id, picked_player_id, result, points_awarded, coins_awarded, created_at
        FROM pickem_picks WHERE user_id = ? ORDER BY id DESC LIMIT 20`, [userId]
@@ -95,6 +101,7 @@ router.get('/profile', async (req, res) => {
       display_name: u ? u.display_name : null,
       coin_balance: await engine.getCoinBalance(userId),
       points: g ? g.points : 0,
+      rank: rankRow ? rankRow.rank : null,
       correct_count: g ? g.correct_count : 0,
       total_picks: g ? g.total_picks : 0,
       accuracy: g && g.total_picks ? g.correct_count / g.total_picks : 0,
