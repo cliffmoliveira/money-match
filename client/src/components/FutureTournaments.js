@@ -94,8 +94,7 @@ const FutureTournaments = () => {
   // Filters
   const [filterTournament, setFilterTournament] = useState('');
   const [filterGame, setFilterGame] = useState('');
-  const [filterCountry, setFilterCountry] = useState('');
-  const [filterYear, setFilterYear] = useState('');
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [expandedGames, setExpandedGames] = useState(() => new Set()); // collapsed by default
   const toggleGame = (key) => setExpandedGames((prev) => {
     const next = new Set(prev);
@@ -402,14 +401,6 @@ const FutureTournaments = () => {
   if (error) return <p className="error-message">{error}</p>;
 
   // Build filter option sets
-  const years = Array.from(new Set(
-    tournaments.map(t => new Date(t.date).getFullYear()).filter(y => !isNaN(y))
-  )).sort((a, b) => a - b);
-
-  const countries = Array.from(new Set(
-    tournaments.map(t => t.location?.country).filter(Boolean)
-  )).sort((a, b) => a.localeCompare(b));
-
   const allGames = Array.from(new Set(
     Object.values(tournamentGames).flat().map(g => g.game_name)
   )).sort((a, b) => a.localeCompare(b));
@@ -421,83 +412,86 @@ const FutureTournaments = () => {
   // Apply filters
   const filteredTournaments = tournaments.filter(t => {
     const tournamentMatch = !filterTournament || t.name === filterTournament;
-    const yearMatch = !filterYear || new Date(t.date).getFullYear().toString() === filterYear;
-    const countryMatch = !filterCountry || (t.location?.country === filterCountry);
     const gameMatch = !filterGame || (tournamentGames[t.id]?.some(g => g.game_name === filterGame));
-    return tournamentMatch && yearMatch && countryMatch && gameMatch;
+    return tournamentMatch && gameMatch;
   });
 
   const clearFilters = () => {
     setFilterTournament('');
     setFilterGame('');
-    setFilterCountry('');
-    setFilterYear('');
   };
+
+  // Active filters drive the toggle's count badge + the removable chips.
+  const activeFilters = [
+    filterTournament && { key: 'tournament', label: filterTournament, clear: () => setFilterTournament('') },
+    filterGame && { key: 'game', label: filterGame, clear: () => setFilterGame('') },
+  ].filter(Boolean);
 
   return (
     <div className="future-layout">
       <div className="future-tournaments-container">
-      {/* Title intentionally removed; navbar will highlight current page */}
-      <div className="filter-section">
-        <div className="filter-group">
-          <label htmlFor="ft-tournament">Tournament</label>
-          <select
-            id="ft-tournament"
-            className="filter-select"
-            value={filterTournament}
-            onChange={(e) => setFilterTournament(e.target.value)}
-          >
-            <option value="">All</option>
-            {tournamentNames.map(n => (
-              <option key={n} value={n}>{n}</option>
-            ))}
-          </select>
-        </div>
-        <div className="filter-group">
-          <label htmlFor="ft-year">Year</label>
-          <select
-            id="ft-year"
-            className="filter-select"
-            value={filterYear}
-            onChange={(e) => setFilterYear(e.target.value)}
-          >
-            <option value="">All</option>
-            {years.map(y => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
-        </div>
-        <div className="filter-group">
-          <label htmlFor="ft-country">Country</label>
-          <select
-            id="ft-country"
-            className="filter-select"
-            value={filterCountry}
-            onChange={(e) => setFilterCountry(e.target.value)}
-          >
-            <option value="">All</option>
-            {countries.map(c => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-        </div>
-        <div className="filter-group">
-          <label htmlFor="ft-game">Game</label>
-          <select
-            id="ft-game"
-            className="filter-select"
-            value={filterGame}
-            onChange={(e) => setFilterGame(e.target.value)}
-          >
-            <option value="">All</option>
-            {allGames.map(g => (
-              <option key={g} value={g}>{g}</option>
-            ))}
-          </select>
-        </div>
-        <button className="clear-filters" onClick={clearFilters}>Clear Filters</button>
-        <div className="results-count">Showing {filteredTournaments.length} of {tournaments.length}</div>
+      {/* Visible title intentionally omitted; the navbar marks the page. */}
+      <h1 className="sr-only">Futures</h1>
+      <div className="filter-bar">
+        <button
+          type="button"
+          className={`filter-toggle${activeFilters.length ? ' has-active' : ''}`}
+          onClick={() => setFiltersOpen((o) => !o)}
+          aria-expanded={filtersOpen}
+        >
+          <svg className="filter-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
+          </svg>
+          Filters
+          {activeFilters.length > 0 && <span className="filter-count">{activeFilters.length}</span>}
+          <span className={`filter-toggle-chevron${filtersOpen ? ' open' : ''}`} aria-hidden="true">▾</span>
+        </button>
+
+        {activeFilters.map((f) => (
+          <button key={f.key} type="button" className="filter-chip" onClick={f.clear} title={`Remove ${f.label}`}>
+            {f.label}<span className="chip-x" aria-hidden="true">×</span>
+          </button>
+        ))}
+
+        <span className="results-count">Showing {filteredTournaments.length} of {tournaments.length}</span>
       </div>
+
+      {filtersOpen && (
+        <div className="filter-panel">
+          <div className="filter-group">
+            <label htmlFor="ft-tournament">Tournament</label>
+            <select
+              id="ft-tournament"
+              className="filter-select"
+              value={filterTournament}
+              onChange={(e) => setFilterTournament(e.target.value)}
+            >
+              <option value="">All</option>
+              {tournamentNames.map(n => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </select>
+          </div>
+          <div className="filter-group">
+            <label htmlFor="ft-game">Game</label>
+            <select
+              id="ft-game"
+              className="filter-select"
+              value={filterGame}
+              onChange={(e) => setFilterGame(e.target.value)}
+            >
+              <option value="">All</option>
+              {allGames.map(g => (
+                <option key={g} value={g}>{g}</option>
+              ))}
+            </select>
+          </div>
+          {activeFilters.length > 0 && (
+            <button className="clear-filters" onClick={clearFilters}>Clear</button>
+          )}
+        </div>
+      )}
       {tournaments.length === 0 && (
         <p>No upcoming tournaments available right now.</p>
       )}

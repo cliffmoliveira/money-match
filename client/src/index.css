@@ -20,3 +20,15 @@ body {
 }
 
 a { color: var(--gold); }
+
+/* Visually hidden, still announced to screen readers. Each route keeps a proper
+   <h1> here without the redundant visible page title (the navbar shows the page). */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

@@ -51,8 +51,7 @@ const Leaderboard = () => {
   return (
     <div className="leaderboard-page">
       <div className="lb-head">
-        <h1>Ranked Leaderboard</h1>
-        <p className="lb-sub">Predict bracket winners — bolder, later-round, against-the-crowd calls score more.</p>
+        <h1 className="sr-only">Ranked Leaderboard</h1>
       </div>
 
       {loading ? (

@@ -19,50 +19,76 @@
   font-weight: 800;
   letter-spacing: -0.01em;
 }
-.results-subtitle { color: var(--muted); font-size: 15px; margin: 0 0 18px; }
-
 .loading-spinner { text-align: center; padding: 50px; font-size: 1.1em; color: var(--muted); }
 .error-message { text-align: center; padding: 16px; background: var(--card); color: var(--live-text); border: 1px solid var(--border); border-radius: 12px; margin: 20px 0; font-weight: 600; }
 
-/* Filter tabs / section */
-.filter-section {
-  display: flex; align-items: center; gap: 8px; margin: 16px 0 20px; padding: 0;
-  background: transparent; border: none; border-radius: 0; flex-wrap: wrap;
+/* Collapsible filter bar (mirrors the Futures page; scoped to avoid the global
+   filter-class collision). */
+.past-results-container .filter-bar {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 16px 0 18px;
 }
-.filter-section label { font-weight: 600; color: var(--muted); }
-.year-filter, .filter-select {
-  padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: 9px;
-  font-size: 14px; background: var(--input); color: var(--text); cursor: pointer;
+.past-results-container .filter-toggle {
+  display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px;
+  background: var(--card); border: 1px solid var(--border-strong); border-radius: 10px;
+  color: var(--text); font-family: 'Saira', sans-serif; font-weight: 600; font-size: 13px;
+  cursor: pointer; transition: border-color 140ms ease;
 }
-.year-filter:focus, .filter-select:focus { outline: none; border-color: rgba(231,180,88,0.5); }
-.results-count { color: var(--muted); font-size: 14px; margin-left: auto; }
-.filter-group { display: flex; align-items: center; gap: 8px; }
-.filter-group label { font-weight: 600; color: var(--muted); }
-.clear-filters {
-  margin-left: auto; padding: 8px 14px; background: var(--gold-grad); color: var(--on-gold);
-  border: none; border-radius: 9px; font-family: 'Saira', sans-serif; font-weight: 600; cursor: pointer;
+.past-results-container .filter-toggle:hover, .past-results-container .filter-toggle.has-active { border-color: var(--gold); }
+.past-results-container .filter-toggle-icon { flex: none; color: var(--muted); }
+.past-results-container .filter-toggle.has-active .filter-toggle-icon { color: var(--gold); }
+.past-results-container .filter-count {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px;
+  padding: 0 5px; border-radius: 999px; background: var(--gold-grad); color: var(--on-gold);
+  font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums;
 }
-.clear-filters:hover { filter: brightness(1.05); }
+.past-results-container .filter-toggle-chevron { font-size: 11px; color: var(--muted); transition: transform 160ms ease; }
+.past-results-container .filter-toggle-chevron.open { transform: rotate(180deg); }
+.past-results-container .filter-chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 7px 9px 7px 12px;
+  background: var(--gold-tint); border: 1px solid var(--border); border-radius: 999px;
+  color: var(--text); font-family: 'Saira', sans-serif; font-weight: 600; font-size: 12px;
+  cursor: pointer; transition: border-color 140ms ease;
+}
+.past-results-container .filter-chip:hover { border-color: var(--gold); }
+.past-results-container .filter-chip .chip-x { color: var(--muted); font-size: 15px; line-height: 1; }
+.past-results-container .filter-chip:hover .chip-x { color: var(--text); }
+.past-results-container .filter-bar .results-count { margin-left: auto; color: var(--muted); font-size: 13px; }
 
-/* Tip: render the game filters as pill tabs — active = gold fill, idle = bordered.
-   If you keep them as buttons, this class gives the right look: */
-.filter-tab {
-  font-family: 'Saira', sans-serif; font-weight: 600; font-size: 13px;
-  padding: 8px 15px; border-radius: 9px; cursor: pointer; transition: all .15s ease;
-  border: 1px solid var(--border-strong); background: transparent; color: var(--muted);
+.past-results-container .filter-panel {
+  display: flex; align-items: flex-end; gap: 14px; margin: 0 0 22px; padding: 16px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 14px; flex-wrap: wrap;
 }
-.filter-tab:hover { color: var(--text); }
-.filter-tab.active { background: var(--gold-grad); color: var(--on-gold); border-color: transparent; }
+.past-results-container .filter-group { display: flex; flex-direction: column; align-items: stretch; gap: 6px; flex: 1 1 0; min-width: 180px; }
+.past-results-container .filter-group label {
+  font-family: 'Saira', sans-serif; font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .07em; color: var(--muted);
+}
+.past-results-container .filter-select {
+  appearance: none; -webkit-appearance: none; -moz-appearance: none;
+  width: 100%; padding: 10px 36px 10px 13px; text-overflow: ellipsis;
+  border: 1px solid var(--border); border-radius: 10px;
+  background-color: var(--input); color: var(--text);
+  font-size: 14px; font-family: 'Hanken Grotesk', sans-serif; cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238B909C' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 13px center; background-size: 11px;
+  transition: border-color 140ms ease, background-color 140ms ease;
+}
+.past-results-container .filter-select:hover { border-color: var(--border-strong); }
+.past-results-container .filter-select:focus { outline: none; border-color: var(--gold); }
+.past-results-container .clear-filters {
+  padding: 10px 16px; background: transparent; color: var(--muted);
+  border: 1px solid var(--border-strong); border-radius: 10px;
+  font-family: 'Saira', sans-serif; font-weight: 600; font-size: 13px; cursor: pointer;
+  transition: color 140ms ease, border-color 140ms ease;
+}
+.past-results-container .clear-filters:hover { color: var(--text); border-color: var(--gold); }
 
 .no-results { text-align: center; padding: 50px; color: var(--muted); font-size: 1.05em; }
 
-/* Mobile: keep the filter controls from overflowing. A native <select> sizes to
-   its widest option (a full tournament name), which can render hundreds of px
-   wide and drag the whole page — and the fixed bottom tab bar — sideways. */
+/* Mobile: filters stack 2-up so a native <select> can't drag the page sideways. */
 @media (max-width: 760px) {
-  .filter-group { flex: 1 1 100%; flex-wrap: wrap; min-width: 0; }
-  .year-filter, .filter-select { flex: 1 1 140px; min-width: 0; max-width: 100%; width: 100%; }
-  .results-count, .clear-filters { margin-left: 0; }
+  .past-results-container .filter-group { flex: 1 1 calc(50% - 7px); min-width: 130px; }
+  .past-results-container .filter-select { width: 100%; }
 }
 
 /* Results table */

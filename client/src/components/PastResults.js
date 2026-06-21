@@ -10,6 +10,7 @@ const PastResults = () => {
   const [filterYear, setFilterYear] = useState('all');
   const [filterTournament, setFilterTournament] = useState('all');
   const [filterGame, setFilterGame] = useState('all');
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const GameTitle = ({ name, height = 22 }) => {
     const [error, setError] = useState(false);
@@ -125,6 +126,13 @@ const PastResults = () => {
     setFilterGame('all');
   };
 
+  // Active filters drive the toggle's count badge + the removable chips.
+  const activeFilters = [
+    filterYear !== 'all' && { key: 'year', label: filterYear, clear: () => setFilterYear('all') },
+    filterTournament !== 'all' && { key: 'tournament', label: filterTournament, clear: () => setFilterTournament('all') },
+    filterGame !== 'all' && { key: 'game', label: filterGame, clear: () => setFilterGame('all') },
+  ].filter(Boolean);
+
   if (loading) {
     return (
       <div className="past-results-container">
@@ -143,56 +151,64 @@ const PastResults = () => {
 
   return (
     <div className="past-results-container">
-      <h1>Results</h1>
-      <p className="results-subtitle">Every settled major — champions in gold, with the deciding score.</p>
+      <h1 className="sr-only">Results</h1>
 
       {/* Filters */}
-      <div className="filter-section">
-        <div className="filter-group">
-          <label htmlFor="yearFilter">Year</label>
-          <select
-            id="yearFilter"
-            value={filterYear}
-            onChange={(e) => setFilterYear(e.target.value)}
-            className="filter-select"
-          >
-            <option value="all">All Years</option>
-            {years.map((year) => (<option key={year} value={year}>{year}</option>))}
-          </select>
-        </div>
+      <div className="filter-bar">
+        <button
+          type="button"
+          className={`filter-toggle${activeFilters.length ? ' has-active' : ''}`}
+          onClick={() => setFiltersOpen((o) => !o)}
+          aria-expanded={filtersOpen}
+        >
+          <svg className="filter-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
+          </svg>
+          Filters
+          {activeFilters.length > 0 && <span className="filter-count">{activeFilters.length}</span>}
+          <span className={`filter-toggle-chevron${filtersOpen ? ' open' : ''}`} aria-hidden="true">▾</span>
+        </button>
 
-        <div className="filter-group">
-          <label htmlFor="tournamentFilter">Tournament</label>
-          <select
-            id="tournamentFilter"
-            value={filterTournament}
-            onChange={(e) => setFilterTournament(e.target.value)}
-            className="filter-select"
-          >
-            <option value="all">All Tournaments</option>
-            {tournaments.map((name) => (<option key={name} value={name}>{name}</option>))}
-          </select>
-        </div>
-
-        <div className="filter-group">
-          <label htmlFor="gameFilter">Game</label>
-          <select
-            id="gameFilter"
-            value={filterGame}
-            onChange={(e) => setFilterGame(e.target.value)}
-            className="filter-select"
-          >
-            <option value="all">All Games</option>
-            {games.map((name) => (<option key={name} value={name}>{name}</option>))}
-          </select>
-        </div>
-
-        <button className="clear-filters" onClick={clearFilters}>Clear Filters</button>
+        {activeFilters.map((f) => (
+          <button key={f.key} type="button" className="filter-chip" onClick={f.clear} title={`Remove ${f.label}`}>
+            {f.label}<span className="chip-x" aria-hidden="true">×</span>
+          </button>
+        ))}
 
         <span className="results-count">
           Showing {filteredResults.length} of {pastResults.length} results
         </span>
       </div>
+
+      {filtersOpen && (
+        <div className="filter-panel">
+          <div className="filter-group">
+            <label htmlFor="yearFilter">Year</label>
+            <select id="yearFilter" className="filter-select" value={filterYear} onChange={(e) => setFilterYear(e.target.value)}>
+              <option value="all">All Years</option>
+              {years.map((year) => (<option key={year} value={year}>{year}</option>))}
+            </select>
+          </div>
+          <div className="filter-group">
+            <label htmlFor="tournamentFilter">Tournament</label>
+            <select id="tournamentFilter" className="filter-select" value={filterTournament} onChange={(e) => setFilterTournament(e.target.value)}>
+              <option value="all">All Tournaments</option>
+              {tournaments.map((name) => (<option key={name} value={name}>{name}</option>))}
+            </select>
+          </div>
+          <div className="filter-group">
+            <label htmlFor="gameFilter">Game</label>
+            <select id="gameFilter" className="filter-select" value={filterGame} onChange={(e) => setFilterGame(e.target.value)}>
+              <option value="all">All Games</option>
+              {games.map((name) => (<option key={name} value={name}>{name}</option>))}
+            </select>
+          </div>
+          {activeFilters.length > 0 && (
+            <button className="clear-filters" onClick={clearFilters}>Clear</button>
+          )}
+        </div>
+      )}
 
       {filteredResults.length === 0 ? (
         <div className="no-results">

@@ -309,6 +309,7 @@ const LiveBetting = () => {
   return (
     <div className="live-layout">
       <div className="live-main">
+        <h1 className="sr-only">Live</h1>
         {demoEnabled && (
           <div className="live-toolbar">
             <button type="button" className="live-demo-toggle" onClick={() => setDemo((d) => !d)}>
