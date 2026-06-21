@@ -10,11 +10,14 @@ import { apiFetch } from '../utils/api';
 // Hoisted to module scope so their component identity is stable across Home
 // re-renders — defining them inside the parent recreates the type every render,
 // remounting each logo and making the images flicker.
-const TournamentLogo = ({ name, height = 24 }) => {
+const TournamentLogo = ({ name, logoUrl, height = 24 }) => {
   const [index, setIndex] = useState(0);
   if (!name) return null;
   const { avif, webp, png, jpg, jpeg } = getTournamentLogoSources(name);
-  const candidates = [avif, webp, png, jpg, jpeg].filter(Boolean);
+  // Curated local assets first; fall back to the event's Start.gg logo so
+  // tournaments without a bundled asset (e.g. VSFighting) still show an image
+  // instead of a broken one.
+  const candidates = [avif, webp, png, jpg, jpeg, logoUrl].filter(Boolean);
   const src = candidates[index];
   if (!src) return <span>{name}</span>;
   return (
@@ -22,8 +25,8 @@ const TournamentLogo = ({ name, height = 24 }) => {
       src={src}
       alt={getTournamentAlt(name)}
       style={getTournamentLogoStyle(name, height)}
-      title={src}
-      onError={() => { if (index + 1 < candidates.length) setIndex(index + 1); }}
+      title={name}
+      onError={() => setIndex((i) => i + 1)}
     />
   );
 };
@@ -255,7 +258,7 @@ const Home = () => {
         <section className="hero">
           <div className="hero-content">
             <h1>Bet on the FGC.</h1>
-            <p>Live, per-set betting on Evo, CEO and every major — plus futures on who takes it all. Play money, real bragging rights.</p>
+            <p>Live, per-set betting on Evo, CEO and every major — plus futures on who takes it all. Virtual currency, real bragging rights.</p>
             <div className="hero-actions">
               <Link to="/signup" className="btn primary">Sign up free</Link>
               <Link to="/login" className="btn">Log in</Link>
@@ -294,7 +297,7 @@ const Home = () => {
         <section className="next-hero">
           <span className="next-hero-badge">Next up</span>
           <div className="next-hero-body">
-            <TournamentLogo name={next.name} height={52} />
+            <TournamentLogo name={next.name} logoUrl={next.logoUrl} height={52} />
             <div className="next-hero-info">
               <h2>{next.name}</h2>
               <p className="next-hero-meta">
@@ -414,7 +417,7 @@ const Home = () => {
               <div key={t.id} className="spotlight-card">
                 <div className="spotlight-header">
                   <h3>
-                    <TournamentLogo name={t.name} height={44} />
+                    <TournamentLogo name={t.name} logoUrl={t.logoUrl} height={44} />
                     <span style={{ marginLeft: '10px' }}>{t.name}</span>
                   </h3>
                 </div>

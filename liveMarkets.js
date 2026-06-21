@@ -12,7 +12,7 @@ const TBD = 0; // player id placeholder for an unfilled bracket slot
 
 // ---- House bankroll + per-side pricing (scaled subsidy, rake-funded cap) ----
 
-// Play-money marketing budget the house is willing to risk. 0 => the house can
+// Virtual-currency marketing budget the house is willing to risk. 0 => the house can
 // never go net-negative; raise it to let the subsidy juice odds before any rake
 // has accumulated (the platform's worst-case net is then -this).
 const HOUSE_PROMO_SEED_CENTS = 0;
@@ -412,7 +412,7 @@ async function clearDemoMarkets() {
 // markets exist. Returns { tournament: null, games: [] } when nothing is coming.
 async function getUpcoming() {
   const tournament = await db.getAsync(
-    `SELECT id, name, date FROM tournaments t
+    `SELECT id, name, date, logo_url AS logoUrl FROM tournaments t
      WHERE startgg_id IS NOT NULL
        AND (is_live = 1 OR date(date) >= date('now','-1 day'))
        AND EXISTS (SELECT 1 FROM players_games_tournaments pgt WHERE pgt.tournament_id = t.id)

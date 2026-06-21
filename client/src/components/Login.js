@@ -42,7 +42,7 @@ const Login = ({ setIsLoggedIn }) => {
     <div className="login-container">
       <img src={logo} alt="Money Match" className="login-logo" />
       <h2>Welcome back</h2>
-      <p className="tagline">Play-money betting on the FGC.</p>
+      <p className="tagline">Virtual-currency betting on the FGC.</p>
 
       <div className="auth-toggle">
         <button type="button" className="active">Log in</button>

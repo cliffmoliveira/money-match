@@ -40,6 +40,76 @@ const NAV = [
   { to: '/leaderboard', label: 'Ranks', icon: IconRanks },
 ];
 
+// Mirrors economy.js DAILY_BONUS_RAMP; only used if the API omits `ramp`.
+const DEFAULT_RAMP = [2500, 5000, 7500, 10000, 12500, 15000, 20000];
+// Tomorrow's reward given the streak just completed (days claimed incl. today).
+const nextDayAmount = (ramp, streak) => {
+  const r = (ramp && ramp.length) ? ramp : DEFAULT_RAMP;
+  return r[Math.min(Math.max(streak, 0), r.length - 1)];
+};
+
+// Daily-reward popover: explains Fight Money, shows the 7-day streak ladder with
+// today highlighted, and either claims the waiting bonus or previews tomorrow's.
+const RewardPopover = ({ dailyBonus, claiming, onClaim }) => {
+  const ramp = (dailyBonus.ramp && dailyBonus.ramp.length) ? dailyBonus.ramp : DEFAULT_RAMP;
+  const N = ramp.length;
+  const available = dailyBonus.available;
+  // Filled cells = consecutive days already claimed; active = the cell claimable
+  // now. When available, today's claim is day `day`, so `day - 1` are filled.
+  const claimedDays = available ? Math.max(0, dailyBonus.day - 1) : (dailyBonus.currentStreak || 0);
+  const activeDay = available ? dailyBonus.day : null;
+  const streakDay = available ? dailyBonus.day : (dailyBonus.currentStreak || 0);
+  const tomorrow = nextDayAmount(ramp, dailyBonus.currentStreak || 0);
+  // Derive the claimed amount from the streak + ladder (not a stored field) so
+  // it survives the periodic wallet refetch overwriting `dailyBonus`.
+  const claimedAmount = ramp[Math.min(Math.max(streakDay, 1), N) - 1];
+
+  return (
+    <div className="reward-popover" role="dialog" aria-label="Daily reward">
+      <div className="reward-pop-title">🎁 Daily Reward</div>
+      <p className="reward-pop-blurb">
+        <strong>Fight Money</strong> is your virtual-currency bankroll for betting.
+      </p>
+
+      {available ? (
+        <div className="reward-pop-status">Day {streakDay} login streak{streakDay > 1 ? ' 🔥' : ''}</div>
+      ) : (
+        <div className="reward-pop-status reward-claimed">
+          Claimed today ✓ +{fm(claimedAmount)}{streakDay > 0 ? ` · Day ${streakDay} 🔥` : ''}
+        </div>
+      )}
+
+      <div className="reward-streak" role="list" aria-label="7-day streak ladder">
+        {ramp.map((amt, i) => {
+          const day = i + 1;
+          // The claimable cell is clamped to the last column, and takes priority
+          // over "filled" so a >7-day streak still highlights the Day-7+ reward.
+          const activeIdx = activeDay != null ? Math.min(activeDay, N) : null;
+          const isActive = activeIdx != null && day === activeIdx;
+          const filled = day <= Math.min(claimedDays, N) && !isActive;
+          return (
+            <div key={day} role="listitem"
+              className={`reward-cell${filled ? ' filled' : ''}${isActive ? ' active' : ''}`}>
+              <span className="reward-cell-day">{day}{day === N ? '+' : ''}</span>
+              <span className="reward-cell-amt">{Math.round(amt / 100)}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      {available ? (
+        <button className="reward-claim-btn" onClick={onClaim} disabled={claiming}>
+          {claiming ? 'Claiming…' : `Claim +${fm(dailyBonus.amountCents)}`}
+        </button>
+      ) : (
+        <div className="reward-next">Come back tomorrow for <strong>+{fm(tomorrow)}</strong></div>
+      )}
+
+      <div className="reward-earn">Earn more: win bets · log in daily</div>
+    </div>
+  );
+};
+
 const Navbar = ({ isLoggedIn }) => {
   const [userName, setUserName] = useState('');
   const [avatar, setAvatar] = useState(null);
@@ -48,7 +118,11 @@ const Navbar = ({ isLoggedIn }) => {
   const [dailyBonus, setDailyBonus] = useState(null);
   const [claiming, setClaiming] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  const [rewardOpen, setRewardOpen] = useState(false);
   const accountRef = useRef(null);
+  const rewardRef = useRef(null);
+  const autoOpenedRef = useRef(false);
+  const walletSeqRef = useRef(0); // guards against a stale wallet poll clobbering a fresh claim
 
   useEffect(() => {
     const read = () => { const u = localStorage.getItem('username'); if (u) setUserName(u); };
@@ -75,12 +149,18 @@ const Navbar = ({ isLoggedIn }) => {
     if (!userId) return;
     let active = true;
     const load = async () => {
+      // A claim (or a newer poll) bumps walletSeqRef; a stale in-flight response
+      // then no longer matches and is dropped, so it can't revert a just-claimed
+      // bonus back to "available".
+      const seq = ++walletSeqRef.current;
       try {
         const res = await apiFetch(`/api/wallet?userId=${userId}`);
         if (res.ok && active) {
           const data = await res.json();
-          setBalanceCents(data.balanceCents);
-          setDailyBonus(data.dailyBonus || null);
+          if (active && seq === walletSeqRef.current) {
+            setBalanceCents(data.balanceCents);
+            setDailyBonus(data.dailyBonus || null);
+          }
         }
       } catch { /* ignore transient errors */ }
       try {
@@ -106,6 +186,26 @@ const Navbar = ({ isLoggedIn }) => {
     return () => document.removeEventListener('mousedown', onDocClick);
   }, [accountOpen]);
 
+  // Close the reward popover when clicking outside it.
+  useEffect(() => {
+    if (!rewardOpen) return;
+    const onDocClick = (e) => {
+      if (rewardRef.current && !rewardRef.current.contains(e.target)) setRewardOpen(false);
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, [rewardOpen]);
+
+  // Auto-open the reward popover once per session when a bonus is waiting, so a
+  // first-time user learns what Fight Money is and why they're getting it.
+  useEffect(() => {
+    if (!dailyBonus?.available || autoOpenedRef.current) return;
+    autoOpenedRef.current = true;
+    if (sessionStorage.getItem('mm-reward-autoopened') === '1') return;
+    sessionStorage.setItem('mm-reward-autoopened', '1');
+    setRewardOpen(true);
+  }, [dailyBonus?.available]);
+
   // Claim the free daily Fight Money bonus (login streak), then refresh the badge.
   const claimDaily = async () => {
     const userId = localStorage.getItem('userId');
@@ -115,8 +215,19 @@ const Navbar = ({ isLoggedIn }) => {
       const res = await apiFetch('/api/wallet/daily-bonus', { method: 'POST' });
       if (res.ok) {
         const data = await res.json();
+        // Invalidate any in-flight wallet poll that read pre-claim state, so a
+        // late response can't flip the popover back to "available".
+        walletSeqRef.current++;
         if (data.balanceCents != null) setBalanceCents(data.balanceCents);
-        setDailyBonus((b) => (b ? { ...b, available: false } : b));
+        // Flip the popover to its claimed state in place (keep it open so the
+        // user sees the confirmation + tomorrow's preview). The server returns the
+        // authoritative streak on BOTH claimed and already-claimed responses, so
+        // trust it; currentStreak drives the "claimed +X" amount and tomorrow's.
+        setDailyBonus((b) => b ? {
+          ...b,
+          available: false,
+          currentStreak: data.streak ?? b.currentStreak,
+        } : b);
       }
     } catch { /* ignore */ } finally {
       setClaiming(false);
@@ -157,22 +268,31 @@ const Navbar = ({ isLoggedIn }) => {
             {isLoggedIn ? (
               <>
                 {balanceCents !== null && (
-                  <span className="navbar-balance" title="Fight Money — play-money, no cash value">{fm(balanceCents)}</span>
+                  <span className="navbar-balance" title="Fight Money — virtual currency">{fm(balanceCents)}</span>
                 )}
                 {points !== null && (
                   <span className="navbar-points" title="Ranked points — your Pick'em score">
                     {points.toLocaleString()} <span className="navbar-points-label">pts</span>
                   </span>
                 )}
-                {dailyBonus && dailyBonus.available && (
-                  <button
-                    className="navbar-bonus"
-                    onClick={claimDaily}
-                    disabled={claiming}
-                    title={`Day ${dailyBonus.day} login streak — free Fight Money`}
-                  >
-                    {claiming ? '…' : `🎁 Claim ${fm(dailyBonus.amountCents)}`}
-                  </button>
+                {dailyBonus && (
+                  <div className="navbar-reward" ref={rewardRef}>
+                    <button
+                      type="button"
+                      className={`navbar-reward-trigger${dailyBonus.available ? ' has-claim' : ''}`}
+                      onClick={() => setRewardOpen((o) => !o)}
+                      title="Daily reward — how you earn Fight Money"
+                      aria-haspopup="dialog"
+                      aria-expanded={rewardOpen}
+                    >
+                      <span className="navbar-reward-gift" aria-hidden="true">🎁</span>
+                      <span className="navbar-reward-label">Daily reward</span>
+                      {dailyBonus.available && <span className="navbar-reward-dot" aria-hidden="true" />}
+                    </button>
+                    {rewardOpen && (
+                      <RewardPopover dailyBonus={dailyBonus} claiming={claiming} onClaim={claimDaily} />
+                    )}
+                  </div>
                 )}
                 {userName && <span className="navbar-displayname" title={userName}>{userName}</span>}
                 <div className="navbar-account" ref={accountRef}>

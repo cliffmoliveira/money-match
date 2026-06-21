@@ -1,4 +1,4 @@
-// Fight Money — the play-money betting currency. Stored server-side as integer
+// Fight Money — the virtual-currency betting currency. Stored server-side as integer
 // cents (1 FM = 100 cents). Displayed as whole FM with thousands separators, and
 // only shows decimals when the amount is fractional (e.g. a parimutuel payout).
 

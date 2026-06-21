@@ -13,7 +13,7 @@ const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
 const db = require('../db/db');
 
-const STARTING_GRANT_CENTS = 100000; // $1000 play-money
+const STARTING_GRANT_CENTS = 100000; // $1000 virtual-currency
 
 async function columnExists(table, column) {
   const cols = await db.allAsync(`PRAGMA table_info(${table})`);

@@ -1,5 +1,5 @@
 /**
- * Play-money wallet. Ledger-based and funding-source-agnostic: every balance
+ * Virtual-currency wallet. Ledger-based and funding-source-agnostic: every balance
  * change writes a row to wallet_transactions and adjusts users.balance_cents.
  * Swapping to crypto/USD later means adding deposit/withdrawal transaction
  * types, not changing this interface. All amounts are integer cents.

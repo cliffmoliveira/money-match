@@ -1,6 +1,6 @@
 /**
  * Fight Money economy rules: bet sizing, bust recovery, and daily refills for the
- * play-money betting wallet (users.balance_cents, exposed to users as "Fight
+ * virtual-currency betting wallet (users.balance_cents, exposed to users as "Fight
  * Money"; 1 FM = 100 cents). All amounts are integer cents. This layer sits on
  * top of the generic ledger in wallet.js and never touches real money — refills
  * are pure upside and reinforce the no-cash-value posture.
@@ -64,6 +64,7 @@ async function dailyBonusStatus(userId, now = Date.now()) {
     day: nextStreak,                          // which streak day a claim now would be
     amountCents: dailyBonusForStreak(nextStreak),
     currentStreak: row.daily_streak || 0,
+    ramp: DAILY_BONUS_RAMP,                    // full 7-day ladder for the client streak tracker
     nextAt: last !== null ? new Date(last + DAY_MS).toISOString() : null, // null = available now
   };
 }

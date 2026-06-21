@@ -98,7 +98,7 @@ app.post('/api/auth/signup', async (req, res) => {
     `;
     const result = await db.runAsync(insertQuery, [username, email, hashedPassword, username]);
 
-    // Grant the new user a starting play-money balance via the wallet ledger.
+    // Grant the new user a starting virtual-currency balance via the wallet ledger.
     try {
       await wallet.credit(result.lastID, wallet.STARTING_GRANT_CENTS, 'grant');
     } catch (grantErr) {

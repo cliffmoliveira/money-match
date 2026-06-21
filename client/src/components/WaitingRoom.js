@@ -7,13 +7,15 @@ import { getGameLogoSources, getGameAlt, getGameLogoStyle } from '../utils/gameL
 
 // Small logo helpers that walk the asset candidates and fall back to text,
 // mirroring the pattern in Home.js / LiveBetting.js.
-const TournamentLogo = ({ name, height = 44 }) => {
+const TournamentLogo = ({ name, logoUrl, height = 44 }) => {
   const [i, setI] = useState(0);
-  const candidates = Object.values(getTournamentLogoSources(name)).filter(Boolean);
+  // Curated local assets first, then the event's Start.gg logo, then a text
+  // fallback — so a tournament without a bundled asset never renders broken.
+  const candidates = [...Object.values(getTournamentLogoSources(name)), logoUrl].filter(Boolean);
   const src = candidates[i];
   if (!src) return <span className="wr-tname-fallback">{name}</span>;
   return <img src={src} alt={getTournamentAlt(name)} style={getTournamentLogoStyle(name, height)}
-    onError={() => setI((x) => (x + 1 < candidates.length ? x + 1 : x))} />;
+    onError={() => setI((x) => x + 1)} />;
 };
 const GameTabLogo = ({ name, height = 20 }) => {
   const [i, setI] = useState(0);
@@ -76,7 +78,7 @@ const WaitingRoom = ({ tournament, games = [] }) => {
     <div className="waiting-room">
       <div className="wr-header">
         <div className="wr-brand">
-          <TournamentLogo name={tournament.name} />
+          <TournamentLogo name={tournament.name} logoUrl={tournament.logoUrl} />
           <div className="wr-title">
             <h2>{tournament.name}</h2>
             <p className="wr-sub">Top 8 bracket — markets open automatically when the bracket begins.</p>
