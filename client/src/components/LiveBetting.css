@@ -200,12 +200,23 @@
 .live-mybets-amount { font-family: 'Saira', sans-serif; font-size: 14px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
 
 @media (max-width: 980px) {
-  /* On mobile the bracket is already full-width; the slip stacks below it as a
-     normal card instead of using the desktop drawer overlay. */
+  /* On mobile, keep the drawer pattern but slide it up from the bottom as a sheet,
+     with the floating "Slip (n)" tab docked above the tab bar — so the slip is
+     reachable the moment you add a pick, instead of stranded below the bracket. */
   .live-drawer {
-    position: static; height: auto; width: 100%; transform: none;
-    overflow: visible; box-shadow: none;
-    border: 1px solid var(--border); border-radius: 16px; margin-top: 20px;
+    position: fixed; left: 0; right: 0; top: auto; bottom: 0; width: 100%;
+    height: auto; max-height: 86vh; z-index: 1100;
+    transform: none; /* bottom-anchored sheet; shown/hidden via display, not slide */
+    border: none; border-radius: 16px 16px 0 0;
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
+    display: none;
   }
-  .live-drawer-tab, .live-drawer-scrim, .live-drawer-close { display: none; }
+  .live-drawer.open { display: flex; }
+  .live-drawer-scrim { z-index: 1090; }
+  .live-drawer-tab {
+    display: block; right: 16px;
+    bottom: calc(70px + env(safe-area-inset-bottom, 0px)); /* above the mobile tab bar */
+    z-index: 1080;
+  }
+  .live-drawer-close { display: block; }
 }
