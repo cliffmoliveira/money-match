@@ -93,6 +93,7 @@ const FutureTournaments = () => {
   const [parlayStake, setParlayStake] = useState('');
   const [placingParlay, setPlacingParlay] = useState(false);
   const [parlayMsg, setParlayMsg] = useState(null);
+  const [slipExpanded, setSlipExpanded] = useState(false); // mobile bottom-sheet open state
   const [tournamentGames, setTournamentGames] = useState({});
   const [playerStats, setPlayerStats] = useState({}); // Tracks live odds and totals dynamically
 
@@ -373,10 +374,15 @@ const FutureTournaments = () => {
     const parlayReturn = parlayStakeNum * parlayOdds;
     // The toggle only exists at 2+ legs; below that, always render singles.
     const mode = entries.length >= 2 ? slipMode : 'singles';
+    // On mobile the slip docks as a bottom sheet only when there's something to show.
+    const hasContent = entries.length > 0 || placeMsg || parlayMsg;
 
     return (
-      <aside className="bet-slip">
-        <div className="bet-slip-header">Your Slip ({entries.length})</div>
+      <aside className={`bet-slip${hasContent ? ' has-bets' : ''}${slipExpanded ? ' expanded' : ''}`}>
+        <button type="button" className="bet-slip-header" onClick={() => setSlipExpanded((v) => !v)}>
+          <span>Your Slip ({entries.length})</span>
+          <span className="bet-slip-chevron" aria-hidden="true">{slipExpanded ? '▾' : '▴'}</span>
+        </button>
         {entries.length === 0 ? (
           <p className="bet-slip-empty">Add players to start building your slip.</p>
         ) : (

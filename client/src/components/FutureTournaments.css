@@ -44,10 +44,12 @@
   box-shadow: none; font-family: 'Hanken Grotesk', sans-serif; overflow: hidden;
 }
 .bet-slip-header {
-  background: transparent; color: var(--text);
-  padding: 15px 18px; border-bottom: 1px solid var(--border);
+  width: 100%; display: flex; align-items: center; justify-content: space-between;
+  background: transparent; color: var(--text); text-align: left; cursor: default;
+  padding: 15px 18px; border: none; border-bottom: 1px solid var(--border);
   font-family: 'Saira', sans-serif; font-weight: 700; font-size: 16px;
 }
+.bet-slip-chevron { display: none; }  /* shown only on the mobile bottom sheet */
 .bet-slip-empty { padding: 34px 18px; color: var(--muted); font-size: 13px; text-align: center; }
 .bet-slip-list { list-style: none; margin: 0; padding: 0; max-height: 50vh; overflow-y: auto; }
 .bet-slip-item {
@@ -100,6 +102,24 @@
 @media (max-width: 980px) {
   .future-layout { grid-template-columns: 1fr; }
   .bet-slip { position: static; width: 100%; }
+
+  /* With picks in it, dock the slip as a collapsible bottom sheet so it's always
+     reachable — instead of stranded at the bottom of a long page. */
+  .bet-slip.has-bets {
+    position: fixed; left: 0; right: 0;
+    bottom: calc(58px + env(safe-area-inset-bottom, 0px)); /* sit above the mobile tab bar */
+    width: 100%; max-height: 80vh; z-index: 1100;
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
+    display: flex; flex-direction: column;
+  }
+  .bet-slip.has-bets .bet-slip-header { cursor: pointer; flex-shrink: 0; }
+  .bet-slip.has-bets .bet-slip-chevron { display: inline; color: var(--gold); font-size: 15px; }
+  /* Collapsed → only the header bar shows. */
+  .bet-slip.has-bets:not(.expanded) > :not(.bet-slip-header) { display: none; }
+  /* Expanded → the body scrolls under the header. */
+  .bet-slip.has-bets.expanded { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .bet-slip.has-bets.expanded .bet-slip-list { max-height: none; }
 }
 
 /* Filters */
