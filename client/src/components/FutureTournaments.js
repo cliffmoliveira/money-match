@@ -373,9 +373,9 @@ const FutureTournaments = () => {
               <div><span>Total payout</span><strong>{fmAmount(Math.round(totalPayout * 100))} FM</strong></div>
             </div>
             <p className="bet-slip-note">
-              Odds are pooled and may shift as bets are placed. When you adjust a bet,
-              your original stake keeps its locked odds and only the added stake prices
-              at the current odds.
+              Fixed odds — your stake locks in the price you take. The line can move
+              before you place a bet (as seeding firms up); if you add to a bet, the
+              new stake prices at the current line.
             </p>
             <button
               type="button"
