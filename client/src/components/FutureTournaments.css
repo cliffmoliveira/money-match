@@ -60,12 +60,7 @@
 .bet-slip-meta { color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bet-slip-blend { color: var(--gold); font-size: 11px; margin-top: 2px; }
 .bet-slip-item-stake { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
-.bet-slip-item-stake input[type="number"] {
-  width: 70px; padding: 8px; text-align: right;
-  border: 1px solid var(--border-strong); border-radius: 9px;
-  background: var(--input); color: var(--text); font-size: 13px; font-variant-numeric: tabular-nums;
-}
-.bet-slip-item-stake input[type="number"]:focus { outline: none; border-color: rgba(231,180,88,0.5); }
+/* stake input styling now lives in StakeStepper.css */
 .bet-slip-payout { font-size: 12px; color: var(--win); font-family: 'Saira', sans-serif; white-space: nowrap; }
 .bet-slip-remove { border: none; background: none; color: var(--faint); font-size: 18px; line-height: 1; cursor: pointer; padding: 0 2px; }
 .bet-slip-remove:hover { color: var(--live-text); }

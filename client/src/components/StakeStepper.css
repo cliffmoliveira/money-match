@@ -1,0 +1,56 @@
+/* Stake stepper — big −/+ tap targets around a typeable amount field.
+   Native number spinners are hidden; the buttons are the affordance. */
+.stake-stepper {
+  display: inline-flex;
+  align-items: stretch;
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  background: var(--input);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.stake-stepper:focus-within { border-color: rgba(231, 180, 88, 0.5); }
+
+.stake-stepper input[type="number"] {
+  width: 48px;
+  padding: 8px 4px;
+  text-align: center;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.stake-stepper input[type="number"]:focus { outline: none; }
+.stake-stepper input[type="number"]::-webkit-outer-spin-button,
+.stake-stepper input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.stake-step {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  min-height: 40px;
+  padding: 0;
+  border: none;
+  background: var(--surface);
+  color: var(--gold);
+  font-family: 'Saira', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+.stake-step:first-child { border-right: 1px solid var(--border-soft); }
+.stake-step:last-child { border-left: 1px solid var(--border-soft); }
+.stake-step:hover:not(:disabled),
+.stake-step:active:not(:disabled) { background: var(--gold); color: var(--on-gold); }
+.stake-step:disabled { color: var(--faint); cursor: default; }

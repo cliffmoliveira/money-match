@@ -16,6 +16,11 @@ const MERCY_FLOOR_CENTS = 500;   // top up to 5 FM when broke, so there's no dea
 const DAILY_BONUS_RAMP = [2500, 5000, 7500, 10000, 12500, 15000, 20000]; // 25 FM .. 200 FM
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+// Rewarded-video top-up: a small fixed grant, throttled so it can't be farmed.
+// (Demo cooldown is short; for production tighten to a per-day cap.)
+const AD_REWARD_CENTS = 2500;             // 25 FM per completed rewarded video
+const AD_REWARD_COOLDOWN_MS = 60 * 1000;  // at most one reward per minute
+
 // Largest single bet allowed at this balance — the % cap, but never below the
 // minimum (so a low-balance user can still place exactly one min bet).
 function maxBetCents(balanceCents) {
@@ -99,16 +104,50 @@ async function claimDailyBonus(userId, now = Date.now()) {
   return { claimed: true, amountCents, streak, balanceCents, nextAt: new Date(now + DAY_MS).toISOString() };
 }
 
-// Idempotent, additive schema for the daily-bonus bookkeeping on users.
+// Credit the rewarded-video top-up, throttled by AD_REWARD_COOLDOWN_MS so it
+// can't be farmed. Returns { granted, amountCents, balanceCents, retryInMs }.
+// `now` is injectable for tests.
+async function claimAdReward(userId, now = Date.now()) {
+  const row = await db.getAsync('SELECT last_ad_reward_at FROM users WHERE id = ?', [userId]);
+  if (!row) return { granted: false, error: 'NOT_FOUND' };
+  const last = row.last_ad_reward_at ? Date.parse(row.last_ad_reward_at) : null;
+  if (last !== null && now - last < AD_REWARD_COOLDOWN_MS) {
+    return { granted: false, retryInMs: AD_REWARD_COOLDOWN_MS - (now - last), balanceCents: await wallet.getBalance(userId) };
+  }
+  // Compare-and-swap guard: stamp only if the row still holds what we read, so
+  // two racing requests can't both credit.
+  const guard = await db.runAsync(
+    'UPDATE users SET last_ad_reward_at = ? WHERE id = ? AND last_ad_reward_at IS ?',
+    [new Date(now).toISOString(), userId, row.last_ad_reward_at]
+  );
+  if (guard.changes !== 1) {
+    return { granted: false, retryInMs: AD_REWARD_COOLDOWN_MS, balanceCents: await wallet.getBalance(userId) };
+  }
+  const balanceCents = await wallet.credit(userId, AD_REWARD_CENTS, 'ad_reward');
+  return { granted: true, amountCents: AD_REWARD_CENTS, balanceCents, cooldownMs: AD_REWARD_COOLDOWN_MS };
+}
+
+// Current rewarded-video eligibility, so the UI can disable the button + show a
+// countdown without first making the user watch an ad they can't be paid for.
+async function adRewardStatus(userId, now = Date.now()) {
+  const row = await db.getAsync('SELECT last_ad_reward_at FROM users WHERE id = ?', [userId]);
+  const last = row && row.last_ad_reward_at ? Date.parse(row.last_ad_reward_at) : null;
+  const elapsed = last !== null ? now - last : Infinity;
+  const retryInMs = elapsed < AD_REWARD_COOLDOWN_MS ? AD_REWARD_COOLDOWN_MS - elapsed : 0;
+  return { available: retryInMs === 0, retryInMs, amountCents: AD_REWARD_CENTS, cooldownMs: AD_REWARD_COOLDOWN_MS };
+}
+
+// Idempotent, additive schema for the daily-bonus + ad-reward bookkeeping on users.
 async function applyEconomySchema(database = db) {
   const cols = await database.allAsync('PRAGMA table_info(users)');
   const has = (c) => cols.some((x) => x.name === c);
   if (!has('last_daily_bonus_at')) await database.runAsync('ALTER TABLE users ADD COLUMN last_daily_bonus_at TEXT');
   if (!has('daily_streak')) await database.runAsync('ALTER TABLE users ADD COLUMN daily_streak INTEGER NOT NULL DEFAULT 0');
+  if (!has('last_ad_reward_at')) await database.runAsync('ALTER TABLE users ADD COLUMN last_ad_reward_at TEXT');
 }
 
 module.exports = {
-  MIN_BET_CENTS, BET_CAP_PCT, MERCY_FLOOR_CENTS, DAILY_BONUS_RAMP,
+  MIN_BET_CENTS, BET_CAP_PCT, MERCY_FLOOR_CENTS, DAILY_BONUS_RAMP, AD_REWARD_CENTS,
   maxBetCents, dailyBonusForStreak, assertBetWithinLimits,
-  applyMercyFloor, dailyBonusStatus, claimDailyBonus, applyEconomySchema,
+  applyMercyFloor, dailyBonusStatus, claimDailyBonus, claimAdReward, adRewardStatus, applyEconomySchema,
 };

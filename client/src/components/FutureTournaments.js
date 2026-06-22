@@ -3,6 +3,7 @@ import './FutureTournaments.css';
 import { getGameAlt, getGameLogoSources, getGameLogoStyle } from '../utils/gameLogos';
 import { getTournamentLogoSources, getTournamentAlt, getTournamentLogoStyle } from '../utils/tournamentLogos';
 import Countdown from './Countdown';
+import StakeStepper from './StakeStepper';
 // Futures stakes/payouts are stored in whole Fight Money units, so convert to
 // cents (×100) before the FM formatter, matching Home.js.
 import { fmAmount } from '../utils/money';
@@ -352,13 +353,7 @@ const FutureTournaments = () => {
                       )}
                     </div>
                     <div className="bet-slip-item-stake">
-                      <input
-                        type="number"
-                        min="0"
-                        placeholder="Stake"
-                        value={e.stake}
-                        onChange={(ev) => updateStake(key, ev.target.value)}
-                      />
+                      <StakeStepper value={e.stake} onChange={(v) => updateStake(key, v)} />
                       <span className="bet-slip-payout">→ {fmAmount(Math.round(eff.payout * 100))} FM</span>
                       <button
                         type="button"

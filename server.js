@@ -502,7 +502,8 @@ app.get('/api/wallet', requireAuth, async (req, res) => {
     const balanceCents = await economy.applyMercyFloor(userId);
     const transactions = await wallet.getTransactions(userId);
     const dailyBonus = await economy.dailyBonusStatus(userId);
-    res.json({ balanceCents, transactions, dailyBonus });
+    const adReward = await economy.adRewardStatus(userId);
+    res.json({ balanceCents, transactions, dailyBonus, adReward });
   } catch (err) {
     console.error('Error fetching wallet:', err.message);
     res.status(500).json({ error: 'Failed to fetch wallet' });
@@ -522,6 +523,22 @@ app.post('/api/wallet/daily-bonus', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('Daily bonus failed:', err.message);
     res.status(500).json({ error: 'Daily bonus failed' });
+  }
+});
+
+// Rewarded-video top-up: credit a small fixed grant after a completed ad,
+// throttled server-side so it can't be farmed. The client plays the ad (via the
+// ads.js seam) and only calls this on completion; the server is the source of
+// truth for eligibility + the credit.
+app.post('/api/wallet/ad-reward', requireAuth, async (req, res) => {
+  const userId = req.userId;
+  try {
+    const result = await economy.claimAdReward(Number(userId));
+    if (result.error === 'NOT_FOUND') return res.status(404).json({ error: 'User not found' });
+    res.status(result.granted ? 201 : 429).json(result);
+  } catch (err) {
+    console.error('Ad reward failed:', err.message);
+    res.status(500).json({ error: 'Ad reward failed' });
   }
 });
 

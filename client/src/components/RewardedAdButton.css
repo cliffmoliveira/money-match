@@ -1,0 +1,49 @@
+/* Watch-a-video reward button */
+.rewarded-ad { margin-top: 10px; }
+.rewarded-ad-btn {
+  display: block;
+  width: 100%;
+  font-family: 'Saira', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  padding: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.rewarded-ad-btn:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
+.rewarded-ad-btn:disabled { opacity: 0.7; cursor: default; }
+.rewarded-ad-msg { margin-top: 6px; font-size: 11.5px; color: var(--muted); text-align: center; }
+
+/* Rewarded-ad demo overlay — created by utils/ads.js; a real ad SDK renders here later. */
+.mm-ad-overlay {
+  position: fixed; inset: 0; z-index: 2000;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(6, 8, 12, 0.82);
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+}
+.mm-ad-card {
+  width: min(360px, calc(100vw - 32px));
+  background: var(--card); border: 1px solid var(--border-strong);
+  border-radius: 16px; padding: 22px; text-align: center;
+  box-shadow: var(--shadow); font-family: 'Hanken Grotesk', -apple-system, sans-serif;
+}
+.mm-ad-tag {
+  display: inline-block; font-family: 'Saira', sans-serif; font-size: 10px;
+  font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--muted); border: 1px solid var(--border); border-radius: 6px;
+  padding: 2px 7px; margin-bottom: 12px;
+}
+.mm-ad-title { font-family: 'Saira', sans-serif; font-weight: 800; font-size: 18px; color: var(--text); }
+.mm-ad-sub { font-size: 12.5px; color: var(--muted); margin: 6px 0 16px; line-height: 1.45; }
+.mm-ad-track { height: 8px; background: var(--surface); border-radius: 99px; overflow: hidden; }
+.mm-ad-fill { width: 0; height: 100%; background: var(--gold-grad); }
+.mm-ad-skip {
+  margin-top: 16px; font-family: 'Saira', sans-serif; font-weight: 700; font-size: 13px;
+  color: var(--muted); background: transparent; border: 1px solid var(--border-strong);
+  border-radius: 9px; padding: 8px 16px; cursor: pointer;
+}
+.mm-ad-skip:hover { color: var(--text); border-color: var(--gold); }

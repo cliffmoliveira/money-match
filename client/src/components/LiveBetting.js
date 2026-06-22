@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import './LiveBetting.css';
 import Bracket from './Bracket';
 import WaitingRoom from './WaitingRoom';
+import StakeStepper from './StakeStepper';
 import { getGameLogoSources, getGameAlt, getGameLogoStyle } from '../utils/gameLogos';
 // Fight Money formatters (fmt/signed kept as names so call sites are unchanged).
 import { fm as fmt, fmSigned as signed, fmAmount } from '../utils/money';
@@ -214,11 +215,7 @@ const LiveBetting = () => {
                     <span className="live-slip-pool">pool: {fmt(e.pickPoolCents)} on {e.pickName} · {fmt(e.oppPoolCents)} on {e.oppName}</span>
                   </div>
                   <div className="live-slip-stake">
-                    <input
-                      type="number" min="0" placeholder="Stake"
-                      value={e.stake}
-                      onChange={(ev) => updateStake(key, ev.target.value)}
-                    />
+                    <StakeStepper value={e.stake} onChange={(v) => updateStake(key, v)} />
                     <span className="live-slip-payout">→ {fmAmount(Math.round((Number(e.stake) || 0) * e.odds * 100))} FM</span>
                     <button type="button" className="live-slip-remove" aria-label="Remove" onClick={() => removeFromSlip(key)}>×</button>
                   </div>
