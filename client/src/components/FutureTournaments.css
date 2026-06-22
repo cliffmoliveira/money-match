@@ -107,6 +107,7 @@
      reachable — instead of stranded at the bottom of a long page. */
   .bet-slip.has-bets {
     position: fixed; left: 0; right: 0;
+    top: auto; /* clear the desktop sticky top:88px, else it stretches full-height */
     bottom: calc(58px + env(safe-area-inset-bottom, 0px)); /* sit above the mobile tab bar */
     width: 100%; max-height: 80vh; z-index: 1100;
     border-radius: 16px 16px 0 0;
