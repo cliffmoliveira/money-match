@@ -370,7 +370,7 @@ const FutureTournaments = () => {
             </ul>
             <div className="bet-slip-totals">
               <div><span>Stake</span><strong>{fmAmount(Math.round(totalStake * 100))} FM</strong></div>
-              <div><span>Projected payout</span><strong>{fmAmount(Math.round(totalPayout * 100))} FM</strong></div>
+              <div><span>Total payout</span><strong>{fmAmount(Math.round(totalPayout * 100))} FM</strong></div>
             </div>
             <p className="bet-slip-note">
               Odds are pooled and may shift as bets are placed. When you adjust a bet,

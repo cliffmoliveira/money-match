@@ -224,7 +224,7 @@ const LiveBetting = () => {
             </ul>
             <div className="live-slip-totals">
               <div><span>Stake</span><strong>{fmAmount(Math.round(totalStake * 100))} FM</strong></div>
-              <div><span>Projected payout</span><strong>{fmAmount(Math.round(totalPayout * 100))} FM</strong></div>
+              <div><span>Total payout</span><strong>{fmAmount(Math.round(totalPayout * 100))} FM</strong></div>
             </div>
             <p className="live-slip-explainer">
               <strong>Parimutuel odds.</strong> The line moves as bets come in, so this
