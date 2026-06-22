@@ -89,6 +89,10 @@ const FutureTournaments = () => {
   const [placedBets, setPlacedBets] = useState({}); // Already-placed bet amounts, same key
   const [placing, setPlacing] = useState(false);
   const [placeMsg, setPlaceMsg] = useState(null);
+  const [slipMode, setSlipMode] = useState('singles'); // 'singles' | 'parlay'
+  const [parlayStake, setParlayStake] = useState('');
+  const [placingParlay, setPlacingParlay] = useState(false);
+  const [parlayMsg, setParlayMsg] = useState(null);
   const [tournamentGames, setTournamentGames] = useState({});
   const [playerStats, setPlayerStats] = useState({}); // Tracks live odds and totals dynamically
 
@@ -305,6 +309,39 @@ const FutureTournaments = () => {
     }
   };
 
+  // Place the whole slip as a single parlay: one stake, odds multiplied, pays
+  // only if every leg wins. The server re-prices each leg and moves the FM.
+  const placeParlay = async () => {
+    const legs = Object.values(slip);
+    const stake = Number(parlayStake) || 0;
+    if (legs.length < 2 || stake <= 0 || placingParlay) return;
+    setPlacingParlay(true);
+    setParlayMsg(null);
+    try {
+      const res = await apiFetch('/api/parlays', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          stake,
+          legs: legs.map((e) => ({ tournamentId: e.tournamentId, gameId: e.gameId, playerId: e.playerId })),
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setParlayMsg(`Parlay placed — ${stake} FM to return ${fmAmount(data.payoutCents || 0)} FM.`);
+        setSlip({});
+        setParlayStake('');
+        window.dispatchEvent(new Event('mm-wallet-changed')); // refresh the navbar balance now
+      } else {
+        setParlayMsg(data.error || 'Could not place parlay.');
+      }
+    } catch {
+      setParlayMsg('Could not place parlay.');
+    } finally {
+      setPlacingParlay(false);
+    }
+  };
+
   // Rendered as a plain function (not a <Component/>) so the stake inputs keep
   // focus across re-renders instead of remounting on each keystroke.
   const renderBetSlip = () => {
@@ -325,6 +362,18 @@ const FutureTournaments = () => {
       };
     };
 
+    // Parlay view-model: combine the slip's legs into one ticket.
+    const round2 = (x) => Math.round(x * 100) / 100;
+    const legRows = entries.map(([key, e]) => ({ key, e, ...lookup(e) }));
+    const marketCount = {};
+    legRows.forEach(({ e }) => { const k = `${e.tournamentId}:${e.gameId}`; marketCount[k] = (marketCount[k] || 0) + 1; });
+    const parlayConflict = Object.values(marketCount).some((c) => c > 1);
+    const parlayOdds = round2(legRows.reduce((acc, { e }) => acc * (Number(e.currentOdds) || 0), 1));
+    const parlayStakeNum = Number(parlayStake) || 0;
+    const parlayReturn = parlayStakeNum * parlayOdds;
+    // The toggle only exists at 2+ legs; below that, always render singles.
+    const mode = entries.length >= 2 ? slipMode : 'singles';
+
     return (
       <aside className="bet-slip">
         <div className="bet-slip-header">Your Slip ({entries.length})</div>
@@ -332,62 +381,114 @@ const FutureTournaments = () => {
           <p className="bet-slip-empty">Add players to start building your slip.</p>
         ) : (
           <>
-            <ul className="bet-slip-list">
-              {entries.map(([key, e]) => {
-                const { tournamentName, gameName, playerName } = lookup(e);
-                const eff = effectiveBet(e);
-                // Show the blend only when added stake actually prices differently.
-                const blended =
-                  eff.kept > 0 && eff.added > 0 && e.oldOdds !== e.currentOdds;
-                return (
-                  <li key={key} className="bet-slip-item">
-                    <div className="bet-slip-item-info">
-                      <span className="bet-slip-player">
-                        {playerName} <span className="bet-slip-odds">@{eff.odds.toFixed(2)}</span>
-                      </span>
-                      <span className="bet-slip-meta">{gameName} · {tournamentName}</span>
-                      {blended && (
-                        <span className="bet-slip-blend">
-                          {fmAmount(Math.round(eff.kept * 100))} FM @{(e.oldOdds || 0).toFixed(2)} + {fmAmount(Math.round(eff.added * 100))} FM @{(e.currentOdds || 0).toFixed(2)}
-                        </span>
-                      )}
-                    </div>
-                    <div className="bet-slip-item-stake">
-                      <StakeStepper value={e.stake} onChange={(v) => updateStake(key, v)} />
-                      <span className="bet-slip-payout">→ {fmAmount(Math.round(eff.payout * 100))} FM</span>
-                      <button
-                        type="button"
-                        className="bet-slip-remove"
-                        aria-label="Remove"
-                        onClick={() => removeFromSlip(key)}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-            <div className="bet-slip-totals">
-              <div><span>Stake</span><strong>{fmAmount(Math.round(totalStake * 100))} FM</strong></div>
-              <div><span>Total payout</span><strong>{fmAmount(Math.round(totalPayout * 100))} FM</strong></div>
-            </div>
-            <p className="bet-slip-note">
-              Fixed odds — your stake locks in the price you take. The line can move
-              before you place a bet (as seeding firms up); if you add to a bet, the
-              new stake prices at the current line.
-            </p>
-            <button
-              type="button"
-              className="bet-slip-place"
-              disabled={placing || totalStake <= 0}
-              onClick={placeBets}
-            >
-              {placing ? 'Placing…' : 'Place Bets'}
-            </button>
+            {entries.length >= 2 && (
+              <div className="slip-mode">
+                <button type="button" className={mode === 'singles' ? 'active' : ''} onClick={() => setSlipMode('singles')}>Singles</button>
+                <button type="button" className={mode === 'parlay' ? 'active' : ''} onClick={() => setSlipMode('parlay')}>Parlay</button>
+              </div>
+            )}
+            {mode === 'parlay' ? (
+              <>
+                <ul className="bet-slip-list">
+                  {legRows.map(({ key, e, tournamentName, gameName, playerName }) => {
+                    const dupe = marketCount[`${e.tournamentId}:${e.gameId}`] > 1;
+                    return (
+                      <li key={key} className={`bet-slip-item${dupe ? ' parlay-conflict' : ''}`}>
+                        <div className="bet-slip-item-info">
+                          <span className="bet-slip-player">
+                            {playerName} <span className="bet-slip-odds">@{(Number(e.currentOdds) || 0).toFixed(2)}</span>
+                          </span>
+                          <span className="bet-slip-meta">{gameName} · {tournamentName}</span>
+                          {dupe && <span className="parlay-conflict-note">Can&rsquo;t combine two picks from the same event</span>}
+                        </div>
+                        <button
+                          type="button"
+                          className="bet-slip-remove"
+                          aria-label="Remove"
+                          onClick={() => removeFromSlip(key)}
+                        >
+                          ×
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <div className="bet-slip-totals">
+                  <div><span>{legRows.length}-pick parlay</span><strong className="parlay-odds">@{parlayOdds.toFixed(2)}</strong></div>
+                  <div className="parlay-stake-row"><span>Stake</span><StakeStepper value={parlayStake} onChange={setParlayStake} /></div>
+                  <div><span>To return</span><strong>{fmAmount(Math.round(parlayReturn * 100))} FM</strong></div>
+                </div>
+                <p className="bet-slip-note">All picks must win — one miss and the parlay loses.</p>
+                <button
+                  type="button"
+                  className="bet-slip-place"
+                  disabled={placingParlay || parlayConflict || parlayStakeNum <= 0}
+                  onClick={placeParlay}
+                >
+                  {placingParlay ? 'Placing…' : parlayConflict ? 'Remove the duplicate event' : 'Place parlay'}
+                </button>
+              </>
+            ) : (
+              <>
+                <ul className="bet-slip-list">
+                  {entries.map(([key, e]) => {
+                    const { tournamentName, gameName, playerName } = lookup(e);
+                    const eff = effectiveBet(e);
+                    // Show the blend only when added stake actually prices differently.
+                    const blended =
+                      eff.kept > 0 && eff.added > 0 && e.oldOdds !== e.currentOdds;
+                    return (
+                      <li key={key} className="bet-slip-item">
+                        <div className="bet-slip-item-info">
+                          <span className="bet-slip-player">
+                            {playerName} <span className="bet-slip-odds">@{eff.odds.toFixed(2)}</span>
+                          </span>
+                          <span className="bet-slip-meta">{gameName} · {tournamentName}</span>
+                          {blended && (
+                            <span className="bet-slip-blend">
+                              {fmAmount(Math.round(eff.kept * 100))} FM @{(e.oldOdds || 0).toFixed(2)} + {fmAmount(Math.round(eff.added * 100))} FM @{(e.currentOdds || 0).toFixed(2)}
+                            </span>
+                          )}
+                        </div>
+                        <div className="bet-slip-item-stake">
+                          <StakeStepper value={e.stake} onChange={(v) => updateStake(key, v)} />
+                          <span className="bet-slip-payout">→ {fmAmount(Math.round(eff.payout * 100))} FM</span>
+                          <button
+                            type="button"
+                            className="bet-slip-remove"
+                            aria-label="Remove"
+                            onClick={() => removeFromSlip(key)}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <div className="bet-slip-totals">
+                  <div><span>Stake</span><strong>{fmAmount(Math.round(totalStake * 100))} FM</strong></div>
+                  <div><span>Total payout</span><strong>{fmAmount(Math.round(totalPayout * 100))} FM</strong></div>
+                </div>
+                <p className="bet-slip-note">
+                  Fixed odds — your stake locks in the price you take. The line can move
+                  before you place a bet (as seeding firms up); if you add to a bet, the
+                  new stake prices at the current line.
+                </p>
+                <button
+                  type="button"
+                  className="bet-slip-place"
+                  disabled={placing || totalStake <= 0}
+                  onClick={placeBets}
+                >
+                  {placing ? 'Placing…' : 'Place Bets'}
+                </button>
+              </>
+            )}
           </>
         )}
         {placeMsg && <p className="bet-slip-msg">{placeMsg}</p>}
+        {parlayMsg && <p className="bet-slip-msg">{parlayMsg}</p>}
       </aside>
     );
   };

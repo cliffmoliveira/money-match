@@ -29,6 +29,7 @@ app.use('/api/affiliate', require('./affiliate/router'));
 app.use(express.json()); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
 app.use('/api/pickem', require('./pickem/router'));
+app.use('/api/parlays', require('./parlay/router'));
 app.use(morgan('dev'));
 app.use(express.static(path.join(__dirname, 'client', 'build')));
 
@@ -791,6 +792,7 @@ app.get('*', (req, res) => {
 economy.applyEconomySchema()
   .then(() => account.applyAccountSchema())
   .then(() => futuresMeta.applyFuturesMetaSchema())
+  .then(() => require('./parlay/schema').applyParlaySchema(db))
   .catch((err) => console.error('Schema init failed:', err.message))
   .finally(() => {
     app.listen(PORT, () => {

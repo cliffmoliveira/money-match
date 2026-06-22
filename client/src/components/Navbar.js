@@ -178,7 +178,9 @@ const Navbar = ({ isLoggedIn }) => {
     };
     load();
     const id = setInterval(load, 20000);
-    return () => { active = false; clearInterval(id); };
+    // Let other surfaces (e.g. placing a parlay) refresh the balance immediately.
+    window.addEventListener('mm-wallet-changed', load);
+    return () => { active = false; clearInterval(id); window.removeEventListener('mm-wallet-changed', load); };
   }, [isLoggedIn]);
 
   // Close the account menu when clicking outside it.
