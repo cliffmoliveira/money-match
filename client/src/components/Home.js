@@ -221,6 +221,12 @@ const Home = () => {
   const heroShowsNext = !!userId && liveNow.length === 0 && (upcoming?.length || 0) > 0;
   const spotlight = (heroShowsNext ? upcoming.slice(1) : (upcoming || [])).slice(0, 4);
 
+  // Countdown shows only on the next big upcoming major — skip World Warrior / LCQ
+  // qualifiers (matched by name). `upcoming` is date-sorted, so the first non-
+  // qualifier is the next major; only that event's card renders a countdown.
+  const isQualifierEvent = (name) => /world\s+warrior|\blcq\b|last\s+chance/i.test(name || '');
+  const nextMajorId = (upcoming || []).find((t) => !isQualifierEvent(t.name))?.id ?? null;
+
   // One unified bet list: live per-set bets + futures, normalized to a common
   // shape, with unresolved (pending) bets surfaced first.
   const betStatusRank = { pending: 0, win: 1, loss: 2, refunded: 3 };
@@ -307,7 +313,7 @@ const Home = () => {
               </p>
             </div>
           </div>
-          <Countdown date={next.date} compact />
+          {next.id === nextMajorId && <Countdown date={next.date} compact />}
           <div className="hero-actions">
             <Link to="/future-tournaments" className="btn primary">Browse futures</Link>
             <Link to="/live" className="btn">Live betting</Link>
@@ -436,7 +442,7 @@ const Home = () => {
                     <span className="more-pill">+{Object.values(t.games || {}).length - 4} more</span>
                   )}
                 </div>
-                <Countdown date={t.date} compact />
+                {t.id === nextMajorId && <Countdown date={t.date} compact />}
               </div>
             ))}
           </div>
