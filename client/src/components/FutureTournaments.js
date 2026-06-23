@@ -81,6 +81,17 @@ const TournamentLogo = ({ name, logoUrl, height = 24 }) => {
   );
 };
 
+// Futures close when an event starts. Dates are day-granularity, so the market
+// locks once today is on or after the tournament date — mirrors the server guard
+// in futures.js (POST /api/bets), so the UI never offers a pick the API rejects.
+const isFuturesClosed = (dateStr) => {
+  const d = new Date(dateStr + 'T00:00:00');
+  if (isNaN(d)) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return d <= today;
+};
+
 const FutureTournaments = () => {
   const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -604,6 +615,9 @@ const FutureTournaments = () => {
               <TournamentLogo name={tournament.name} logoUrl={tournament.logoUrl} height={48} />
               <span>{tournament.name}</span>
             </h2>
+            {isFuturesClosed(tournament.date) && (
+              <span className="futures-closed-badge">Futures closed — event started</span>
+            )}
             <div className="tournament-details">
               <p>
                 <strong>Date:</strong> {new Date(tournament.date + 'T00:00:00').toLocaleDateString()}
@@ -666,8 +680,11 @@ const FutureTournaments = () => {
                       const inSlip = Boolean(slip[key]);
                       const placed = placedBets[key];
                       const hasPlaced = placed != null;
-                      const label = inSlip ? 'Added ✓' : hasPlaced ? 'Adjust' : '+ Add';
-                      const className = inSlip
+                      const closed = isFuturesClosed(tournament.date);
+                      const label = closed ? 'Closed' : inSlip ? 'Added ✓' : hasPlaced ? 'Adjust' : '+ Add';
+                      const className = closed
+                        ? 'slip-toggle closed'
+                        : inSlip
                         ? 'slip-toggle added'
                         : hasPlaced
                         ? 'slip-toggle adjust'
@@ -690,16 +707,20 @@ const FutureTournaments = () => {
                             <button
                               type="button"
                               className={className}
-                              onClick={() =>
-                                inSlip
-                                  ? removeFromSlip(key)
-                                  : addToSlip(
-                                      tournament.id,
-                                      game.game_id,
-                                      player.player_id,
-                                      player.live_odds,
-                                      hasPlaced ? placed : null
-                                    )
+                              disabled={closed}
+                              onClick={
+                                closed
+                                  ? undefined
+                                  : () =>
+                                      inSlip
+                                        ? removeFromSlip(key)
+                                        : addToSlip(
+                                            tournament.id,
+                                            game.game_id,
+                                            player.player_id,
+                                            player.live_odds,
+                                            hasPlaced ? placed : null
+                                          )
                               }
                             >
                               {label}

@@ -7,7 +7,10 @@ async function startgg(query, variables = {}, tokenOverride) {
   if (!token) throw new Error('Missing STARTGG_API_TOKEN in environment');
 
   const res = await axios.post(STARTGG_URL, { query, variables }, {
-    headers: { Authorization: `Bearer ${token}` }
+    headers: { Authorization: `Bearer ${token}` },
+    // Cap how long a stuck Start.gg connection can block a poller cycle. Without
+    // this, axios waits indefinitely and a hung request stalls live sync.
+    timeout: 10000,
   });
   if (res.data.errors) {
     throw new Error(`StartGG errors: ${JSON.stringify(res.data.errors)}`);

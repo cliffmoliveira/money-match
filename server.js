@@ -15,6 +15,7 @@ const liveMarkets = require('./liveMarkets');
 const economy = require('./economy');
 const account = require('./account');
 const futuresMeta = require('./futuresMeta');
+const futures = require('./futures');
 const { syncLive } = require('./scripts/sync-live');
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -349,6 +350,17 @@ app.post('/api/bets', requireAuth, async (req, res) => {
   try {
     if (!userId || !tournamentId || !gameId || !playerId || amount === undefined) {
       return res.status(400).json({ error: 'All fields are required.' });
+    }
+
+    // Futures close when the tournament starts. Reject new picks AND edits to
+    // existing ones once the event is underway, so nobody can take stale
+    // seed-based lines after play has begun.
+    const lock = await futures.isFuturesLocked(tournamentId);
+    if (!lock.found) {
+      return res.status(404).json({ error: 'Tournament not found.' });
+    }
+    if (lock.locked) {
+      return res.status(409).json({ error: 'Futures betting is closed — this tournament has started.' });
     }
 
     // Fetch current live odds
@@ -769,13 +781,33 @@ function scheduleStartGgSync() {
 // (429) below this; LIVE_SYNC_MS can override but lower values risk throttling.
 const LIVE_SYNC_MS = Number(process.env.LIVE_SYNC_MS) || 60 * 1000;
 function scheduleLiveSync() {
+  let running = false;
   const run = async () => {
+    if (running) return; // never let a slow cycle stack on top of the previous one
+    running = true;
     try { await syncLive({}); }
     catch (err) { console.error('Live sync error:', err.message); }
+    finally {
+      running = false;
+      // Self-schedule: the next cycle starts LIVE_SYNC_MS after this one finishes,
+      // so a slow Start.gg call (now capped by the axios timeout) can never cause
+      // cycles to pile up the way a fixed-rate setInterval would.
+      setTimeout(run, LIVE_SYNC_MS);
+    }
   };
   run();
-  setInterval(run, LIVE_SYNC_MS);
 }
+
+// Last-resort guards so one unhandled async error (a rejected promise in a
+// poller, a throw outside a route's try/catch) can't silently black-hole the
+// single process mid-event. Log loudly and keep serving; a process supervisor
+// (PM2/systemd) should still be configured to restart on a genuinely fatal exit.
+process.on('unhandledRejection', (reason) => {
+  console.error('UNHANDLED REJECTION:', reason && reason.stack ? reason.stack : reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('UNCAUGHT EXCEPTION:', err && err.stack ? err.stack : err);
+});
 
 // Kick off schedulers (skippable for tests via DISABLE_SYNC=1)
 if (!process.env.DISABLE_SYNC) {
@@ -786,6 +818,17 @@ if (!process.env.DISABLE_SYNC) {
 // Catch-all route for React
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'client', 'build', 'index.html'));
+});
+
+// Error-handling middleware (must be last). Catches anything thrown synchronously
+// in a handler or passed to next(err), so a stray error returns a clean 500
+// instead of hanging the request. Async route bodies still need their own
+// try/catch — Express 4 doesn't auto-forward rejected promises here.
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  console.error('Unhandled request error:', err && err.stack ? err.stack : err);
+  if (res.headersSent) return next(err);
+  res.status(500).json({ error: 'Internal server error' });
 });
 
 // Ensure the Fight Money economy + account columns exist (idempotent), then start.

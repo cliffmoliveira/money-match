@@ -36,6 +36,11 @@
 .slip-toggle.added { background: var(--gold-grad); color: var(--on-gold); border-color: var(--gold); }
 .slip-toggle.adjust { border-color: rgba(231,180,88,0.5); color: var(--gold); background: var(--gold-tint); }
 .slip-toggle.adjust:hover { background: rgba(231,180,88,0.2); }
+.slip-toggle.closed {
+  background: var(--surface); color: var(--muted); border-color: rgba(255,255,255,0.12);
+  cursor: not-allowed; opacity: 0.7;
+}
+.slip-toggle.closed:hover { background: var(--surface); border-color: rgba(255,255,255,0.12); }
 
 /* Bet Slip (matches the Live slip styling) */
 .bet-slip {
@@ -193,6 +198,13 @@ h1 { text-align: left; font-family: 'Saira', sans-serif; font-weight: 800; color
 .tournament { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 20px; box-shadow: none; }
 .tournament h2 { font-family: 'Saira', sans-serif; font-weight: 700; color: var(--text); font-size: 22px; margin-bottom: 10px; }
 .tournament-header { text-align: left; margin-bottom: 20px; }
+.futures-closed-badge {
+  display: inline-block; margin: 6px auto 0; padding: 4px 12px;
+  background: rgba(255,255,255,0.06); color: var(--muted);
+  border: 1px solid rgba(255,255,255,0.12); border-radius: 999px;
+  font-family: 'Saira', sans-serif; font-weight: 600; font-size: 12px;
+  letter-spacing: 0.02em; text-transform: uppercase;
+}
 .futures-pending { text-align: center; color: var(--muted); font-style: italic; padding: 16px; background: var(--surface); border-radius: 12px; }
 .tournament-details { display: flex; gap: 30px; margin-top: 10px; }
 .tournament p { color: var(--text-muted); font-size: 15px; margin: 5px 0; }

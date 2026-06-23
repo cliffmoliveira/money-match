@@ -6,6 +6,7 @@
 const db = require('./db/db');
 const wallet = require('./wallet');
 const economy = require('./economy');
+const { withWriteTx } = require('./txn');
 const { openingProbabilities, computeLiveOdds, effectiveSubsidyCents, RAKE, round2 } = require('./liveOdds');
 
 const TBD = 0; // player id placeholder for an unfilled bracket slot
@@ -20,12 +21,22 @@ const HOUSE_PROMO_SEED_CENTS = 0;
 // The house's cumulative take from settled live bets (stakes kept minus payouts
 // made), plus the promo seed. The subsidy boost on any market may draw from this
 // but never exceed it, so the platform balance stays >= 0 at all times.
+//
+// This value only changes when bets move to/from won/lost (settlement, void,
+// demo reset) — never on placement. recomputeOdds runs on every bet, so without
+// caching this would scan the whole ledger per bet during a burst. We memoize it
+// and invalidate whenever those states change, so a betting burst reads it for
+// free and the underlying scan runs at most once per settlement.
+let _bankrollCache = null;
+function invalidateBankrollCache() { _bankrollCache = null; }
 async function houseBankrollCents() {
+  if (_bankrollCache !== null) return _bankrollCache;
   const row = await db.getAsync(
     `SELECT COALESCE(SUM(amount_cents), 0) - COALESCE(SUM(payout_cents), 0) AS net
      FROM set_bets WHERE state IN ('won', 'lost')`
   );
-  return HOUSE_PROMO_SEED_CENTS + (row?.net || 0);
+  _bankrollCache = HOUSE_PROMO_SEED_CENTS + (row?.net || 0);
+  return _bankrollCache;
 }
 
 // Decimal payout price for each side given the current pools and house bankroll.
@@ -149,46 +160,57 @@ async function closeMarket(marketId) {
  * placement.
  */
 async function settleMarket(marketId, winnerId, p1Score = null, p2Score = null) {
-  const market = await db.getAsync('SELECT * FROM set_markets WHERE id = ?', [marketId]);
-  if (!market || market.state === 'settled' || market.state === 'void') return;
+  // One transaction for the whole settlement: every payout + state change either
+  // all commits or all rolls back, and it can't interleave with live bets landing
+  // on the same market (the global write mutex serializes it against placeBet).
+  // Bundling N per-winner credits into a single commit is also the batched-
+  // settlement win — one durable write instead of one fsync per winner.
+  return withWriteTx(async () => {
+    const market = await db.getAsync('SELECT * FROM set_markets WHERE id = ?', [marketId]);
+    if (!market || market.state === 'settled' || market.state === 'void') return;
 
-  // Bankroll excludes this market's own bets (still 'placed') — a market can't
-  // fund its own subsidy.
-  const bankroll = await houseBankrollCents();
-  const rates = sideRates(market, bankroll);
-  const winnerRate = winnerId === market.player1_id ? rates.p1
-    : winnerId === market.player2_id ? rates.p2 : null;
+    // Bankroll excludes this market's own bets (still 'placed') — a market can't
+    // fund its own subsidy.
+    const bankroll = await houseBankrollCents();
+    const rates = sideRates(market, bankroll);
+    const winnerRate = winnerId === market.player1_id ? rates.p1
+      : winnerId === market.player2_id ? rates.p2 : null;
 
-  const bets = await db.allAsync(`SELECT * FROM set_bets WHERE market_id = ? AND state = 'placed'`, [marketId]);
-  for (const bet of bets) {
-    if (winnerRate != null && bet.picked_player_id === winnerId) {
-      const payout = Math.round(bet.amount_cents * winnerRate);
-      await db.runAsync(`UPDATE set_bets SET state='won', payout_cents=? WHERE id=?`, [payout, bet.id]);
-      await wallet.credit(bet.user_id, payout, 'bet_payout', { type: 'set_bet', id: bet.id });
-    } else {
-      await db.runAsync(`UPDATE set_bets SET state='lost', payout_cents=0 WHERE id=?`, [bet.id]);
+    const bets = await db.allAsync(`SELECT * FROM set_bets WHERE market_id = ? AND state = 'placed'`, [marketId]);
+    for (const bet of bets) {
+      if (winnerRate != null && bet.picked_player_id === winnerId) {
+        const payout = Math.round(bet.amount_cents * winnerRate);
+        await db.runAsync(`UPDATE set_bets SET state='won', payout_cents=? WHERE id=?`, [payout, bet.id]);
+        await wallet.applyCredit(bet.user_id, payout, 'bet_payout', { type: 'set_bet', id: bet.id });
+      } else {
+        await db.runAsync(`UPDATE set_bets SET state='lost', payout_cents=0 WHERE id=?`, [bet.id]);
+      }
     }
-  }
-  await db.runAsync(
-    `UPDATE set_markets
-     SET state='settled', winner_id=?, p1_score=COALESCE(?, p1_score), p2_score=COALESCE(?, p2_score),
-         settled_at=datetime('now')
-     WHERE id=?`,
-    [winnerId, p1Score, p2Score, marketId]
-  );
-  return { settled: bets.length };
+    await db.runAsync(
+      `UPDATE set_markets
+       SET state='settled', winner_id=?, p1_score=COALESCE(?, p1_score), p2_score=COALESCE(?, p2_score),
+           settled_at=datetime('now')
+       WHERE id=?`,
+      [winnerId, p1Score, p2Score, marketId]
+    );
+    invalidateBankrollCache(); // won/lost set changed
+    return { settled: bets.length };
+  });
 }
 
-/** Cancel a market and refund every placed stake. */
+/** Cancel a market and refund every placed stake. One atomic transaction. */
 async function voidMarket(marketId) {
-  const market = await db.getAsync('SELECT * FROM set_markets WHERE id = ?', [marketId]);
-  if (!market || market.state === 'settled' || market.state === 'void') return;
-  const bets = await db.allAsync(`SELECT * FROM set_bets WHERE market_id = ? AND state = 'placed'`, [marketId]);
-  for (const bet of bets) {
-    await wallet.credit(bet.user_id, bet.amount_cents, 'refund', { type: 'set_bet', id: bet.id });
-    await db.runAsync(`UPDATE set_bets SET state='refunded', payout_cents=? WHERE id=?`, [bet.amount_cents, bet.id]);
-  }
-  await db.runAsync(`UPDATE set_markets SET state='void', settled_at=datetime('now') WHERE id=?`, [marketId]);
+  return withWriteTx(async () => {
+    const market = await db.getAsync('SELECT * FROM set_markets WHERE id = ?', [marketId]);
+    if (!market || market.state === 'settled' || market.state === 'void') return;
+    const bets = await db.allAsync(`SELECT * FROM set_bets WHERE market_id = ? AND state = 'placed'`, [marketId]);
+    for (const bet of bets) {
+      await wallet.applyCredit(bet.user_id, bet.amount_cents, 'refund', { type: 'set_bet', id: bet.id });
+      await db.runAsync(`UPDATE set_bets SET state='refunded', payout_cents=? WHERE id=?`, [bet.amount_cents, bet.id]);
+    }
+    await db.runAsync(`UPDATE set_markets SET state='void', settled_at=datetime('now') WHERE id=?`, [marketId]);
+    invalidateBankrollCache(); // defensive: bet states changed
+  });
 }
 
 // ---- Bet placement ----
@@ -217,41 +239,45 @@ async function placeBet({ userId, marketId, playerId, amountCents }) {
   if (!Number.isInteger(amountCents) || amountCents <= 0) {
     const e = new Error('amountCents must be a positive integer'); e.code = 'BAD_AMOUNT'; throw e;
   }
-  const market = await db.getAsync('SELECT * FROM set_markets WHERE id = ?', [marketId]);
-  if (!market) { const e = new Error('Market not found'); e.code = 'NOT_FOUND'; throw e; }
-  if (market.state !== 'open') { const e = new Error('Market is not open for betting'); e.code = 'MARKET_CLOSED'; throw e; }
+  // The whole placement is one atomic transaction: read the market, record the
+  // bet, debit the stake, grow the pool, reprice. It can't interleave with a
+  // settlement of the same market (the mutex serializes them), so a bet can no
+  // longer land in the gap between "read placed bets" and "flip to settled" and
+  // be silently debited-but-never-paid. Any error (insufficient funds, closed
+  // market) rolls the whole thing back — including the bet row.
+  return withWriteTx(async () => {
+    const market = await db.getAsync('SELECT * FROM set_markets WHERE id = ?', [marketId]);
+    if (!market) { const e = new Error('Market not found'); e.code = 'NOT_FOUND'; throw e; }
+    if (market.state !== 'open') { const e = new Error('Market is not open for betting'); e.code = 'MARKET_CLOSED'; throw e; }
 
-  const lockedOdds = sideOdds(market, playerId);
-  if (lockedOdds == null) { const e = new Error('Player is not in this market'); e.code = 'BAD_PLAYER'; throw e; }
+    const lockedOdds = sideOdds(market, playerId);
+    if (lockedOdds == null) { const e = new Error('Player is not in this market'); e.code = 'BAD_PLAYER'; throw e; }
 
-  // Enforce the Fight Money bet sizing rules (min bet + % cap) against the
-  // current balance, so the starting grant buys real runway and a single bet
-  // can't bust the user.
-  const balanceBefore = await wallet.getBalance(userId);
-  economy.assertBetWithinLimits(amountCents, balanceBefore);
+    // Enforce the Fight Money bet sizing rules (min bet + % cap) against the
+    // current balance, so the starting grant buys real runway and a single bet
+    // can't bust the user.
+    const balanceBefore = await wallet.getBalance(userId);
+    economy.assertBetWithinLimits(amountCents, balanceBefore);
 
-  // Record the bet first so the wallet ledger can reference it; on a funds
-  // failure, undo the row.
-  const ins = await db.runAsync(
-    `INSERT INTO set_bets (user_id, market_id, picked_player_id, amount_cents, locked_odds, state)
-     VALUES (?, ?, ?, ?, ?, 'placed')`,
-    [userId, marketId, playerId, amountCents, lockedOdds]
-  );
-  const betId = ins.lastID;
-  try {
-    await wallet.debit(userId, amountCents, 'bet_stake', { type: 'set_bet', id: betId });
-  } catch (err) {
-    await db.runAsync('DELETE FROM set_bets WHERE id = ?', [betId]);
-    throw err;
-  }
+    const ins = await db.runAsync(
+      `INSERT INTO set_bets (user_id, market_id, picked_player_id, amount_cents, locked_odds, state)
+       VALUES (?, ?, ?, ?, ?, 'placed')`,
+      [userId, marketId, playerId, amountCents, lockedOdds]
+    );
+    const betId = ins.lastID;
 
-  const poolCol = playerId === market.player1_id ? 'p1_pool_cents' : 'p2_pool_cents';
-  await db.runAsync(`UPDATE set_markets SET ${poolCol} = ${poolCol} + ? WHERE id = ?`, [amountCents, marketId]);
+    // Debit within the same transaction. INSUFFICIENT_FUNDS throws, rolling back
+    // the bet row too — no compensating delete needed.
+    await wallet.applyDebit(userId, amountCents, 'bet_stake', { type: 'set_bet', id: betId });
 
-  const updated = await db.getAsync('SELECT * FROM set_markets WHERE id = ?', [marketId]);
-  const odds = await recomputeOdds(updated);
-  const balanceCents = await wallet.getBalance(userId);
-  return { betId, lockedOdds, odds, balanceCents };
+    const poolCol = playerId === market.player1_id ? 'p1_pool_cents' : 'p2_pool_cents';
+    await db.runAsync(`UPDATE set_markets SET ${poolCol} = ${poolCol} + ? WHERE id = ?`, [amountCents, marketId]);
+
+    const updated = await db.getAsync('SELECT * FROM set_markets WHERE id = ?', [marketId]);
+    const odds = await recomputeOdds(updated);
+    const balanceCents = await wallet.getBalance(userId);
+    return { betId, lockedOdds, odds, balanceCents };
+  });
 }
 
 // ---- Queries (for the API/frontend) ----
@@ -382,29 +408,37 @@ async function advanceDemoBracket(tournamentId, gameId) {
  * ledger still sums correctly.
  */
 async function clearDemoMarkets() {
-  const bets = await db.allAsync(
-    `SELECT b.id, b.user_id FROM set_bets b
-     JOIN set_markets m ON m.id = b.market_id
-     WHERE m.startgg_set_id LIKE 'demo-%'`
-  );
-  const perUser = {};
-  for (const bet of bets) {
-    const row = await db.getAsync(
-      `SELECT COALESCE(SUM(amount_cents), 0) AS net FROM wallet_transactions WHERE ref_type = 'set_bet' AND ref_id = ?`,
-      [bet.id]
+  // One atomic transaction: the reconciliation read, the per-user reversals, and
+  // the row deletes must all commit together. Otherwise a throw partway (e.g. a
+  // user spent their demo winnings, so the reversing debit fails) would leave
+  // some balances reversed and the bets still present — and a re-run would then
+  // double-reverse. Uses raw apply* primitives since we already hold the tx.
+  return withWriteTx(async () => {
+    const bets = await db.allAsync(
+      `SELECT b.id, b.user_id FROM set_bets b
+       JOIN set_markets m ON m.id = b.market_id
+       WHERE m.startgg_set_id LIKE 'demo-%'`
     );
-    perUser[bet.user_id] = (perUser[bet.user_id] || 0) + row.net;
-  }
-  for (const [userId, net] of Object.entries(perUser)) {
-    if (net < 0) await wallet.credit(Number(userId), -net, 'demo_reset');
-    else if (net > 0) await wallet.debit(Number(userId), net, 'demo_reset');
-  }
+    const perUser = {};
+    for (const bet of bets) {
+      const row = await db.getAsync(
+        `SELECT COALESCE(SUM(amount_cents), 0) AS net FROM wallet_transactions WHERE ref_type = 'set_bet' AND ref_id = ?`,
+        [bet.id]
+      );
+      perUser[bet.user_id] = (perUser[bet.user_id] || 0) + row.net;
+    }
+    for (const [userId, net] of Object.entries(perUser)) {
+      if (net < 0) await wallet.applyCredit(Number(userId), -net, 'demo_reset');
+      else if (net > 0) await wallet.applyDebit(Number(userId), net, 'demo_reset');
+    }
 
-  await db.runAsync(
-    `DELETE FROM set_bets WHERE market_id IN (SELECT id FROM set_markets WHERE startgg_set_id LIKE 'demo-%')`
-  );
-  await db.runAsync(`DELETE FROM set_markets WHERE startgg_set_id LIKE 'demo-%'`);
-  return { cleared: bets.length };
+    await db.runAsync(
+      `DELETE FROM set_bets WHERE market_id IN (SELECT id FROM set_markets WHERE startgg_set_id LIKE 'demo-%')`
+    );
+    await db.runAsync(`DELETE FROM set_markets WHERE startgg_set_id LIKE 'demo-%'`);
+    invalidateBankrollCache(); // deleted won/lost bets change the bankroll sum
+    return { cleared: bets.length };
+  });
 }
 
 // Read-only: the soonest active/upcoming tracked tournament that has tracked
@@ -435,4 +469,5 @@ module.exports = {
   ensureOpenMarket, fillBracketSlot, closeMarket, settleMarket, voidMarket,
   placeBet, recomputeOdds, getMarkets, getUserBets, houseBankrollCents, sideRates,
   seedDemoMarkets, advanceDemoBracket, clearDemoMarkets, getUpcoming,
+  invalidateBankrollCache,
 };

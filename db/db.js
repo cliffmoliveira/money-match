@@ -14,6 +14,24 @@ const db = new sqlite3.Database(dbPath, (err) => {
   }
 });
 
+// Tune the connection for concurrent load (e.g. an EVO Top-8 betting burst).
+// These run first because node-sqlite3 serializes statements in submission order.
+//  • WAL lets readers (live page, wallet, bets) run alongside the single writer
+//    instead of queuing behind every write.
+//  • busy_timeout makes a contended writer wait-and-retry instead of immediately
+//    throwing SQLITE_BUSY.
+//  • synchronous=NORMAL is the safe-with-WAL setting that avoids an fsync per
+//    commit (durable across app crashes; only a power-loss mid-checkpoint risk).
+db.run('PRAGMA journal_mode = WAL', (err) => {
+  if (err) console.error('Failed to enable WAL mode:', err.message);
+});
+db.run('PRAGMA busy_timeout = 5000', (err) => {
+  if (err) console.error('Failed to set busy_timeout:', err.message);
+});
+db.run('PRAGMA synchronous = NORMAL', (err) => {
+  if (err) console.error('Failed to set synchronous=NORMAL:', err.message);
+});
+
 // Promisify database methods for async/await
 db.allAsync = (sql, params = []) =>
   new Promise((resolve, reject) => {

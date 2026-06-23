@@ -107,6 +107,9 @@ async function migrate() {
   `);
   await db.runAsync(`CREATE INDEX IF NOT EXISTS idx_set_bets_user ON set_bets(user_id)`);
   await db.runAsync(`CREATE INDEX IF NOT EXISTS idx_set_bets_market ON set_bets(market_id)`);
+  // Speeds up the house-bankroll aggregate (SUM over WHERE state IN ('won','lost')),
+  // which is the scan recomputeOdds/settle would otherwise run against the full ledger.
+  await db.runAsync(`CREATE INDEX IF NOT EXISTS idx_set_bets_state ON set_bets(state)`);
   console.log('set_bets ready');
 
   // Manual "this tournament is live" flag for poller control during an event.
