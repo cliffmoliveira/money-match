@@ -62,6 +62,12 @@ const BRANDS = [
   { search: 'Battle Arena Melbourne',  re: /^battle\s+arena\s+melbourne\b/i },
   { search: 'Tekken World Tour',       re: /^tekken\s+world\s+tour\b/i },
   { search: 'Ultimate Fighting Arena', re: /^ultimate\s+fighting\s+arena\b/i },
+  // Street Fighter 6 Capcom Pro Tour 2026 qualifiers. "World Warrior" is a
+  // distinctive phrase, so match it anywhere in the name (region/edition vary:
+  // "World Warrior 2026 - US-Canada East #3", etc.); paginated below since there
+  // are ~90 globally. Esports World Cup is a Premier major.
+  { search: 'World Warrior',           re: /world\s+warrior/i },
+  { search: 'Esports World Cup',       re: /esports\s+world\s+cup/i },
 ];
 
 // Strip a leading "The " so "The Mixup 2026" matches /^mixup\b/.
@@ -102,16 +108,16 @@ async function gql(query, variables) {
 }
 
 const BRAND_SEARCH = `
-query UpcomingBrand($name: String!, $after: Timestamp!, $before: Timestamp!, $ids: [ID]) {
-  tournaments(query: { perPage: 25, page: 1, sortBy: "startAt asc",
+query UpcomingBrand($name: String!, $after: Timestamp!, $before: Timestamp!, $ids: [ID], $page: Int!) {
+  tournaments(query: { perPage: 25, page: $page, sortBy: "startAt asc",
     filter: { name: $name, upcoming: true, afterDate: $after, beforeDate: $before, videogameIds: $ids } }) {
     nodes { id name slug startAt city countryCode images { type url } }
   }
 }`;
 
 const PAST_BRAND_SEARCH = `
-query RecentBrand($name: String!, $after: Timestamp!, $before: Timestamp!, $ids: [ID]) {
-  tournaments(query: { perPage: 25, page: 1, sortBy: "startAt desc",
+query RecentBrand($name: String!, $after: Timestamp!, $before: Timestamp!, $ids: [ID], $page: Int!) {
+  tournaments(query: { perPage: 25, page: $page, sortBy: "startAt desc",
     filter: { name: $name, past: true, afterDate: $after, beforeDate: $before, videogameIds: $ids } }) {
     nodes { slug name }
   }
@@ -316,10 +322,20 @@ async function processTournament(slug, args) {
 // Find unique tournament slugs matching the curated brands in a date window.
 async function findBrandTournaments(query, after, before) {
   const seen = new Map(); // slug -> name
+  // Page through each brand's matches (most brands fit in one page; World Warrior
+  // spans several across all regions). Stop a brand once a short page comes back.
+  const MAX_PAGES = 6;
   for (const brand of BRANDS) {
-    try {
-      const data = await gql(query, { name: brand.search, after, before, ids: GAME_IDS });
-      for (const t of data?.tournaments?.nodes || []) {
+    for (let page = 1; page <= MAX_PAGES; page++) {
+      let nodes;
+      try {
+        const data = await gql(query, { name: brand.search, after, before, ids: GAME_IDS, page });
+        nodes = data?.tournaments?.nodes || [];
+      } catch (err) {
+        console.error(`Brand "${brand.search}" p${page} search failed: ${err.message}`);
+        break;
+      }
+      for (const t of nodes) {
         if (!t.slug || seen.has(t.slug)) continue;
         if (!brand.re.test(normalizeName(t.name))) continue;
         // Skip the "... Community Tournaments" companion pages start.gg spins up
@@ -327,8 +343,7 @@ async function findBrandTournaments(query, after, before) {
         if (/\bcommunity tournaments?\b/i.test(t.name)) continue;
         seen.set(t.slug, t.name);
       }
-    } catch (err) {
-      console.error(`Brand "${brand.search}" search failed: ${err.message}`);
+      if (nodes.length < 25) break; // last page for this brand
     }
   }
   return seen;
