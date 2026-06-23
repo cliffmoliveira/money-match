@@ -622,27 +622,27 @@ const FutureTournaments = () => {
       {filteredTournaments.slice(0, visibleCount).map((tournament) => (
         <div key={tournament.id} className="tournament">
           <div className="tournament-header">
-            <h2 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
-              <TournamentLogo name={tournament.name} logoUrl={tournament.logoUrl} height={48} />
-              <span>{tournament.name}</span>
-            </h2>
-            {isFuturesClosed(tournament.date) && (
-              <span className="futures-closed-badge">Futures closed — event started</span>
-            )}
-            <div className="tournament-details">
-              <p>
-                {new Date(tournament.date + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
-              </p>
-              {(tournament.location.city || tournament.location.country) && (
-                <p>
-                  <strong>Location:</strong> {[tournament.location.city, tournament.location.country].filter(Boolean).join(', ')}
-                </p>
-              )}
+            <TournamentLogo name={tournament.name} logoUrl={tournament.logoUrl} height={56} />
+            <div className="tournament-headtext">
+              <h2>{tournament.name}</h2>
+              <div className="tournament-meta">
+                <span className="tournament-date">
+                  {new Date(tournament.date + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                </span>
+                {(tournament.location.city || tournament.location.country) && (
+                  <span className="tournament-loc">
+                    {[tournament.location.city, tournament.location.country].filter(Boolean).join(', ')}
+                  </span>
+                )}
+                {isFuturesClosed(tournament.date) && (
+                  <span className="futures-closed-badge">Futures closed</span>
+                )}
+              </div>
             </div>
-            {tournament.id === nextMajorId && (
-              <Countdown date={tournament.date} />
-            )}
           </div>
+          {tournament.id === nextMajorId && (
+            <Countdown date={tournament.date} />
+          )}
   
           {(() => {
             const gamesForTournament = tournamentGames[tournament.id] || [];

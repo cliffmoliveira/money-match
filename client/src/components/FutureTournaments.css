@@ -195,9 +195,21 @@
 h1 { text-align: left; font-family: 'Saira', sans-serif; font-weight: 800; color: var(--text); font-size: 30px; letter-spacing: -0.01em; margin-bottom: 6px; }
 
 /* Tournament section */
-.tournament { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 20px; box-shadow: none; }
-.tournament h2 { font-family: 'Saira', sans-serif; font-weight: 700; color: var(--text); font-size: 22px; margin-bottom: 10px; }
-.tournament-header { text-align: left; margin-bottom: 20px; }
+.tournament { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 16px 20px; margin-bottom: 12px; box-shadow: none; }
+.tournament h2 { font-family: 'Saira', sans-serif; font-weight: 700; color: var(--text); font-size: 18px; margin: 0; line-height: 1.25; min-width: 0; overflow-wrap: anywhere; }
+/* Media-object header: a big tournament logo anchors the left, with the name +
+   date stacked text block beside it. The card collapses to ~one row for the
+   many qualifier events with no seeded markets yet, instead of a tall box. */
+.tournament-header { display: flex; align-items: center; gap: 14px; }
+.tournament-header > img { flex: none; max-width: 90px; object-fit: contain; }
+.tournament-headtext { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+/* Only add space below the header when something follows it (a countdown or the
+   game tables) — empty qualifier cards stay tight. */
+.tournament-header:not(:last-child) { margin-bottom: 14px; }
+.tournament-meta { display: flex; align-items: center; gap: 12px; flex: none; }
+.tournament-date { color: var(--text-muted); font-family: 'Saira', sans-serif; font-weight: 600; font-size: 14px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tournament-loc { color: var(--muted); font-size: 13px; white-space: nowrap; }
+.tournament-meta .futures-closed-badge { margin: 0; }
 .futures-closed-badge {
   display: inline-block; margin: 6px auto 0; padding: 4px 12px;
   background: rgba(255,255,255,0.06); color: var(--muted);
@@ -214,7 +226,6 @@ h1 { text-align: left; font-family: 'Saira', sans-serif; font-weight: 800; color
   transition: background .15s ease, border-color .15s ease;
 }
 .load-more:hover { background: #222834; border-color: rgba(231,180,88,0.6); }
-.tournament-details { display: flex; gap: 30px; margin-top: 10px; }
 .tournament p { color: var(--text-muted); font-size: 15px; margin: 5px 0; }
 
 /* Game section */
@@ -294,11 +305,15 @@ h1 { text-align: left; font-family: 'Saira', sans-serif; font-weight: 800; color
 @media (max-width: 768px) {
   h1 { font-size: 24px; }
   /* Slimmer tournament cards on mobile: smaller name, capped logo, tighter spacing. */
-  .tournament { padding: 14px; margin-bottom: 12px; }
-  .tournament-header { margin-bottom: 10px; }
-  .tournament h2 { font-size: 16px; line-height: 1.25; margin-bottom: 4px; }
-  .tournament h2 img { max-height: 34px !important; }
-  .tournament-details { gap: 16px; margin-top: 4px; }
+  .tournament { padding: 13px 15px; margin-bottom: 10px; }
+  /* Logo stays on the left; the name+date text block stacks beside it. */
+  .tournament-header { gap: 12px; }
+  .tournament-header:not(:last-child) { margin-bottom: 10px; }
+  .tournament-header > img { max-height: 48px !important; }
+  .tournament-headtext { flex-direction: column; align-items: flex-start; gap: 2px; }
+  .tournament h2 { font-size: 16px; line-height: 1.25; }
+  .tournament-meta { gap: 10px; }
+  .tournament-date { font-size: 13px; }
   .tournament p { font-size: 13px; margin: 2px 0; }
   /* Filters: stack full-width on phones instead of fixed 175px boxes. */
   .future-layout .filter-group { flex: 1 1 calc(50% - 7px); min-width: 130px; }
