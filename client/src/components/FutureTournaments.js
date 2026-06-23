@@ -92,6 +92,17 @@ const isFuturesClosed = (dateStr) => {
   return d <= today;
 };
 
+// Only the imminent ("next upcoming") events get a live countdown — otherwise a
+// page full of months-out qualifiers becomes a wall of ticking timers. Events
+// beyond this window still show, just with their date and no countdown.
+const COUNTDOWN_WINDOW_DAYS = 14;
+const isImminent = (dateStr) => {
+  const d = new Date(dateStr + 'T00:00:00');
+  if (isNaN(d)) return false;
+  const days = (d - new Date()) / 86400000;
+  return days <= COUNTDOWN_WINDOW_DAYS;
+};
+
 const FutureTournaments = () => {
   const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -626,7 +637,9 @@ const FutureTournaments = () => {
                 <strong>Location:</strong> {tournament.location.city}, {tournament.location.country}
               </p>
             </div>
-            <Countdown date={tournament.date} />
+            {!isFuturesClosed(tournament.date) && isImminent(tournament.date) && (
+              <Countdown date={tournament.date} />
+            )}
           </div>
   
           {(() => {
