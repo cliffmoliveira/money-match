@@ -633,9 +633,11 @@ const FutureTournaments = () => {
               <p>
                 {new Date(tournament.date + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
               </p>
-              <p>
-                <strong>Location:</strong> {tournament.location.city}, {tournament.location.country}
-              </p>
+              {(tournament.location.city || tournament.location.country) && (
+                <p>
+                  <strong>Location:</strong> {[tournament.location.city, tournament.location.country].filter(Boolean).join(', ')}
+                </p>
+              )}
             </div>
             {tournament.id === nextMajorId && (
               <Countdown date={tournament.date} />

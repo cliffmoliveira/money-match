@@ -428,9 +428,11 @@ const Home = () => {
                   </h3>
                 </div>
                 <div className="spotlight-date">{new Date(t.date + 'T00:00:00').toLocaleDateString()}</div>
-                <div className="spotlight-location">
-                  {t.location?.city}, {t.location?.country}
-                </div>
+                {(t.location?.city || t.location?.country) && (
+                  <div className="spotlight-location">
+                    {[t.location?.city, t.location?.country].filter(Boolean).join(', ')}
+                  </div>
+                )}
                 {t.numEntrants && (
                   <div className="spotlight-entrants">{t.numEntrants.toLocaleString()} entrants on Start.gg</div>
                 )}
