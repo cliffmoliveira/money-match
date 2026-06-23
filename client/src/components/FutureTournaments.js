@@ -92,16 +92,10 @@ const isFuturesClosed = (dateStr) => {
   return d <= today;
 };
 
-// Only the imminent ("next upcoming") events get a live countdown — otherwise a
-// page full of months-out qualifiers becomes a wall of ticking timers. Events
-// beyond this window still show, just with their date and no countdown.
-const COUNTDOWN_WINDOW_DAYS = 14;
-const isImminent = (dateStr) => {
-  const d = new Date(dateStr + 'T00:00:00');
-  if (isNaN(d)) return false;
-  const days = (d - new Date()) / 86400000;
-  return days <= COUNTDOWN_WINDOW_DAYS;
-};
+// "Big major" = an offline Premier (Evo, CEO, EWC, BAM, …), not an online World
+// Warrior / LCQ qualifier. Only the single soonest upcoming major shows a
+// countdown; every other event just shows its date.
+const isQualifierEvent = (name) => /world\s+warrior|\blcq\b|last\s+chance/i.test(name || '');
 
 const FutureTournaments = () => {
   const [tournaments, setTournaments] = useState([]);
@@ -532,6 +526,11 @@ const FutureTournaments = () => {
     return tournamentMatch && gameMatch;
   });
 
+  // The single next big upcoming major (skipping World Warrior / LCQ qualifiers)
+  // is the only event that shows a countdown. tournaments is date-sorted ascending.
+  const nextMajor = tournaments.find((t) => !isFuturesClosed(t.date) && !isQualifierEvent(t.name));
+  const nextMajorId = nextMajor ? nextMajor.id : null;
+
   const clearFilters = () => {
     setFilterTournament('');
     setFilterGame('');
@@ -638,7 +637,7 @@ const FutureTournaments = () => {
                 <strong>Location:</strong> {tournament.location.city}, {tournament.location.country}
               </p>
             </div>
-            {!isFuturesClosed(tournament.date) && isImminent(tournament.date) && (
+            {tournament.id === nextMajorId && (
               <Countdown date={tournament.date} />
             )}
           </div>
