@@ -129,6 +129,7 @@
   border-radius: 10px;
   margin-right: 0;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 /* Ranked points pill — distinct from the gold FM pill: neutral fill, gold number. */
@@ -363,8 +364,8 @@
 
 @media (max-width: 860px) {
   /* Slim top header: just logo + balance / Deposit / avatar */
-  .navbar { padding: 8px 14px; }
-  .navbar-inner { height: 48px; padding: 0; }
+  .navbar { padding: 6px 12px; }
+  .navbar-inner { height: 44px; padding: 0; }
   .navbar-toggle { display: none; }   /* hamburger retired in favor of the tab bar */
   .navbar-links { display: none; }    /* primary nav now lives in the bottom tab bar */
 
@@ -375,7 +376,7 @@
   .navbar-reward-trigger { padding: 6px 9px; }
   .navbar-deposit { font-size: 13px; padding: 8px 12px; }
   .navbar-avatar { width: 32px; height: 32px; }
-  .navbar-logo img { height: 40px; }       /* fits the slim 48px mobile header */
+  .navbar-logo img { height: 36px; }       /* fits the slim mobile header */
   .navbar-displayname { display: none; }   /* avatar is enough on the narrow header */
 
   /* Fixed bottom tab bar */
