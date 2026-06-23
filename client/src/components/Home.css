@@ -309,6 +309,16 @@ body { background: var(--bg); color: var(--text); }
   .hero { padding: 32px 22px; }
   .hero h1 { font-size: 28px; }
 
+  /* Slimmer Recent Champions cards on phones */
+  .champion-card { padding: 13px 15px; }
+  .champion-game { margin-bottom: 8px; }
+  .champion-game img { max-height: 22px !important; }
+  .champion-winner { font-size: 16px; margin-bottom: 2px; }
+  .champion-meta { font-size: 12px; margin-bottom: 8px; }
+  .champion-score { padding: 4px 9px; font-size: 11px; }
+  /* Slimmer game-tag pills on the upcoming-event cards */
+  .spotlight-games .pill { padding: 3px 8px; font-size: 10px; }
+
   /* Your Bets: the dense single-row card can't fit a phone — let it reflow to
      two lines (tournament on top; game / kind / pick / amount / outcome below)
      and force the column to the viewport so nothing scrolls sideways. */
