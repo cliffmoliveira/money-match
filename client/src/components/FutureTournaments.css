@@ -217,7 +217,28 @@ h1 { text-align: left; font-family: 'Saira', sans-serif; font-weight: 800; color
   font-family: 'Saira', sans-serif; font-weight: 600; font-size: 12px;
   letter-spacing: 0.02em; text-transform: uppercase;
 }
-.futures-pending { text-align: center; color: var(--muted); font-style: italic; padding: 16px; background: var(--surface); border-radius: 12px; }
+/* "Futures pending" hint, collapsed into a small info icon in the filter bar.
+   The note shows on hover (desktop) or tap (mobile, via the .open toggle). */
+.futures-info { position: relative; display: inline-flex; align-items: center; }
+.futures-info-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; padding: 0; border: none; border-radius: 999px;
+  background: transparent; color: var(--muted); cursor: pointer;
+  transition: color 140ms ease;
+}
+.futures-info-btn:hover, .futures-info.open .futures-info-btn { color: var(--gold); }
+.futures-info-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.futures-info-pop {
+  position: absolute; top: calc(100% + 8px); right: 0; z-index: 50;
+  width: 240px; padding: 10px 12px;
+  background: var(--card); border: 1px solid var(--border-strong); border-radius: 10px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+  color: var(--text-muted); font-size: 12.5px; line-height: 1.5; text-align: left;
+  opacity: 0; visibility: hidden; transform: translateY(-4px);
+  transition: opacity 140ms ease, transform 140ms ease, visibility 140ms ease;
+}
+.futures-info:hover .futures-info-pop,
+.futures-info.open .futures-info-pop { opacity: 1; visibility: visible; transform: translateY(0); }
 .load-more {
   display: block; margin: 8px auto 28px; padding: 12px 30px;
   background: var(--surface); color: var(--gold);

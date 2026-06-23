@@ -118,6 +118,7 @@ const FutureTournaments = () => {
   const [filterGame, setFilterGame] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [visibleCount, setVisibleCount] = useState(24); // incremental render; "Show more" reveals the rest
+  const [infoOpen, setInfoOpen] = useState(false); // "futures pending" note popover (icon lives in the filter bar)
   const [expandedGames, setExpandedGames] = useState(() => new Set()); // collapsed by default
   const toggleGame = (key) => setExpandedGames((prev) => {
     const next = new Set(prev);
@@ -526,6 +527,14 @@ const FutureTournaments = () => {
     return tournamentMatch && gameMatch;
   });
 
+  // True when at least one listed tournament has no seeded markets yet — gates
+  // the small "futures pending" info icon in the filter bar.
+  const hasPendingFutures = filteredTournaments.some((t) => {
+    const games = tournamentGames[t.id] || [];
+    const shown = filterGame ? games.filter((g) => g.game_name === filterGame) : games;
+    return shown.length === 0;
+  });
+
   // The single next big upcoming major (skipping World Warrior / LCQ qualifiers)
   // is the only event that shows a countdown. tournaments is date-sorted ascending.
   const nextMajor = tournaments.find((t) => !isFuturesClosed(t.date) && !isQualifierEvent(t.name));
@@ -570,6 +579,27 @@ const FutureTournaments = () => {
         ))}
 
         <span className="results-count">Showing {filteredTournaments.length} of {tournaments.length}</span>
+        {hasPendingFutures && (
+          <span className={`futures-info${infoOpen ? ' open' : ''}`} onMouseLeave={() => setInfoOpen(false)}>
+            <button
+              type="button"
+              className="futures-info-btn"
+              aria-label="When do futures open?"
+              aria-expanded={infoOpen}
+              onClick={() => setInfoOpen((o) => !o)}
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="16" x2="12" y2="12" />
+                <line x1="12" y1="8" x2="12.01" y2="8" />
+              </svg>
+            </button>
+            <span className="futures-info-pop" role="tooltip">
+              Futures open once the bracket is seeded (about 21 days before the event). Check back closer to the date.
+            </span>
+          </span>
+        )}
       </div>
 
       {filtersOpen && (
@@ -609,15 +639,6 @@ const FutureTournaments = () => {
       )}
       {tournaments.length === 0 && (
         <p>No upcoming tournaments available right now.</p>
-      )}
-      {filteredTournaments.some((t) => {
-        const games = tournamentGames[t.id] || [];
-        const shown = filterGame ? games.filter((g) => g.game_name === filterGame) : games;
-        return shown.length === 0;
-      }) && (
-        <p className="futures-pending">
-          Futures open once the bracket is seeded (about 21 days before the event). Check back closer to the date.
-        </p>
       )}
       {filteredTournaments.slice(0, visibleCount).map((tournament) => (
         <div key={tournament.id} className="tournament">
