@@ -632,7 +632,7 @@ const FutureTournaments = () => {
             )}
             <div className="tournament-details">
               <p>
-                <strong>Date:</strong> {new Date(tournament.date + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                {new Date(tournament.date + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
               </p>
               <p>
                 <strong>Location:</strong> {tournament.location.city}, {tournament.location.country}
