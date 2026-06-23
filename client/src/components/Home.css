@@ -256,7 +256,7 @@ body { background: var(--bg); color: var(--text); }
 .champion-winner { font-family: 'Saira', sans-serif; font-size: 19px; font-weight: 700; margin-bottom: 3px; }
 .champion-winner::before { content: "★ "; color: var(--gold); }
 .champion-meta { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; color: var(--text-muted); margin-bottom: 14px; }
-.champion-tournament { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%; }
+.champion-tournament { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%; min-width: 0; }
 .champion-score { background: var(--surface); color: #C9CCD3; border: 1px solid var(--border-soft); border-radius: 8px; padding: 5px 11px; font-size: 12px; font-weight: 500; text-align: left; font-variant-numeric: tabular-nums; align-self: flex-start; }
 .champion-score b, .champion-score .score { font-family: 'Saira', sans-serif; color: var(--win); }
 
@@ -300,7 +300,7 @@ body { background: var(--bg); color: var(--text); }
 }
 
 @media (max-width: 760px) {
-  .live-hero-sets, .spotlight-grid, .champion-grid, .bets-grid { grid-template-columns: 1fr; }
+  .live-hero-sets, .spotlight-grid, .champion-grid, .bets-grid { grid-template-columns: minmax(0, 1fr); }
   /* Keep Rank / Open bets / 7-day P&L on one compact row on phones. */
   .stat-strip { grid-template-columns: repeat(3, 1fr); gap: 8px; }
   .stat-card { padding: 12px 10px; }
