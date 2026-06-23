@@ -137,36 +137,34 @@
   .stats-grid { grid-template-columns: 1fr; }
 }
 
-/* Mobile: a 7-column results table can't fit a phone, so stack each row into a
-   card (label + value per line) instead of a sideways-scrolling table. */
+/* Compact result cards — the primary mobile layout (the desktop table is hidden
+   on small screens). Each match is two tight lines: the result, then the meta. */
+.results-cards { display: none; }
+.result-card {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px;
+}
+.result-card > img { flex: none; max-width: 36px; max-height: 30px; width: auto; height: auto; }
+.rc-body { flex: 1; min-width: 0; }
+.rc-result {
+  display: flex; align-items: baseline; gap: 8px;
+  font-family: 'Saira', sans-serif; font-size: 15px; font-weight: 700;
+}
+.rc-winner { color: var(--text); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rc-winner::before { content: "\2605 "; color: var(--gold); }
+.rc-score { color: var(--win); flex: none; font-variant-numeric: tabular-nums; }
+.rc-loser { color: var(--muted); flex: 1; min-width: 0; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rc-meta { margin-top: 3px; font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.load-more {
+  display: block; margin: 6px auto 24px; padding: 11px 28px;
+  background: var(--card); color: var(--gold);
+  border: 1px solid var(--border-strong); border-radius: 10px;
+  font-family: 'Saira', sans-serif; font-weight: 600; font-size: 14px; cursor: pointer;
+  transition: border-color .15s ease, color .15s ease;
+}
+.load-more:hover { border-color: var(--gold); }
+
 @media (max-width: 768px) {
-  .results-table-container { overflow-x: visible; border: none; border-radius: 0; }
-  .results-table { background: transparent; font-size: 13px; }
-  .results-table thead { display: none; }
-  .results-table tbody, .results-table tr, .results-table td { display: block; width: 100%; box-sizing: border-box; }
-  .results-table tr.result-row {
-    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
-    margin-bottom: 14px; padding: 12px 14px;
-  }
-  .results-table tr.result-row:hover { background: var(--card); }
-  .results-table td {
-    display: flex; align-items: center; justify-content: space-between; gap: 14px;
-    padding: 9px 0; border-bottom: 1px solid var(--border-soft);
-    min-width: 0; max-width: none; text-align: right;
-  }
-  .results-table td:last-child { border-bottom: none; }
-  .results-table td::before {
-    content: attr(data-label); flex: none; text-align: left;
-    font-family: 'Saira', sans-serif; font-size: 10px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: .06em; color: var(--muted);
-  }
-  /* Tournament cell is the card header: centered logo + name, no label. */
-  .results-table td.tournament-name {
-    display: block; text-align: center; max-width: none;
-    border-bottom: 1px solid var(--border); padding: 0 0 12px; margin-bottom: 4px;
-  }
-  .results-table td.tournament-name::before { display: none; }
-  /* Game cell holds a logo — keep the label left, logo right. */
-  .results-table td.game { justify-content: space-between; text-align: right; }
-  .results-table td.game > div { width: auto; justify-content: flex-end; }
+  .results-table-container { display: none; }
+  .results-cards { display: flex; flex-direction: column; gap: 10px; margin-bottom: 26px; }
 }

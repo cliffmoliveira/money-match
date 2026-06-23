@@ -11,6 +11,7 @@ const PastResults = () => {
   const [filterTournament, setFilterTournament] = useState('all');
   const [filterGame, setFilterGame] = useState('all');
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(30); // incremental render; "Show more" reveals the rest
 
   const GameTitle = ({ name, height = 22 }) => {
     const [error, setError] = useState(false);
@@ -107,6 +108,9 @@ const PastResults = () => {
     fetchPastResults();
   }, []);
 
+  // Reset the incremental window when filters change so a new result set starts at the top.
+  useEffect(() => { setVisibleCount(30); }, [filterYear, filterTournament, filterGame]);
+
   // Filter option lists
   const years = [...new Set(pastResults.map(r => new Date(r.date).getFullYear().toString()))].sort((a, b) => b - a);
   const tournaments = [...new Set(pastResults.map(r => r.tournament))].sort((a, b) => a.localeCompare(b));
@@ -119,6 +123,7 @@ const PastResults = () => {
     const gameOk = filterGame === 'all' || result.game === filterGame;
     return yearOk && tournamentOk && gameOk;
   });
+  const shown = filteredResults.slice(0, visibleCount);
 
   const clearFilters = () => {
     setFilterYear('all');
@@ -215,6 +220,7 @@ const PastResults = () => {
           <p>No past results match the selected filters.</p>
         </div>
       ) : (
+        <>
         <div className="results-table-container">
           <table className="results-table">
             <thead>
@@ -229,7 +235,7 @@ const PastResults = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredResults.map((result) => (
+              {shown.map((result) => (
                 <tr key={result.id} className="result-row">
                   <td className="tournament-name">
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
@@ -263,6 +269,31 @@ const PastResults = () => {
             </tbody>
           </table>
         </div>
+
+        <div className="results-cards">
+          {shown.map((result) => (
+            <div className="result-card" key={result.id}>
+              <TournamentNameOrLogo name={result.tournament} logoUrl={result.logoUrl} height={30} />
+              <div className="rc-body">
+                <div className="rc-result">
+                  <span className="rc-winner">{result.winner}</span>
+                  <span className="rc-score">{result.winnerRoundsWon}–{result.loserRoundsWon}</span>
+                  <span className="rc-loser">{result.loser}</span>
+                </div>
+                <div className="rc-meta">
+                  {result.game} · {new Date(result.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} · {result.tournament}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {filteredResults.length > visibleCount && (
+          <button type="button" className="load-more" onClick={() => setVisibleCount((c) => c + 30)}>
+            Show more ({filteredResults.length - visibleCount} more)
+          </button>
+        )}
+        </>
       )}
 
       <div className="summary-stats">
