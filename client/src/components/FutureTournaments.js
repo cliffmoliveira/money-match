@@ -619,6 +619,15 @@ const FutureTournaments = () => {
       {tournaments.length === 0 && (
         <p>No upcoming tournaments available right now.</p>
       )}
+      {filteredTournaments.some((t) => {
+        const games = tournamentGames[t.id] || [];
+        const shown = filterGame ? games.filter((g) => g.game_name === filterGame) : games;
+        return shown.length === 0;
+      }) && (
+        <p className="futures-pending">
+          Futures open once the bracket is seeded (about 21 days before the event). Check back closer to the date.
+        </p>
+      )}
       {filteredTournaments.map((tournament) => (
         <div key={tournament.id} className="tournament">
           <div className="tournament-header">
@@ -651,12 +660,10 @@ const FutureTournaments = () => {
             const gamesToShow = filterGame
               ? sortedGames.filter(g => g.game_name === filterGame)
               : sortedGames;
+            // The "futures open once seeded" note is rendered once at the top of
+            // the page, not repeated on every countdown-only card.
             if (gamesToShow.length === 0) {
-              return (
-                <p className="futures-pending">
-                  Futures open once the bracket is seeded (about {21} days before the event). Check back closer to the date.
-                </p>
-              );
+              return null;
             }
             return gamesToShow.map((game) => {
               const gameKey = `${tournament.id}_${game.game_id}`;
