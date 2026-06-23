@@ -307,7 +307,7 @@ const Home = () => {
             <div className="next-hero-info">
               <h2>{next.name}</h2>
               <p className="next-hero-meta">
-                {new Date(next.date + 'T00:00:00').toLocaleDateString()}
+                {new Date(next.date + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                 {next.location?.city ? ` · ${next.location.city}, ${next.location.country}` : ''}
                 {next.numEntrants ? ` · ${next.numEntrants.toLocaleString()} entrants` : ''}
               </p>
@@ -427,7 +427,7 @@ const Home = () => {
                     <span style={{ marginLeft: '10px' }}>{t.name}</span>
                   </h3>
                 </div>
-                <div className="spotlight-date">{new Date(t.date + 'T00:00:00').toLocaleDateString()}</div>
+                <div className="spotlight-date">{new Date(t.date + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
                 {(t.location?.city || t.location?.country) && (
                   <div className="spotlight-location">
                     {[t.location?.city, t.location?.country].filter(Boolean).join(', ')}
@@ -466,7 +466,7 @@ const Home = () => {
               <div className="champion-winner">{c.winner}</div>
               <div className="champion-meta">
                 <span className="champion-tournament">{c.tournament}</span>
-                <span className="champion-date">{new Date(c.date + 'T00:00:00').toLocaleDateString()}</span>
+                <span className="champion-date">{new Date(c.date + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
               </div>
               <div className="champion-score"><b>{c.score}</b> def. {c.loser}</div>
             </div>
