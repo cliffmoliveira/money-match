@@ -293,7 +293,13 @@ h1 { text-align: left; font-family: 'Saira', sans-serif; font-weight: 800; color
 
 @media (max-width: 768px) {
   h1 { font-size: 24px; }
-  .tournament { padding: 15px; }
+  /* Slimmer tournament cards on mobile: smaller name, capped logo, tighter spacing. */
+  .tournament { padding: 14px; margin-bottom: 12px; }
+  .tournament-header { margin-bottom: 10px; }
+  .tournament h2 { font-size: 16px; line-height: 1.25; margin-bottom: 4px; }
+  .tournament h2 img { max-height: 34px !important; }
+  .tournament-details { gap: 16px; margin-top: 4px; }
+  .tournament p { font-size: 13px; margin: 2px 0; }
   /* Filters: stack full-width on phones instead of fixed 175px boxes. */
   .future-layout .filter-group { flex: 1 1 calc(50% - 7px); min-width: 130px; }
   /* flex:none cancels PastResults.css's global `.filter-select{flex:1 1 140px}`,
