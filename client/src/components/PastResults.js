@@ -295,37 +295,6 @@ const PastResults = () => {
         )}
         </>
       )}
-
-      <div className="summary-stats">
-        <h3>Summary Statistics</h3>
-        <div className="stats-grid">
-          <div className="stat-item">
-            <span className="stat-label">Total Matches:</span>
-            <span className="stat-value">{pastResults.length}</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-label">Tournaments:</span>
-            <span className="stat-value">
-              {new Set(pastResults.map(r => r.tournament)).size}
-            </span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-label">Games:</span>
-            <span className="stat-value">
-              {new Set(pastResults.map(r => r.game)).size}
-            </span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-label">Competitors:</span>
-            <span className="stat-value">
-              {new Set([
-                ...pastResults.map(r => r.winner),
-                ...pastResults.map(r => r.loser)
-              ]).size}
-            </span>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

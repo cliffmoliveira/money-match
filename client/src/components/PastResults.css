@@ -119,14 +119,6 @@
 .score { font-family: 'Saira', sans-serif; font-weight: 700; color: var(--win); text-align: center; min-width: 70px; font-variant-numeric: tabular-nums; }
 .loser { color: var(--muted); font-weight: 500; min-width: 100px; max-width: 180px; overflow-wrap: anywhere; }
 
-/* Summary statistics */
-.summary-stats { background: var(--card); padding: 22px; border-radius: 16px; border: 1px solid var(--border); }
-.summary-stats h3 { margin: 0 0 18px; font-family: 'Saira', sans-serif; color: var(--text); font-size: 1.2em; text-align: left; }
-.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
-.stat-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; background: var(--surface); border: 1px solid var(--border-soft); border-radius: 12px; box-shadow: none; }
-.stat-label { font-weight: 600; color: var(--muted); }
-.stat-value { font-family: 'Saira', sans-serif; font-size: 1.2em; font-weight: 700; color: var(--gold); font-variant-numeric: tabular-nums; }
-
 @media (max-width: 768px) {
   .past-results-container { padding: 20px 16px 60px; }
   .past-results-container h1 { font-size: 24px; }
@@ -134,7 +126,6 @@
   .results-count { margin-left: 0; }
   .results-table { font-size: 12px; }
   .results-table th, .results-table td { padding: 10px 8px; }
-  .stats-grid { grid-template-columns: 1fr; }
 }
 
 /* Compact result cards — the primary mobile layout (the desktop table is hidden
