@@ -206,6 +206,14 @@ h1 { text-align: left; font-family: 'Saira', sans-serif; font-weight: 800; color
   letter-spacing: 0.02em; text-transform: uppercase;
 }
 .futures-pending { text-align: center; color: var(--muted); font-style: italic; padding: 16px; background: var(--surface); border-radius: 12px; }
+.load-more {
+  display: block; margin: 8px auto 28px; padding: 12px 30px;
+  background: var(--surface); color: var(--gold);
+  border: 1px solid rgba(231,180,88,0.45); border-radius: 10px;
+  font-family: 'Saira', sans-serif; font-weight: 600; font-size: 15px; cursor: pointer;
+  transition: background .15s ease, border-color .15s ease;
+}
+.load-more:hover { background: #222834; border-color: rgba(231,180,88,0.6); }
 .tournament-details { display: flex; gap: 30px; margin-top: 10px; }
 .tournament p { color: var(--text-muted); font-size: 15px; margin: 5px 0; }
 

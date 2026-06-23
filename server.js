@@ -183,6 +183,23 @@ app.get('/api/tournaments', async (req, res) => {
     `;
     const tournaments = await db.allAsync(query);
 
+    // Each tournament's tracked games (those with futures entrants), fetched in a
+    // single grouped query and attached inline — so the Futures page loads in one
+    // request instead of fanning out to /api/tournament/:id/games per card.
+    const gameRows = await db.allAsync(`
+      SELECT pgt.tournament_id AS tid, g.id AS game_id, g.name AS game_name, tg.num_entrants
+      FROM players_games_tournaments pgt
+      JOIN games g ON g.id = pgt.game_id
+      LEFT JOIN tournament_games tg ON tg.tournament_id = pgt.tournament_id AND tg.game_id = g.id
+      JOIN tournaments t ON t.id = pgt.tournament_id
+      WHERE t.date >= DATE('now')
+      GROUP BY pgt.tournament_id, g.id`);
+    const gamesByTid = {};
+    for (const r of gameRows) {
+      if (!gamesByTid[r.tid]) gamesByTid[r.tid] = [];
+      gamesByTid[r.tid].push({ game_id: r.game_id, game_name: r.game_name, num_entrants: r.num_entrants });
+    }
+
     // Format the response to match the expected structure
     const formattedTournaments = tournaments.map(t => ({
       id: t.id,
@@ -190,7 +207,8 @@ app.get('/api/tournaments', async (req, res) => {
       date: t.date,
       logoUrl: t.logoUrl,
       location: { city: t.city, country: t.country },
-      numEntrants: t.numEntrants || null
+      numEntrants: t.numEntrants || null,
+      games: gamesByTid[t.id] || []
     }));
 
     res.json(formattedTournaments);

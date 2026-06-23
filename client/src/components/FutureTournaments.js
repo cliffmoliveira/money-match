@@ -123,12 +123,15 @@ const FutureTournaments = () => {
   const [filterTournament, setFilterTournament] = useState('');
   const [filterGame, setFilterGame] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(24); // incremental render; "Show more" reveals the rest
   const [expandedGames, setExpandedGames] = useState(() => new Set()); // collapsed by default
   const toggleGame = (key) => setExpandedGames((prev) => {
     const next = new Set(prev);
     if (next.has(key)) next.delete(key); else next.add(key);
     return next;
   });
+  // Reset the incremental window when filters change so a new result set starts at the top.
+  useEffect(() => { setVisibleCount(24); }, [filterTournament, filterGame]);
 
   // Players/odds are loaded lazily — only when a game table is opened — so the
   // initial page load isn't blocked fetching seeds for collapsed games. The ref
@@ -193,22 +196,11 @@ const FutureTournaments = () => {
         // bets stay committed server-side and are not shown here.
         setTournaments(upcoming);
   
-        // Fetch games for all tournaments
-        const gameRequests = upcoming.map(async (tournament) => {
-          const response = await fetch(`/api/tournament/${tournament.id}/games`);
-          if (response.ok) {
-            const gamesData = await response.json();
-            return { tournamentId: tournament.id, games: gamesData };
-          }
-          return { tournamentId: tournament.id, games: [] };
-        });
-  
-        const gameResults = await Promise.all(gameRequests);
-        const updatedTournamentGames = {};
-        gameResults.forEach(({ tournamentId, games }) => {
-          updatedTournamentGames[tournamentId] = games;
-        });
-        setTournamentGames(updatedTournamentGames);
+        // Games now arrive inline with each tournament (one request), so build the
+        // lookup directly instead of fanning out to /api/tournament/:id/games per card.
+        const gamesByTid = {};
+        upcoming.forEach((t) => { gamesByTid[t.id] = t.games || []; });
+        setTournamentGames(gamesByTid);
   
         // Players/seeds are no longer fetched here — they load lazily when a
         // game table is expanded (loadPlayers), so the page renders as soon as
@@ -628,7 +620,7 @@ const FutureTournaments = () => {
           Futures open once the bracket is seeded (about 21 days before the event). Check back closer to the date.
         </p>
       )}
-      {filteredTournaments.map((tournament) => (
+      {filteredTournaments.slice(0, visibleCount).map((tournament) => (
         <div key={tournament.id} className="tournament">
           <div className="tournament-header">
             <h2 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
@@ -763,6 +755,15 @@ const FutureTournaments = () => {
           })()}
         </div>
       ))}
+      {filteredTournaments.length > visibleCount && (
+        <button
+          type="button"
+          className="load-more"
+          onClick={() => setVisibleCount((c) => c + 24)}
+        >
+          Show more ({filteredTournaments.length - visibleCount} more)
+        </button>
+      )}
       </div>
       {renderBetSlip()}
     </div>
