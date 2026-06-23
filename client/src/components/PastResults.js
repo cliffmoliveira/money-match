@@ -237,27 +237,27 @@ const PastResults = () => {
                       <span style={{ textAlign: 'center' }}>{result.tournament}</span>
                     </div>
                   </td>
-                  <td className="location">
+                  <td className="location" data-label="Location">
                     {result.city && result.country
                       ? `${result.city}, ${result.country}`
                       : 'Unknown Location'
                     }
                   </td>
-                  <td className="date">
+                  <td className="date" data-label="Date">
                     {new Date(result.date + 'T00:00:00').toLocaleDateString('en-US', {
                       year: 'numeric',
                       month: 'short',
                       day: 'numeric'
                     })}
                   </td>
-                  <td className="game">
+                  <td className="game" data-label="Game">
                     <GameTitle name={result.game} height={56} />
                   </td>
-                  <td className="winner">{result.winner}</td>
-                  <td className="score">
+                  <td className="winner" data-label="Winner">{result.winner}</td>
+                  <td className="score" data-label="Score">
                     {result.winnerRoundsWon} - {result.loserRoundsWon}
                   </td>
-                  <td className="loser">{result.loser}</td>
+                  <td className="loser" data-label="Loser">{result.loser}</td>
                 </tr>
               ))}
             </tbody>
