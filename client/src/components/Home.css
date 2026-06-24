@@ -268,20 +268,24 @@ body { background: var(--bg); color: var(--text); }
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 14px;
-  padding: 14px 16px;
+  padding: 12px 16px;
   font-size: 14px;
-  display: flex; align-items: center; gap: 14px;
+  /* Two stacked rows: [tournament · market … status · adjust] over
+     [game · competitor … stake]. Gives the tournament + competitor names their
+     own full-width line, so neither truncates or wraps. */
+  display: flex; flex-direction: column; gap: 8px;
 }
-.bet-tournament { font-family: 'Saira', sans-serif; font-weight: 600; display: flex; align-items: center; flex: 2 1 auto; min-width: 0; }
-.bet-tournament img { flex: none; }  /* logo never collapses into the FUTURES tag */
-.bet-tournament-name { margin-left: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.bet-outcome { font-family: 'Saira', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: .06em; padding: 3px 8px; border-radius: 6px; margin-left: auto; }
+.bet-row { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.bet-tournament { font-family: 'Saira', sans-serif; font-weight: 600; display: flex; align-items: center; gap: 8px; min-width: 0; flex: 0 1 auto; }
+.bet-tournament img { flex: none; }
+.bet-tournament-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bet-outcome { font-family: 'Saira', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: .06em; padding: 3px 8px; border-radius: 6px; margin-left: auto; flex: none; }
 .bet-outcome.win { background: var(--win-tint); color: var(--win); }
 .bet-outcome.loss { background: var(--live-tint); color: var(--live-text); }
 .bet-outcome.pending { background: var(--gold-tint); color: var(--gold); }
-.bet-player { flex: 1.5; text-align: left; padding: 0 10px; font-family: 'Saira', sans-serif; font-weight: 600; }
+.bet-player { flex: 1; min-width: 0; text-align: left; font-family: 'Saira', sans-serif; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bet-amount { flex: none; text-align: right; font-family: 'Saira', sans-serif; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.bet-kind { font-family: 'Saira', sans-serif; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 1px 6px; border-radius: 5px; background: transparent; border: 1px solid var(--futures); color: var(--futures); flex-shrink: 0; }
+.bet-kind { font-family: 'Saira', sans-serif; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 1px 6px; border-radius: 5px; background: transparent; border: 1px solid var(--futures); color: var(--futures); flex: none; }
 .bet-kind.live { background: transparent; border-color: var(--live-text); color: var(--live-text); }
 .bet-result { font-family: 'Saira', sans-serif; font-weight: 700; margin-left: 2px; }
 .bet-adjust {
@@ -312,7 +316,7 @@ body { background: var(--bg); color: var(--text); }
 @media (max-width: 760px) {
   .live-hero-sets, .spotlight-grid, .champion-grid, .bets-grid { grid-template-columns: minmax(0, 1fr); }
   /* Keep Rank / Open bets / 7-day P&L on one compact row on phones. */
-  .stat-strip { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .stat-strip { grid-template-columns: repeat(2, 1fr); gap: 8px; }
   .stat-card { padding: 12px 10px; }
   .stat-card .label { font-size: 10px; letter-spacing: .02em; }
   .stat-card .value { font-size: 19px; }
@@ -329,14 +333,13 @@ body { background: var(--bg); color: var(--text); }
   /* Slimmer game-tag pills on the upcoming-event cards */
   .spotlight-games .pill { padding: 3px 8px; font-size: 10px; }
 
-  /* Your Bets: the dense single-row card can't fit a phone — let it reflow to
-     two lines (tournament on top; game / kind / pick / amount / outcome below)
-     and force the column to the viewport so nothing scrolls sideways. */
+  /* Your Bets cards are already two stacked rows; keep the grid single-column
+     and let the competitor wrap to its full name (no truncation) on phones. Cap
+     the game wordmark so a wide one (Tekken) can't squeeze the competitor into a
+     sliver that wraps to many lines. */
   .bets-grid { grid-template-columns: minmax(0, 1fr); }
-  .bet-card { flex-wrap: wrap; gap: 8px 10px; }
-  .bet-tournament { flex: 1 1 100%; }
-  .bet-player { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .bet-amount { flex: 0 0 auto; }
+  .bet-player { white-space: normal; overflow-wrap: anywhere; }
+  .bet-row-bottom .bet-game img { max-width: 96px !important; }
 }
 
 /* leaf helpers reconciled from current JSX */

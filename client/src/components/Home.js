@@ -363,6 +363,10 @@ const Home = () => {
             <div className="label">Rank</div>
             <div className="value">{profile?.rank ? `#${profile.rank.toLocaleString()}` : '—'}</div>
           </Link>
+          <Link to="/leaderboard" className="stat-card stat-card-link">
+            <div className="label">Points</div>
+            <div className="value">{profile?.points != null ? profile.points.toLocaleString() : '—'}</div>
+          </Link>
           <div className="stat-card">
             <div className="label">Open bets</div>
             <div className="value">{openBets}</div>
@@ -407,28 +411,32 @@ const Home = () => {
             <div className="bets-grid">
               {yourBets.slice(0, 6).map((b) => (
                 <div key={b.key} className="bet-card">
-                  <div className="bet-tournament">
-                    <TournamentLogo name={b.tournament} height={20} />
-                    <span className="bet-tournament-name">{b.tournament}</span>
+                  <div className="bet-row bet-row-top">
+                    <div className="bet-tournament">
+                      <TournamentLogo name={b.tournament} height={20} />
+                      <span className="bet-tournament-name">{b.tournament}</span>
+                    </div>
+                    <span className={`bet-kind ${b.kind === 'Live' ? 'live' : ''}`}>{b.kind}</span>
+                    <div className={`bet-outcome ${b.status === 'win' ? 'win' : b.status === 'loss' ? 'loss' : 'pending'}`}>
+                      {b.status === 'win' ? 'Won' : b.status === 'loss' ? 'Lost' : b.status === 'refunded' ? 'Refunded' : 'Pending'}
+                      {b.result != null && <span className="bet-result">{b.result >= 0 ? ' +' : ' −'}{fmAmount(Math.round(Math.abs(b.result) * 100))} FM</span>}
+                    </div>
+                    {b.adjustable && (
+                      <button type="button" className="bet-adjust" aria-label="Adjust bet" title="Adjust bet" onClick={() => setAdjustingBet(b)}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M12 20h9" />
+                          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                        </svg>
+                      </button>
+                    )}
                   </div>
-                  <span className={`bet-kind ${b.kind === 'Live' ? 'live' : ''}`}>{b.kind}</span>
-                  <div className="bet-game">
-                    <GameLogo name={b.game} height={24} />
+                  <div className="bet-row bet-row-bottom">
+                    <div className="bet-game">
+                      <GameLogo name={b.game} height={24} />
+                    </div>
+                    <div className="bet-player">{b.pick}</div>
+                    <div className="bet-amount">{fmAmount(Math.round(b.stake * 100))} FM</div>
                   </div>
-                  <div className="bet-player">{b.pick}</div>
-                  <div className="bet-amount">{fmAmount(Math.round(b.stake * 100))} FM</div>
-                  <div className={`bet-outcome ${b.status === 'win' ? 'win' : b.status === 'loss' ? 'loss' : 'pending'}`}>
-                    {b.status === 'win' ? 'Won' : b.status === 'loss' ? 'Lost' : b.status === 'refunded' ? 'Refunded' : 'Pending'}
-                    {b.result != null && <span className="bet-result">{b.result >= 0 ? ' +' : ' −'}{fmAmount(Math.round(Math.abs(b.result) * 100))} FM</span>}
-                  </div>
-                  {b.adjustable && (
-                    <button type="button" className="bet-adjust" aria-label="Adjust bet" title="Adjust bet" onClick={() => setAdjustingBet(b)}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M12 20h9" />
-                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
-                      </svg>
-                    </button>
-                  )}
                 </div>
               ))}
             </div>
