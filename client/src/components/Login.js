@@ -28,7 +28,7 @@ const Login = ({ setIsLoggedIn }) => {
         localStorage.setItem('userId', data.userId);
         localStorage.setItem('username', data.username); // Store username instead of userId
         setIsLoggedIn(true);
-        navigate('/future-tournaments');
+        navigate('/');
       } else {
         setError(data.error || 'Login failed.');
       }
