@@ -17,6 +17,11 @@ body {
   font-weight: 400;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Never allow stray content to scroll the page sideways — on mobile that makes
+     a position:fixed bar (the bottom tab bar) size to the document and run off
+     the screen. `clip` (not `hidden`) doesn't create a scroll container, so the
+     sticky top navbar keeps working. */
+  overflow-x: clip;
 }
 
 a { color: var(--gold); }

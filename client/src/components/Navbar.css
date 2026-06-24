@@ -436,3 +436,12 @@
   /* Keep page content from hiding behind the fixed bar */
   body { padding-bottom: calc(58px + env(safe-area-inset-bottom, 0px)); }
 }
+
+/* Narrow phones: the wide "HIT CONFIRMED" wordmark + the full balance / points /
+   reward cluster won't both fit, which overflows the header and (via page
+   horizontal scroll) shoves the fixed bottom tab bar off-screen. Cap the logo
+   and drop the secondary points pill so the header fits ~360px. */
+@media (max-width: 480px) {
+  .navbar-logo img { max-width: 140px; }
+  .navbar-username .navbar-points { display: none; }
+}
