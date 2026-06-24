@@ -1,0 +1,66 @@
+/* Adjust-bet sheet: centered modal on desktop, bottom sheet on phones.
+   Sits above the navbar (1000) and the futures slip sheet (1100). */
+.adjust-backdrop {
+  position: fixed; inset: 0; z-index: 1200;
+  background: rgba(0, 0, 0, 0.6);
+  -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.adjust-sheet {
+  width: 100%; max-width: 420px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  font-family: 'Hanken Grotesk', sans-serif; color: var(--text); overflow: hidden;
+}
+.adjust-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 18px; border-bottom: 1px solid var(--border);
+  font-family: 'Saira', sans-serif; font-weight: 700; font-size: 16px;
+}
+.adjust-close {
+  border: none; background: none; color: var(--muted); font-size: 22px; line-height: 1;
+  cursor: pointer; padding: 0 4px;
+}
+.adjust-close:hover:not(:disabled) { color: var(--text); }
+
+.adjust-body { padding: 18px; }
+.adjust-meta { margin-bottom: 16px; }
+.adjust-tournament { font-family: 'Saira', sans-serif; font-weight: 700; font-size: 15px; }
+.adjust-pick { color: var(--muted); font-size: 13px; margin-top: 2px; }
+.adjust-stake-label {
+  display: block; font-family: 'Saira', sans-serif; font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin-bottom: 8px;
+}
+.adjust-payout {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border-soft);
+  font-size: 14px; color: var(--muted);
+}
+.adjust-payout strong { font-family: 'Saira', sans-serif; color: var(--win); font-size: 18px; font-variant-numeric: tabular-nums; }
+.adjust-error { margin-top: 12px; color: var(--live-text); font-size: 13px; line-height: 1.4; }
+
+.adjust-actions {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 18px; border-top: 1px solid var(--border);
+}
+.adjust-confirm-text { font-size: 13px; color: var(--text); margin-right: auto; }
+.adjust-btn {
+  font-family: 'Saira', sans-serif; font-weight: 700; font-size: 14px;
+  border-radius: 10px; padding: 11px 16px; cursor: pointer;
+  transition: filter .15s ease, border-color .15s ease, color .15s ease, background-color .15s ease;
+}
+.adjust-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.adjust-btn.primary { flex: 1; background: var(--gold-grad); color: var(--on-gold); border: none; }
+.adjust-btn.primary:not(:disabled):hover { filter: brightness(1.05); }
+.adjust-btn.ghost { background: transparent; color: var(--muted); border: 1px solid var(--border-strong); }
+.adjust-btn.ghost:not(:disabled):hover { color: var(--text); border-color: var(--gold); }
+.adjust-btn.danger { background: var(--live-tint); color: var(--live-text); border: 1px solid var(--live-text); }
+.adjust-btn.danger:not(:disabled):hover { filter: brightness(1.1); }
+
+@media (max-width: 640px) {
+  .adjust-backdrop { align-items: flex-end; padding: 0; }
+  .adjust-sheet {
+    max-width: 100%; border-radius: 16px 16px 0 0; border-bottom: none;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}

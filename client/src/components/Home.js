@@ -5,6 +5,7 @@ import { getTournamentLogoSources, getTournamentAlt, getTournamentLogoStyle } fr
 import { getGameLogoSources, getGameAlt, getGameLogoStyle } from '../utils/gameLogos';
 import Countdown from './Countdown';
 import { fmAmount } from '../utils/money';
+import AdjustBetSheet from './AdjustBetSheet';
 import { apiFetch } from '../utils/api';
 
 // Hoisted to module scope so their component identity is stable across Home
@@ -59,6 +60,8 @@ const Home = () => {
 
   const [bets, setBets] = useState([]);
   const [betsLoading, setBetsLoading] = useState(false);
+  const [adjustingBet, setAdjustingBet] = useState(null); // open bet in the adjust sheet
+  const [betsReloadKey, setBetsReloadKey] = useState(0);   // bump to re-fetch bets+wallet
 
   // Live betting + wallet — the marquee feature, surfaced here as a hero.
   const [liveMarkets, setLiveMarkets] = useState([]);
@@ -167,7 +170,7 @@ const Home = () => {
       } catch { /* non-fatal */ }
     };
     load();
-  }, [userId]);
+  }, [userId, betsReloadKey]);
 
   // Poll live markets so the "Live Now" hero stays current.
   useEffect(() => {
@@ -188,6 +191,7 @@ const Home = () => {
   const getGameName = (id) => games.find(g => g.id === id)?.name || id;
   const getPlayerName = (id) => players.find(p => p.id === id)?.name || id;
   const getTournamentName = (id) => allTournaments.find(t => t.id === id)?.name || id;
+  const getTournamentDate = (id) => allTournaments.find(t => t.id === id)?.date || null;
 
   const claimDaily = async () => {
     if (claiming) return;
@@ -230,6 +234,7 @@ const Home = () => {
   // One unified bet list: live per-set bets + futures, normalized to a common
   // shape, with unresolved (pending) bets surfaced first.
   const betStatusRank = { pending: 0, win: 1, loss: 2, refunded: 3 };
+  const todayStr = new Date().toISOString().slice(0, 10);
   const yourBets = [
     ...(liveBets || []).map((b) => ({
       key: `live-${b.id}`, kind: 'Live',
@@ -237,14 +242,26 @@ const Home = () => {
       stake: (b.amount_cents || 0) / 100,
       status: b.state === 'won' ? 'win' : b.state === 'lost' ? 'loss' : b.state === 'refunded' ? 'refunded' : 'pending',
       result: b.state === 'won' ? (b.payout_cents - b.amount_cents) / 100 : b.state === 'lost' ? -(b.amount_cents / 100) : null,
+      adjustable: false, // live bets settle per-set; not editable once placed
     })),
-    ...(bets || []).map((b, i) => ({
-      key: `future-${b.id ?? i}`, kind: 'Futures',
-      tournament: getTournamentName(b.tournament_id), game: getGameName(b.game_id), pick: getPlayerName(b.player_id),
-      stake: Number(b.amount || 0),
-      status: b.is_winner === 1 ? 'win' : b.is_winner === 0 ? 'loss' : 'pending',
-      result: null,
-    })),
+    ...(bets || []).map((b, i) => {
+      const status = b.is_winner === 1 ? 'win' : b.is_winner === 0 ? 'loss' : 'pending';
+      const date = getTournamentDate(b.tournament_id);
+      return {
+        key: `future-${b.id ?? i}`, kind: 'Futures',
+        tournament: getTournamentName(b.tournament_id), game: getGameName(b.game_id), pick: getPlayerName(b.player_id),
+        stake: Number(b.amount || 0),
+        status,
+        result: null,
+        // Adjust support: ids + odds for the sheet. Editable only while the
+        // futures market is open — pending and the event hasn't started yet
+        // (mirrors the server's date-based lock; the API 409s as a backstop).
+        tournamentId: b.tournament_id, gameId: b.game_id, playerId: b.player_id,
+        lockedOdds: Number(b.locked_odds || 0),
+        currentOdds: Number(b.current_odds || b.locked_odds || 0),
+        adjustable: status === 'pending' && !!date && date > todayStr,
+      };
+    }),
   ].sort((a, b) => betStatusRank[a.status] - betStatusRank[b.status]);
 
   // Stat-strip metrics (logged-in): open bets + 7-day realized P&L from live bets.
@@ -404,11 +421,27 @@ const Home = () => {
                     {b.status === 'win' ? 'Won' : b.status === 'loss' ? 'Lost' : b.status === 'refunded' ? 'Refunded' : 'Pending'}
                     {b.result != null && <span className="bet-result">{b.result >= 0 ? ' +' : ' −'}{fmAmount(Math.round(Math.abs(b.result) * 100))} FM</span>}
                   </div>
+                  {b.adjustable && (
+                    <button type="button" className="bet-adjust" aria-label="Adjust bet" title="Adjust bet" onClick={() => setAdjustingBet(b)}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M12 20h9" />
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
           )}
         </section>
+      )}
+
+      {adjustingBet && (
+        <AdjustBetSheet
+          bet={adjustingBet}
+          onClose={() => setAdjustingBet(null)}
+          onSaved={() => { setAdjustingBet(null); setBetsReloadKey((k) => k + 1); }}
+        />
       )}
 
       {/* Upcoming Spotlight */}

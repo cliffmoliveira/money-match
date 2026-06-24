@@ -261,7 +261,9 @@ body { background: var(--bg); color: var(--text); }
 .champion-score b, .champion-score .score { font-family: 'Saira', sans-serif; color: var(--win); }
 
 /* ---------- Your Bets ---------- */
-.bets-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+/* 2-up only when a cell is wide enough for the whole bet row; otherwise the
+   grid drops to a single full-width column so nothing squeezes or overflows. */
+.bets-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 12px; }
 .bets .bet-card {
   background: var(--card);
   border: 1px solid var(--border);
@@ -270,17 +272,25 @@ body { background: var(--bg); color: var(--text); }
   font-size: 14px;
   display: flex; align-items: center; gap: 14px;
 }
-.bet-tournament { font-family: 'Saira', sans-serif; font-weight: 600; display: flex; align-items: center; flex: 2; min-width: 0; }
+.bet-tournament { font-family: 'Saira', sans-serif; font-weight: 600; display: flex; align-items: center; flex: 2 1 auto; min-width: 0; }
+.bet-tournament img { flex: none; }  /* logo never collapses into the FUTURES tag */
 .bet-tournament-name { margin-left: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bet-outcome { font-family: 'Saira', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: .06em; padding: 3px 8px; border-radius: 6px; margin-left: auto; }
 .bet-outcome.win { background: var(--win-tint); color: var(--win); }
 .bet-outcome.loss { background: var(--live-tint); color: var(--live-text); }
 .bet-outcome.pending { background: var(--gold-tint); color: var(--gold); }
 .bet-player { flex: 1.5; text-align: left; padding: 0 10px; font-family: 'Saira', sans-serif; font-weight: 600; }
-.bet-amount { flex-basis: 30%; text-align: right; font-family: 'Saira', sans-serif; font-weight: 700; font-variant-numeric: tabular-nums; }
+.bet-amount { flex: none; text-align: right; font-family: 'Saira', sans-serif; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .bet-kind { font-family: 'Saira', sans-serif; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 1px 6px; border-radius: 5px; background: transparent; border: 1px solid var(--futures); color: var(--futures); flex-shrink: 0; }
 .bet-kind.live { background: transparent; border-color: var(--live-text); color: var(--live-text); }
 .bet-result { font-family: 'Saira', sans-serif; font-weight: 700; margin-left: 2px; }
+.bet-adjust {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 8px;
+  background: transparent; border: 1px solid var(--border-strong); color: var(--muted);
+  cursor: pointer; transition: color .15s ease, border-color .15s ease;
+}
+.bet-adjust:hover { color: var(--gold); border-color: var(--gold); }
 
 /* ---------- Skeleton & feedback ---------- */
 .skeleton {

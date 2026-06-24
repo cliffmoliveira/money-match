@@ -220,7 +220,7 @@ app.get('/api/tournaments', async (req, res) => {
 
 app.get('/api/tournaments/all', async (req, res) => {
   try {
-    const tournaments = await db.allAsync('SELECT id, name FROM tournaments');
+    const tournaments = await db.allAsync('SELECT id, name, date FROM tournaments');
     res.json(tournaments);
   } catch (err) {
     console.error('Error fetching all tournaments:', err.message);
@@ -324,6 +324,7 @@ app.get('/api/bets', requireAuth, async (req, res) => {
           b.player_id,
           b.amount,
           b.locked_odds,
+          pgt.live_odds AS current_odds,
           CASE
             WHEN m.winner_id IS NULL THEN NULL -- Pending
             -- "The Field" bet wins when the champion isn't one of the listed seeds.
@@ -340,6 +341,8 @@ app.get('/api/bets', requireAuth, async (req, res) => {
        FROM bets b
        JOIN players p ON p.id = b.player_id
        LEFT JOIN matches m ON b.tournament_id = m.tournament_id AND b.game_id = m.game_id
+       LEFT JOIN players_games_tournaments pgt
+              ON pgt.tournament_id = b.tournament_id AND pgt.game_id = b.game_id AND pgt.player_id = b.player_id
        WHERE b.user_id = ?`,
       [userId]
     );
