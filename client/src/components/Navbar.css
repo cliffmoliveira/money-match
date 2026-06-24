@@ -37,6 +37,7 @@
   height: 52px;
   width: auto;
   object-fit: contain;
+  display: block; /* kills the inline-image baseline gap so flex centering is exact */
   cursor: pointer;
   transition: transform 0.2s ease, filter 0.2s ease;
 }
