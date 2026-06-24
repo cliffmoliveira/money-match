@@ -15,17 +15,17 @@ function makeTransport() {
   });
 }
 
-const FROM = process.env.MAIL_FROM || 'Money Match <no-reply@moneymatch.local>';
+const FROM = process.env.MAIL_FROM || 'Hit Confirmed <no-reply@hitconfirmed.local>';
 const TTL_MIN = Number(process.env.RESET_TOKEN_TTL_MINUTES || 60);
 
 async function sendResetEmail(to, link) {
-  const subject = 'Reset your Money Match password';
+  const subject = 'Reset your Hit Confirmed password';
   const text =
-    `We received a request to reset your Money Match password.\n\n` +
+    `We received a request to reset your Hit Confirmed password.\n\n` +
     `Reset it here (valid for ${TTL_MIN} minutes):\n${link}\n\n` +
     `If you didn't request this, you can safely ignore this email.`;
   const html =
-    `<p>We received a request to reset your Money Match password.</p>` +
+    `<p>We received a request to reset your Hit Confirmed password.</p>` +
     `<p><a href="${link}">Reset your password</a> (valid for ${TTL_MIN} minutes).</p>` +
     `<p style="color:#888;font-size:13px">If you didn't request this, you can safely ignore this email.</p>`;
 
