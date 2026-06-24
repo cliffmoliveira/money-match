@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import './Navbar.css';
-import logo from '../assets/images/MoneyMatch.png';
+import logo from '../assets/images/hit_confirmed.png';
 import { fm } from '../utils/money';
 import { apiFetch } from '../utils/api';
 import RewardedAdButton from './RewardedAdButton';
@@ -256,7 +256,7 @@ const Navbar = ({ isLoggedIn }) => {
       <nav className="navbar">
         <div className="navbar-inner">
           <div className="navbar-logo">
-            <NavLink to="/"><img src={logo} alt="Money Match Logo" className="navbar-logo-img" /></NavLink>
+            <NavLink to="/"><img src={logo} alt="Hit Confirmed" className="navbar-logo-img" /></NavLink>
           </div>
 
           {/* Primary links — desktop only (mobile uses the bottom tab bar) */}

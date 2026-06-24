@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Login.css';
-import logo from '../assets/images/MoneyMatch.png';
+import logo from '../assets/images/hit_confirmed.png';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
@@ -31,7 +31,7 @@ const ForgotPassword = () => {
 
   return (
     <div className="login-container">
-      <img src={logo} alt="Money Match" className="login-logo" />
+      <img src={logo} alt="Hit Confirmed" className="login-logo" />
       <h2>Reset your password</h2>
       <p className="tagline">We'll email you a reset link.</p>
 

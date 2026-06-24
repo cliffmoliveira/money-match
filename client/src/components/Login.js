@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Login.css';
-import logo from '../assets/images/MoneyMatch.png';
+import logo from '../assets/images/hit_confirmed.png';
 import PasswordInput from './PasswordInput';
 
 const Login = ({ setIsLoggedIn }) => {
@@ -40,7 +40,7 @@ const Login = ({ setIsLoggedIn }) => {
 
   return (
     <div className="login-container">
-      <img src={logo} alt="Money Match" className="login-logo" />
+      <img src={logo} alt="Hit Confirmed" className="login-logo" />
       <h2>Welcome back</h2>
       <p className="tagline">Virtual-currency betting on the FGC.</p>
 

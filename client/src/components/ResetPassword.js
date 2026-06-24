@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import './Login.css';
-import logo from '../assets/images/MoneyMatch.png';
+import logo from '../assets/images/hit_confirmed.png';
 import PasswordInput from './PasswordInput';
 
 const ResetPassword = () => {
@@ -38,7 +38,7 @@ const ResetPassword = () => {
 
   return (
     <div className="login-container">
-      <img src={logo} alt="Money Match" className="login-logo" />
+      <img src={logo} alt="Hit Confirmed" className="login-logo" />
 
       {done ? (
         <>
