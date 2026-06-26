@@ -605,6 +605,35 @@ app.put('/api/account', requireAuth, async (req, res) => {
   }
 });
 
+// Change password for the authenticated user. Requires the current password so a
+// stolen/long-lived session token alone can't silently lock the owner out, and
+// mirrors the reset-password rules (bcrypt hash, 8-char minimum).
+app.post('/api/account/password', requireAuth, async (req, res) => {
+  const userId = req.userId;
+  const { currentPassword, newPassword } = req.body || {};
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ error: 'Current and new password are required.' });
+  }
+  if (String(newPassword).length < 8) {
+    return res.status(400).json({ error: 'New password must be at least 8 characters.' });
+  }
+  if (String(newPassword) === String(currentPassword)) {
+    return res.status(400).json({ error: 'New password must be different from the current one.' });
+  }
+  try {
+    const user = await db.getAsync('SELECT password FROM users WHERE id = ?', [userId]);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    const ok = await bcrypt.compare(String(currentPassword), user.password);
+    if (!ok) return res.status(400).json({ error: 'Your current password is incorrect.' });
+    const hash = await bcrypt.hash(String(newPassword), 10);
+    await db.runAsync('UPDATE users SET password = ? WHERE id = ?', [hash, userId]);
+    return res.status(200).json({ message: 'Your password has been updated.' });
+  } catch (err) {
+    console.error('Change password error:', err.message);
+    return res.status(500).json({ error: 'Could not update your password.' });
+  }
+});
+
 // Live per-set betting
 app.get('/api/live/markets', async (req, res) => {
   try {
@@ -859,7 +888,22 @@ economy.applyEconomySchema()
   .then(() => require('./parlay/schema').applyParlaySchema(db))
   .catch((err) => console.error('Schema init failed:', err.message))
   .finally(() => {
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
       console.log(`Server running on http://localhost:${PORT}`);
     });
+
+    // Graceful shutdown. Managed hosts (Render) and systemd send SIGTERM on every
+    // deploy/restart; stop accepting connections, then close the single SQLite
+    // writer so WAL is checkpointed cleanly (no torn writes / corruption).
+    const shutdown = (signal) => {
+      console.log(`${signal} received — closing server and database.`);
+      server.close(async () => {
+        try { await db.closeAsync(); } catch (err) { console.error('DB close error:', err.message); }
+        process.exit(0);
+      });
+      // Don't hang forever if a connection won't drain.
+      setTimeout(() => process.exit(1), 10000).unref();
+    };
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    process.on('SIGINT', () => shutdown('SIGINT'));
   });

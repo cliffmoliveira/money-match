@@ -93,6 +93,19 @@
 .account-save:hover:not(:disabled) { filter: brightness(1.05); }
 .account-save:disabled { opacity: 0.6; cursor: default; box-shadow: none; }
 
+/* Password card. PasswordInput renders its own .password-field wrapper + toggle;
+   position the eye button inside the account-styled input and leave room for it. */
+.account-security { margin-top: 16px; }
+.account-form .password-field { position: relative; }
+.account-form .password-field input { padding-right: 44px; }
+.account-form .password-toggle {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  display: inline-flex; align-items: center; justify-content: center;
+  background: none; border: 0; padding: 6px; cursor: pointer; color: var(--muted);
+}
+.account-form .password-toggle:hover { color: var(--text); }
+.account-pw-hint { margin: 2px 0 0; font-size: 11px; color: var(--faint); }
+
 @media (max-width: 600px) {
   .account-page { padding: 20px 14px 90px; }
   .account-row { gap: 0; }

@@ -1,0 +1,46 @@
+# Render Blueprint for Hit Confirmed (internal: MoneyMatch).
+# One always-on Web Service + a persistent disk holding the SQLite file.
+#
+# CRITICAL: this MUST stay a SINGLE instance. The app relies on an in-process
+# write mutex (txn.js), an in-process wallet/bankroll cache, and SQLite's single
+# writer to prevent a debit-without-settle money race. Do NOT add replicas or
+# autoscaling — attaching the disk already pins it to one instance, keep it that way.
+services:
+  - type: web
+    name: hit-confirmed
+    runtime: node
+    plan: starter            # $7/mo always-on (free tier sleeps + has no disk)
+    region: ohio             # US-East, closest to Ontario
+    branch: testing
+    # Build the API deps + the React client (force devDeps so react-app-rewired is
+    # present, and CI=false so CRA warnings don't fail the build).
+    buildCommand: npm install && npm install --prefix client --include=dev && DISABLE_ESLINT_PLUGIN=true CI=false npm run build --prefix client
+    startCommand: node server.js
+    disk:
+      name: data
+      mountPath: /var/data
+      sizeGB: 1              # the DB is <1 MB; grow later if ever needed
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_PATH
+        value: /var/data/database.db
+      - key: APP_BASE_URL
+        value: https://hitconfirmed.com
+      - key: MAIL_FROM
+        value: Hit Confirmed <no-reply@hitconfirmed.com>
+      - key: SMTP_PORT
+        value: "587"
+      - key: RESET_TOKEN_TTL_MINUTES
+        value: "60"
+      # Secrets — Render prompts for these on first deploy; never stored in the repo.
+      - key: JWT_SECRET
+        sync: false
+      - key: STARTGG_API_TOKEN
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false

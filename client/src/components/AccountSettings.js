@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './AccountSettings.css';
 import { apiFetch } from '../utils/api';
+import PasswordInput from './PasswordInput';
 
 const GENDERS = ['Male', 'Female', 'Non-binary', 'Prefer not to say'];
 const PRONOUNS = ['he/him', 'she/her', 'they/them'];
@@ -56,6 +57,12 @@ const AccountSettings = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
+
+  // Password change (its own form so it submits independently of the profile).
+  const [pw, setPw] = useState({ current: '', next: '', confirm: '' });
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwError, setPwError] = useState(null);
+  const [pwSuccess, setPwSuccess] = useState(false);
 
   useEffect(() => {
     if (!userId) return;
@@ -117,6 +124,36 @@ const AccountSettings = () => {
       setError(err.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const setPwField = (k) => (e) => {
+    const v = e.target.value;
+    setPw((p) => ({ ...p, [k]: v }));
+    setPwSuccess(false); setPwError(null);
+  };
+
+  const changePassword = async (e) => {
+    e.preventDefault();
+    if (!pw.current || !pw.next) { setPwError('Enter your current and new password.'); return; }
+    if (pw.next.length < 8) { setPwError('New password must be at least 8 characters.'); return; }
+    if (pw.next !== pw.confirm) { setPwError('New passwords do not match.'); return; }
+    if (pw.next === pw.current) { setPwError('New password must be different from the current one.'); return; }
+    setPwSaving(true); setPwError(null); setPwSuccess(false);
+    try {
+      const res = await apiFetch('/api/account/password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword: pw.current, newPassword: pw.next }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Could not update your password.');
+      setPw({ current: '', next: '', confirm: '' });
+      setPwSuccess(true);
+    } catch (err) {
+      setPwError(err.message);
+    } finally {
+      setPwSaving(false);
     }
   };
 
@@ -243,6 +280,36 @@ const AccountSettings = () => {
             {saving ? 'Saving…' : 'Save changes'}
           </button>
         </div>
+      </form>
+
+      <form className="account-form account-security" onSubmit={changePassword}>
+        <section className="account-section">
+          <h2>Password</h2>
+          <label className="account-field">
+            <span>Current password</span>
+            <PasswordInput id="pw-current" value={pw.current} onChange={setPwField('current')} autoComplete="current-password" />
+          </label>
+          <div className="account-row">
+            <label className="account-field">
+              <span>New password</span>
+              <PasswordInput id="pw-next" value={pw.next} onChange={setPwField('next')} autoComplete="new-password" />
+            </label>
+            <label className="account-field">
+              <span>Confirm new password</span>
+              <PasswordInput id="pw-confirm" value={pw.confirm} onChange={setPwField('confirm')} autoComplete="new-password" />
+            </label>
+          </div>
+          <p className="account-pw-hint">At least 8 characters. You'll stay logged in on this device.</p>
+
+          {pwError && <p className="account-error">{pwError}</p>}
+          {pwSuccess && <p className="account-success">Password updated.</p>}
+
+          <div className="account-actions">
+            <button type="submit" className="account-save" disabled={pwSaving}>
+              {pwSaving ? 'Updating…' : 'Update password'}
+            </button>
+          </div>
+        </section>
       </form>
     </div>
   );
