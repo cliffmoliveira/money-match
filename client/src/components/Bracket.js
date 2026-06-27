@@ -255,7 +255,12 @@ const Bracket = ({ markets = [], slip = {}, onPick, demoControls, waiting = fals
     // two incoming lines meet symmetrically at its center.
     const wfBox = box('WF-0'), lfBox = box('LF-0'), gfBox = box('GF-0');
     let gfMid = gfBox ? gfBox.mid : null;
-    if (wfBox && lfBox && gfBox) {
+    // On mobile the grid stacks winners/grand/losers vertically — GF is already
+    // in the right place by DOM order, so the offset must be zero.
+    const isMobile = availW <= 820;
+    if (isMobile) {
+      if (gfOffsetRef.current !== 0) { gfOffsetRef.current = 0; setGfOffset(0); }
+    } else if (wfBox && lfBox && gfBox) {
       const feederMid = (wfBox.mid + lfBox.mid) / 2;
       const naturalGfMid = gfBox.mid - gfOffsetRef.current;
       const desiredOffset = feederMid - naturalGfMid;
@@ -263,7 +268,7 @@ const Bracket = ({ markets = [], slip = {}, onPick, demoControls, waiting = fals
         gfOffsetRef.current = desiredOffset;
         setGfOffset(desiredOffset);
       }
-      gfMid = feederMid; // where GF will sit after the offset is applied
+      gfMid = feederMid;
     }
 
     const next = [];
