@@ -38,11 +38,11 @@ async function getSettledExhibitions() {
   `);
 }
 
-async function createExhibition({ tournament_id, tournament_name, player1_name, player2_name, game_name, notes, event_date, state }) {
+async function createExhibition({ tournament_id, tournament_name, player1_name, player2_name, game_name, notes, event_date, state, winner_name }) {
   const result = await db.runAsync(
-    `INSERT INTO exhibitions (tournament_id, tournament_name, player1_name, player2_name, game_name, notes, event_date, state)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [tournament_id || null, tournament_name || null, player1_name, player2_name, game_name || null, notes || null, event_date || null, state || 'pending']
+    `INSERT INTO exhibitions (tournament_id, tournament_name, player1_name, player2_name, game_name, notes, event_date, state, winner_name)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [tournament_id || null, tournament_name || null, player1_name, player2_name, game_name || null, notes || null, event_date || null, state || 'pending', winner_name || null]
   );
   return result.lastID;
 }
