@@ -5,6 +5,21 @@ const path = require('path');
 // Resolve the database path from environment variables or use default
 const dbPath = path.resolve(process.env.DATABASE_PATH || './database.db');
 
+// One-time seed hook: if "<dbPath>.seed" exists on disk (e.g. a migration
+// snapshot uploaded onto a persistent volume out of band), swap it into place
+// BEFORE opening the database — while nothing holds the file open. Stale WAL/SHM
+// from any prior DB are cleared so SQLite won't replay an old journal over it.
+// Self-consuming: the rename removes the .seed file, so it runs at most once.
+const fs = require('fs');
+const seedPath = `${dbPath}.seed`;
+if (fs.existsSync(seedPath)) {
+  for (const ext of ['-wal', '-shm']) {
+    try { fs.unlinkSync(`${dbPath}${ext}`); } catch (_) { /* nothing to clear */ }
+  }
+  fs.renameSync(seedPath, dbPath);
+  console.log(`Seeded database from ${seedPath}`);
+}
+
 // better-sqlite3 is a synchronous, in-process driver: no callback queue and no
 // libuv threadpool hop per statement, so the write-heavy live-betting path runs
 // much faster under load than node-sqlite3. We keep the SAME promise-returning
