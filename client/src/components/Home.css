@@ -352,4 +352,4 @@ body { background: var(--bg); color: var(--text); }
 
 /* leaf helpers reconciled from current JSX */
 .bet-game { flex-shrink: 0; display: flex; align-items: center; }
-.lh-vs { font-family: 'Saira', sans-serif; font-size: 11px; color: var(--faint); text-align: center; letter-spacing: .06em; }
+.lh-vs { font-family: 'Saira', sans-serif; font-size: 16px; font-weight: 700; color: var(--faint); text-align: center; letter-spacing: .06em; }
