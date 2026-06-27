@@ -133,6 +133,7 @@ const Home = () => {
               .slice(0, 6)
               .map((r) => ({
                 tournament: r.tournament,
+                logoUrl: r.logoUrl,
                 date: r.date,
                 game: r.game,
                 winner: r.winner,
@@ -540,7 +541,10 @@ const Home = () => {
               </div>
               <div className="champion-winner">{c.winner}</div>
               <div className="champion-meta">
-                <span className="champion-tournament">{c.tournament}</span>
+                <span className="champion-tournament">
+                  <TournamentLogo name={c.tournament} logoUrl={c.logoUrl} height={16} />
+                  <span>{c.tournament}</span>
+                </span>
                 <span className="champion-date">{new Date(c.date + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
               </div>
               <div className="champion-score"><b>{c.score}</b> def. {c.loser}</div>

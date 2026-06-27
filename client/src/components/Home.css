@@ -262,7 +262,9 @@ body { background: var(--bg); color: var(--text); }
 .champion-winner { font-family: 'Saira', sans-serif; font-size: 19px; font-weight: 700; margin-bottom: 3px; }
 .champion-winner::before { content: "★ "; color: var(--gold); }
 .champion-meta { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; color: var(--text-muted); margin-bottom: 14px; }
-.champion-tournament { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%; min-width: 0; }
+.champion-tournament { display: flex; align-items: center; gap: 5px; max-width: 60%; min-width: 0; overflow: hidden; }
+.champion-tournament img { flex-shrink: 0; max-height: 16px; width: auto; }
+.champion-tournament span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .champion-score { background: var(--surface); color: #C9CCD3; border: 1px solid var(--border-soft); border-radius: 8px; padding: 5px 11px; font-size: 12px; font-weight: 500; text-align: left; font-variant-numeric: tabular-nums; align-self: flex-start; }
 .champion-score b, .champion-score .score { font-family: 'Saira', sans-serif; color: var(--win); }
 
