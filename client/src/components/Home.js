@@ -536,15 +536,13 @@ const Home = () => {
         <div className="champion-grid">
           {recentChampions.map((c, i) => (
             <div key={i} className="champion-card">
-              <div className="champion-game">
-                <GameLogo name={c.game} height={32} />
+              <div className="champion-logos">
+                <TournamentLogo name={c.tournament} logoUrl={c.logoUrl} height={40} />
+                <GameLogo name={c.game} height={28} />
               </div>
               <div className="champion-winner">{c.winner}</div>
               <div className="champion-meta">
-                <span className="champion-tournament">
-                  <TournamentLogo name={c.tournament} logoUrl={c.logoUrl} height={16} />
-                  <span>{c.tournament}</span>
-                </span>
+                <span className="champion-tournament">{c.tournament}</span>
                 <span className="champion-date">{new Date(c.date + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
               </div>
               <div className="champion-score"><b>{c.score}</b> def. {c.loser}</div>
