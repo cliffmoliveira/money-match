@@ -36,6 +36,18 @@ db.pragma('journal_mode = WAL');
 db.pragma('busy_timeout = 5000');
 db.pragma('synchronous = NORMAL');
 
+// Void any stale preview_* projection markets left over from pre-tournament
+// seeding. Once real start.gg sets arrive they replace these; keeping them open
+// creates duplicate bracket cards. Runs synchronously at boot so Render picks
+// it up on the next deploy without manual DB intervention.
+try {
+  const { changes } = db.prepare(
+    `UPDATE set_markets SET state='void'
+     WHERE startgg_set_id LIKE 'preview_%' AND state NOT IN ('settled','void')`
+  ).run();
+  if (changes) console.log(`[boot] voided ${changes} stale preview market(s)`);
+} catch (_) { /* table may not exist yet on a fresh DB */ }
+
 // Cache prepared statements by SQL text. SQLite auto-reprepares on schema
 // changes, so cached statements stay valid across migrations.
 const stmtCache = new Map();
