@@ -330,7 +330,7 @@ const LiveBetting = () => {
               {Object.entries(games).map(([gameName, mkts]) => (
                 <div key={gameName} className="live-game">
                   <div className="live-game-aside">
-                    <GameLogo name={gameName} height={140} />
+                    <GameLogo name={gameName} height={200} />
                   </div>
                   <Bracket
                     markets={mkts}
