@@ -49,6 +49,21 @@ function classify(market) {
 // cards show just the gamer tag (the full name stays in a title tooltip).
 const shortName = (name) => (name && name.includes('|') ? name.split('|').pop().trim() : name);
 
+// Render a player as the sponsor/team (small, above) + the gamer tag (main).
+// Plain names with no "TEAM |" prefix render as just the tag.
+const PlayerName = ({ name }) => {
+  if (!name) return <span className="bnode-tag">TBD</span>;
+  const i = name.indexOf('|');
+  const sponsor = i === -1 ? '' : name.slice(0, i).trim();
+  const tag = (i === -1 ? name : name.slice(i + 1)).trim();
+  return (
+    <>
+      {sponsor && <span className="bnode-sponsor">{sponsor}</span>}
+      <span className="bnode-tag">{tag}</span>
+    </>
+  );
+};
+
 // Parimutuel pool split for a live/closed set: a bar + the money wagered on each
 // side, so a bettor can see exactly what drives the odds and that payouts come
 // from the pool.
@@ -114,7 +129,7 @@ const Node = ({ market, slip, onPick, demoControls, registerRef, projected }) =>
       disabled={!open || !name}
       onClick={() => open && name && onPick(market, pid)}
     >
-      <span className={`bnode-name ${name ? '' : 'tbd'}`} title={name || undefined}>{name ? shortName(name) : 'TBD'}</span>
+      <span className={`bnode-name bnode-name-stack ${name ? '' : 'tbd'}`} title={name || undefined}><PlayerName name={name} /></span>
       {settled
         ? <span className="bnode-score">{score}</span>
         : (open || closed)

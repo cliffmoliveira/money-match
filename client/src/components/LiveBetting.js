@@ -357,7 +357,6 @@ const LiveBetting = () => {
               Slip ({Object.keys(slip).length})
             </button>
           )}
-          {slipOpen && <div className="live-drawer-scrim" onClick={() => setSlipOpen(false)} />}
           <div className={`live-drawer${slipOpen ? ' open' : ''}`}>
             <button
               type="button"
