@@ -1,0 +1,150 @@
+.ex-section {
+  margin-bottom: 28px;
+}
+
+.ex-section-title {
+  font-family: 'Saira', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--gold);
+  margin: 0 0 12px;
+}
+
+.ex-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ex-card {
+  background: var(--card);
+  border: 1px solid var(--gold);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 0 18px rgba(231, 180, 88, 0.12);
+}
+
+.ex-card.ex-settled {
+  border-color: var(--border);
+  box-shadow: none;
+  opacity: 0.85;
+}
+
+.ex-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ex-label {
+  font-family: 'Saira', sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--gold);
+}
+
+.ex-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ex-game {
+  font-family: 'Saira', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.ex-tournament {
+  font-family: 'Saira', sans-serif;
+  font-size: 11px;
+  color: var(--faint);
+}
+
+.ex-badge {
+  font-family: 'Saira', sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .07em;
+  padding: 2px 7px;
+  border-radius: 5px;
+  text-transform: uppercase;
+}
+
+.ex-badge-live {
+  background: var(--live-tint);
+  color: var(--live-text);
+}
+
+.ex-badge-final {
+  background: var(--surface);
+  color: var(--muted);
+}
+
+.ex-matchup {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin: 4px 0 8px;
+}
+
+.ex-player {
+  font-family: 'Saira', sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ex-player.ex-winner {
+  color: var(--gold);
+}
+
+.ex-player.ex-loser {
+  color: var(--faint);
+  font-weight: 500;
+}
+
+.ex-crown {
+  font-size: 14px;
+}
+
+.ex-vs {
+  font-family: 'Saira', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--faint);
+  flex-shrink: 0;
+}
+
+.ex-result {
+  text-align: center;
+  font-size: 13px;
+  color: var(--win);
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.ex-notes {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+  font-style: italic;
+}
+
+@media (max-width: 600px) {
+  .ex-player { font-size: 15px; }
+}

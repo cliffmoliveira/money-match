@@ -17,6 +17,7 @@ const account = require('./account');
 const futuresMeta = require('./futuresMeta');
 const futures = require('./futures');
 const { syncLive } = require('./scripts/sync-live');
+const exhibitions = require('./exhibitions');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -859,6 +860,59 @@ process.on('uncaughtException', (err) => {
   console.error('UNCAUGHT EXCEPTION:', err && err.stack ? err.stack : err);
 });
 
+// ---- Exhibition matches ----
+
+app.get('/api/exhibitions/live', async (req, res) => {
+  try {
+    res.json(await exhibitions.getActiveExhibitions());
+  } catch (err) {
+    console.error('Error fetching live exhibitions:', err.message);
+    res.status(500).json({ error: 'Failed to fetch exhibitions.' });
+  }
+});
+
+app.get('/api/exhibitions/results', async (req, res) => {
+  try {
+    res.json(await exhibitions.getSettledExhibitions());
+  } catch (err) {
+    console.error('Error fetching exhibition results:', err.message);
+    res.status(500).json({ error: 'Failed to fetch exhibitions.' });
+  }
+});
+
+app.post('/api/admin/exhibition', async (req, res) => {
+  try {
+    const { tournament_id, tournament_name, player1_name, player2_name, game_name, notes, event_date, state } = req.body;
+    if (!player1_name || !player2_name) return res.status(400).json({ error: 'player1_name and player2_name required.' });
+    const id = await exhibitions.createExhibition({ tournament_id, tournament_name, player1_name, player2_name, game_name, notes, event_date, state });
+    res.status(201).json({ id });
+  } catch (err) {
+    console.error('Error creating exhibition:', err.message);
+    res.status(500).json({ error: 'Failed to create exhibition.' });
+  }
+});
+
+app.post('/api/admin/exhibition/:id/open', async (req, res) => {
+  try { await exhibitions.openExhibition(Number(req.params.id)); res.json({ ok: true }); }
+  catch (err) { res.status(500).json({ error: 'Failed to open exhibition.' }); }
+});
+
+app.post('/api/admin/exhibition/:id/close', async (req, res) => {
+  try { await exhibitions.closeExhibition(Number(req.params.id)); res.json({ ok: true }); }
+  catch (err) { res.status(500).json({ error: 'Failed to close exhibition.' }); }
+});
+
+app.post('/api/admin/exhibition/:id/settle', async (req, res) => {
+  try {
+    const { winner_name } = req.body;
+    if (!winner_name) return res.status(400).json({ error: 'winner_name required.' });
+    await exhibitions.settleExhibition(Number(req.params.id), winner_name);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to settle exhibition.' });
+  }
+});
+
 // Kick off schedulers (skippable for tests via DISABLE_SYNC=1)
 if (!process.env.DISABLE_SYNC) {
   scheduleStartGgSync();
@@ -886,6 +940,7 @@ economy.applyEconomySchema()
   .then(() => account.applyAccountSchema())
   .then(() => futuresMeta.applyFuturesMetaSchema())
   .then(() => require('./parlay/schema').applyParlaySchema(db))
+  .then(() => exhibitions.applyExhibitionsSchema())
   .catch((err) => console.error('Schema init failed:', err.message))
   .finally(() => {
     const server = app.listen(PORT, () => {

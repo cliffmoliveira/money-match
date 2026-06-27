@@ -7,6 +7,7 @@ import Countdown from './Countdown';
 import { fmAmount } from '../utils/money';
 import AdjustBetSheet from './AdjustBetSheet';
 import { apiFetch } from '../utils/api';
+import ExhibitionSection from './ExhibitionSection';
 
 // Hoisted to module scope so their component identity is stable across Home
 // re-renders — defining them inside the parent recreates the type every render,
@@ -55,6 +56,7 @@ const Home = () => {
   const [upcoming, setUpcoming] = useState([]);
   const [allTournaments, setAllTournaments] = useState([]);
   const [recentChampions, setRecentChampions] = useState([]);
+  const [recentExhibitions, setRecentExhibitions] = useState([]);
   const [games, setGames] = useState([]);
   const [players, setPlayers] = useState([]);
 
@@ -126,6 +128,11 @@ const Home = () => {
           );
           setError(null);
           setLoading(false);
+          // Exhibitions don't block the main load — fetch separately
+          fetch('/api/exhibitions/results')
+            .then((r) => r.ok ? r.json() : [])
+            .then((data) => { if (!cancelled) setRecentExhibitions((data || []).slice(0, 3)); })
+            .catch(() => {});
           return;
         } catch (err) {
           console.error(`Home load error (attempt ${attempt}/${MAX}):`, err.message);
@@ -490,6 +497,10 @@ const Home = () => {
             ))}
           </div>
         </section>
+      )}
+
+      {recentExhibitions.length > 0 && (
+        <ExhibitionSection exhibitions={recentExhibitions} title="Exhibition Results" />
       )}
 
       {/* Recent Champions */}

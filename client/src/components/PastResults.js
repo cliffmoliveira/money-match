@@ -2,9 +2,11 @@ import React, { useEffect, useState } from 'react';
 import './PastResults.css';
 import { getGameAlt, getGameLogoSources, getGameLogoStyle } from '../utils/gameLogos';
 import { getTournamentLogoSources, getTournamentAlt, getTournamentLogoStyle } from '../utils/tournamentLogos';
+import ExhibitionSection from './ExhibitionSection';
 
 const PastResults = () => {
   const [pastResults, setPastResults] = useState([]);
+  const [exhibitions, setExhibitions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filterYear, setFilterYear] = useState('all');
@@ -84,19 +86,16 @@ const PastResults = () => {
   };
 
   useEffect(() => {
-    const fetchPastResults = async () => {
+    const fetchAll = async () => {
       try {
-        const response = await fetch('/api/past-results');
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        // Sort the data by descending date
-        const sortedData = data.data.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-        setPastResults(sortedData);
+        const [prRes, exRes] = await Promise.all([
+          fetch('/api/past-results'),
+          fetch('/api/exhibitions/results'),
+        ]);
+        if (!prRes.ok) throw new Error(`HTTP error! status: ${prRes.status}`);
+        const data = await prRes.json();
+        setPastResults(data.data.sort((a, b) => new Date(b.date) - new Date(a.date)));
+        if (exRes.ok) setExhibitions(await exRes.json());
       } catch (err) {
         console.error('Error fetching past results:', err);
         setError('Failed to load past results. Please try again later.');
@@ -105,7 +104,7 @@ const PastResults = () => {
       }
     };
 
-    fetchPastResults();
+    fetchAll();
   }, []);
 
   // Reset the incremental window when filters change so a new result set starts at the top.
@@ -157,6 +156,8 @@ const PastResults = () => {
   return (
     <div className="past-results-container">
       <h1 className="sr-only">Results</h1>
+
+      <ExhibitionSection exhibitions={exhibitions} title="Exhibition Results" />
 
       {/* Filters */}
       <div className="filter-bar">

@@ -7,6 +7,7 @@ import { getGameLogoSources, getGameAlt, getGameLogoStyle } from '../utils/gameL
 // Fight Money formatters (fmt/signed kept as names so call sites are unchanged).
 import { fm as fmt, fmSigned as signed, fmAmount } from '../utils/money';
 import { apiFetch } from '../utils/api';
+import ExhibitionSection from './ExhibitionSection';
 
 const POLL_MS = 6000; // refresh markets/odds/pick'em every 6s while the Live page is open
 
@@ -44,6 +45,7 @@ const LiveBetting = () => {
   const [demoEnabled, setDemoEnabled] = useState(false);
   const [myBets, setMyBets] = useState([]);
   const [slipOpen, setSlipOpen] = useState(false); // desktop bet-slip drawer
+  const [liveExhibitions, setLiveExhibitions] = useState([]);
 
   const userId = localStorage.getItem('userId');
 
@@ -56,16 +58,18 @@ const LiveBetting = () => {
 
   const refresh = useCallback(async () => {
     try {
-      const [mRes, wRes, bRes, uRes] = await Promise.all([
+      const [mRes, wRes, bRes, uRes, exRes] = await Promise.all([
         fetch('/api/live/markets'),
         apiFetch(`/api/wallet?userId=${userId}`),
         apiFetch(`/api/live/bets?userId=${userId}`),
         fetch('/api/live/upcoming'),
+        fetch('/api/exhibitions/live'),
       ]);
       if (mRes.ok) setMarkets(await mRes.json());
       if (wRes.ok) setBalanceCents((await wRes.json()).balanceCents);
       if (bRes.ok) setMyBets(await bRes.json());
       if (uRes.ok) setUpcoming(await uRes.json());
+      if (exRes.ok) setLiveExhibitions(await exRes.json());
       setError(null);
     } catch (err) {
       setError('Failed to load live markets.');
@@ -313,6 +317,8 @@ const LiveBetting = () => {
           </div>
         )}
         {error && <p className="error-message">{error}</p>}
+
+        <ExhibitionSection exhibitions={liveExhibitions} title="Exhibition Matches" />
 
         {markets.length === 0 ? (
           upcoming && upcoming.tournament ? (
