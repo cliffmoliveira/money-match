@@ -274,7 +274,7 @@ const Bracket = ({ markets = [], slip = {}, onPick, demoControls, waiting = fals
       // (e.g. Losers Final → Grand Final). In that case jog RIGHT first so the
       // line exits right → goes up → comes back left, instead of a reverse zig-zag.
       const gap = b.left - a.right;
-      const xbend = gap < 0
+      const xbend = (gap < 0 && from === 'LF-0')
         ? a.right + 18
         : gap > 40 ? b.left - 18 : a.right + gap / 2;
       next.push(`M ${a.right} ${a.mid} H ${xbend} V ${bMid} H ${b.left}`);
