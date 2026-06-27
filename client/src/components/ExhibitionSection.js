@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import './ExhibitionSection.css';
-import { getGameLogoSources, getGameAlt } from '../utils/gameLogos';
+import { getGameLogoSources, getGameAlt, getGameLogoStyle } from '../utils/gameLogos';
 import { getTournamentLogoSources, getTournamentAlt } from '../utils/tournamentLogos';
 
 const STATE_BADGE = {
@@ -9,7 +9,7 @@ const STATE_BADGE = {
   settled: { label: 'FINAL',       cls: 'ex-badge-final' },
 };
 
-const SmallLogo = ({ candidates, alt, className }) => {
+const SmallLogo = ({ candidates, alt, className, style }) => {
   const [index, setIndex] = useState(0);
   const src = candidates[index];
   if (!src) return null;
@@ -18,17 +18,25 @@ const SmallLogo = ({ candidates, alt, className }) => {
       src={src}
       alt={alt}
       className={className}
+      style={style}
       onError={() => setIndex((i) => i + 1)}
     />
   );
 };
 
-const GameLogo = ({ name }) => {
+const GameLogo = ({ name, height = 28 }) => {
   if (!name) return null;
   const { svg, avif, webp, png, jpg, jpeg } = getGameLogoSources(name);
   const candidates = [svg, avif, webp, png, jpg, jpeg].filter(Boolean);
   if (!candidates.length) return null;
-  return <SmallLogo candidates={candidates} alt={getGameAlt(name)} className="ex-logo-game" />;
+  return (
+    <SmallLogo
+      candidates={candidates}
+      alt={getGameAlt(name)}
+      className="ex-logo-game"
+      style={getGameLogoStyle(name, height)}
+    />
+  );
 };
 
 const TournamentLogo = ({ name, logoUrl }) => {
