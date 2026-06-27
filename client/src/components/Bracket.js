@@ -270,8 +270,13 @@ const Bracket = ({ markets = [], slip = {}, onPick, demoControls, waiting = fals
       // Long runs (e.g. into Grand Final) bend close to the target so the
       // vertical drops in the clear gap beside it, not across a column's label.
       // Short, adjacent runs bend at the midpoint for the classic bracket look.
+      // On mobile (stacked layout) the target can be to the LEFT of the source
+      // (e.g. Losers Final → Grand Final). In that case jog RIGHT first so the
+      // line exits right → goes up → comes back left, instead of a reverse zig-zag.
       const gap = b.left - a.right;
-      const xbend = gap > 40 ? b.left - 18 : a.right + gap / 2;
+      const xbend = gap < 0
+        ? a.right + 18
+        : gap > 40 ? b.left - 18 : a.right + gap / 2;
       next.push(`M ${a.right} ${a.mid} H ${xbend} V ${bMid} H ${b.left}`);
     }
 
