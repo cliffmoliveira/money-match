@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './ExhibitionSection.css';
 import { getGameLogoSources, getGameAlt, getGameLogoStyle } from '../utils/gameLogos';
-import { getTournamentLogoSources, getTournamentAlt } from '../utils/tournamentLogos';
+import { getTournamentLogoSources, getTournamentAlt, getTournamentLogoStyle } from '../utils/tournamentLogos';
 
 const STATE_BADGE = {
   open:    { label: 'LIVE',        cls: 'ex-badge-live' },
@@ -39,15 +39,91 @@ const GameLogo = ({ name, height = 28 }) => {
   );
 };
 
-const TournamentLogo = ({ name, logoUrl }) => {
+const TournamentLogo = ({ name, logoUrl, height = 24 }) => {
   if (!name && !logoUrl) return null;
   const { avif, webp, png, jpg, jpeg } = getTournamentLogoSources(name || '');
   const candidates = [logoUrl, avif, webp, png, jpg, jpeg].filter(Boolean);
   if (!candidates.length) return null;
-  return <SmallLogo candidates={candidates} alt={getTournamentAlt(name || '')} className="ex-logo-tournament" />;
+  return (
+    <SmallLogo
+      candidates={candidates}
+      alt={getTournamentAlt(name || '')}
+      className="ex-logo-tournament"
+      style={getTournamentLogoStyle(name || '', height)}
+    />
+  );
 };
 
-// Settled exhibitions: compact row with game logo + tight winner/def/loser
+// Table layout — matches PastResults desktop table (reuses PastResults.css classes)
+const ExhibitionTable = ({ exhibitions }) => (
+  <>
+    <div className="results-table-container">
+      <table className="results-table">
+        <thead>
+          <tr>
+            <th>Tournament</th>
+            <th>Date</th>
+            <th className="game">Game</th>
+            <th>Winner</th>
+            <th>Loser</th>
+          </tr>
+        </thead>
+        <tbody>
+          {exhibitions.map((ex) => {
+            const loser = ex.winner_name === ex.player1_name ? ex.player2_name : ex.player1_name;
+            const dateStr = ex.event_date
+              ? new Date(ex.event_date + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+              : '—';
+            return (
+              <tr key={ex.id} className="result-row">
+                <td className="tournament-name">
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                    <TournamentLogo name={ex.tournament_name} logoUrl={ex.tournament_logo_url} height={64} />
+                    <span style={{ textAlign: 'center' }}>{ex.tournament_name}</span>
+                  </div>
+                </td>
+                <td className="date" data-label="Date">{dateStr}</td>
+                <td className="game" data-label="Game">
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+                    <GameLogo name={ex.game_name} height={56} />
+                  </div>
+                </td>
+                <td className="winner" data-label="Winner">{ex.winner_name || '?'}</td>
+                <td className="loser" data-label="Loser">{loser || '?'}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+
+    {/* Mobile cards — same structure as PastResults */}
+    <div className="results-cards">
+      {exhibitions.map((ex) => {
+        const loser = ex.winner_name === ex.player1_name ? ex.player2_name : ex.player1_name;
+        const dateStr = ex.event_date
+          ? new Date(ex.event_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+          : null;
+        return (
+          <div className="result-card" key={ex.id}>
+            <TournamentLogo name={ex.tournament_name} logoUrl={ex.tournament_logo_url} height={30} />
+            <div className="rc-body">
+              <div className="rc-result">
+                <span className="rc-winner">{ex.winner_name || '?'}</span>
+                <span className="rc-loser">{loser || '?'}</span>
+              </div>
+              <div className="rc-meta">
+                {[ex.game_name, dateStr, ex.tournament_name].filter(Boolean).join(' · ')}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  </>
+);
+
+// Compact row — used on Home page for settled exhibitions
 const SettledRow = ({ ex }) => {
   const loser = ex.winner_name === ex.player1_name ? ex.player2_name : ex.player1_name;
   const dateStr = ex.event_date
@@ -115,18 +191,29 @@ const ExhibitionCard = ({ ex }) => {
   );
 };
 
-const ExhibitionSection = ({ exhibitions, title = 'Exhibitions' }) => {
+// layout="table" → desktop table + mobile cards (Results page)
+// layout="cards" → compact rows (Home page, default)
+const ExhibitionSection = ({ exhibitions, title = 'Exhibitions', layout = 'cards' }) => {
   if (!exhibitions || exhibitions.length === 0) return null;
+
+  const settled = exhibitions.filter((ex) => ex.state === 'settled');
+  const active = exhibitions.filter((ex) => ex.state !== 'settled');
+
   return (
     <section className="ex-section">
       <h2 className="ex-section-title">{title}</h2>
-      <div className="ex-list">
-        {exhibitions.map((ex) =>
-          ex.state === 'settled'
-            ? <SettledRow key={ex.id} ex={ex} />
-            : <ExhibitionCard key={ex.id} ex={ex} />
-        )}
-      </div>
+      {active.length > 0 && (
+        <div className="ex-list" style={{ marginBottom: settled.length ? 16 : 0 }}>
+          {active.map((ex) => <ExhibitionCard key={ex.id} ex={ex} />)}
+        </div>
+      )}
+      {settled.length > 0 && (
+        layout === 'table'
+          ? <ExhibitionTable exhibitions={settled} />
+          : <div className="ex-list">
+              {settled.map((ex) => <SettledRow key={ex.id} ex={ex} />)}
+            </div>
+      )}
     </section>
   );
 };

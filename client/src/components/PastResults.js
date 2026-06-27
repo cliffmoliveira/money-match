@@ -157,7 +157,7 @@ const PastResults = () => {
     <div className="past-results-container">
       <h1 className="sr-only">Results</h1>
 
-      <ExhibitionSection exhibitions={exhibitions} title="Exhibition Results" />
+      <ExhibitionSection exhibitions={exhibitions} title="Exhibition Results" layout="table" />
 
       {/* Filters */}
       <div className="filter-bar">
