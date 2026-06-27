@@ -103,6 +103,19 @@ async function fillBracketSlot({
   slot, playerId, seed = null,
 }) {
   if (!playerId) return;
+
+  // Don't advance a player who still has an active (open/closed) match in this
+  // tournament. Start.gg pre-populates next-round slots based on seeding before
+  // feeder sets finish; without this guard a player appears in two live markets.
+  const stillActive = await db.getAsync(
+    `SELECT id FROM set_markets
+     WHERE tournament_id = ? AND state IN ('open', 'closed')
+       AND (player1_id = ? OR player2_id = ?)
+       AND startgg_set_id != ?`,
+    [tournamentId, playerId, playerId, startggSetId]
+  );
+  if (stillActive) return;
+
   const existing = await db.getAsync('SELECT * FROM set_markets WHERE startgg_set_id = ?', [startggSetId]);
 
   if (!existing) {
