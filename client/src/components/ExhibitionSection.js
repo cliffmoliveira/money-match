@@ -39,14 +39,35 @@ const TournamentLogo = ({ name, logoUrl }) => {
   return <SmallLogo candidates={candidates} alt={getTournamentAlt(name || '')} className="ex-logo-tournament" />;
 };
 
-const ExhibitionCard = ({ ex }) => {
-  const badge = STATE_BADGE[ex.state] || {};
-  const loser = ex.winner_name
-    ? (ex.winner_name === ex.player1_name ? ex.player2_name : ex.player1_name)
+// Settled exhibitions: table-row style matching PastResults cards
+const SettledRow = ({ ex }) => {
+  const loser = ex.winner_name === ex.player1_name ? ex.player2_name : ex.player1_name;
+  const dateStr = ex.event_date
+    ? new Date(ex.event_date + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
     : null;
+  const meta = [ex.game_name, ex.tournament_name, dateStr].filter(Boolean).join(' · ');
 
   return (
-    <div className={`ex-card${ex.state === 'settled' ? ' ex-settled' : ''}`}>
+    <div className="result-card">
+      <TournamentLogo name={ex.tournament_name} logoUrl={ex.tournament_logo_url} height={30} />
+      <div className="rc-body">
+        <div className="rc-result">
+          <span className="rc-winner">{ex.winner_name || '?'}</span>
+          <span className="rc-score" style={{ color: 'var(--muted)', fontSize: '12px', fontWeight: 600 }}>def.</span>
+          <span className="rc-loser">{loser || '?'}</span>
+        </div>
+        {meta && <div className="rc-meta">{meta}</div>}
+      </div>
+    </div>
+  );
+};
+
+// Live/open exhibitions: gold card format
+const ExhibitionCard = ({ ex }) => {
+  const badge = STATE_BADGE[ex.state] || {};
+
+  return (
+    <div className="ex-card">
       <div className="ex-card-top">
         <span className="ex-label">⭐ Exhibition</span>
         <div className="ex-card-meta">
@@ -78,12 +99,6 @@ const ExhibitionCard = ({ ex }) => {
         </span>
       </div>
 
-      {ex.state === 'settled' && ex.winner_name && (
-        <div className="ex-result">
-          {ex.winner_name} def. {loser}
-        </div>
-      )}
-
       {ex.notes && <div className="ex-notes">{ex.notes}</div>}
     </div>
   );
@@ -95,7 +110,11 @@ const ExhibitionSection = ({ exhibitions, title = 'Exhibitions' }) => {
     <section className="ex-section">
       <h2 className="ex-section-title">{title}</h2>
       <div className="ex-list">
-        {exhibitions.map((ex) => <ExhibitionCard key={ex.id} ex={ex} />)}
+        {exhibitions.map((ex) =>
+          ex.state === 'settled'
+            ? <SettledRow key={ex.id} ex={ex} />
+            : <ExhibitionCard key={ex.id} ex={ex} />
+        )}
       </div>
     </section>
   );

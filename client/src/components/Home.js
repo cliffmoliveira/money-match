@@ -49,6 +49,20 @@ const GameLogo = ({ name, height = 24, customStyles = {} }) => {
   );
 };
 
+// Parses "SPONSOR | tag" format used in start.gg player names
+const LivePlayerName = ({ name }) => {
+  if (!name) return <span className="lh-tag">TBD</span>;
+  const i = name.indexOf('|');
+  const sponsor = i === -1 ? '' : name.slice(0, i).trim();
+  const tag = (i === -1 ? name : name.slice(i + 1)).trim();
+  return (
+    <span className="lh-name-stack">
+      {sponsor && <span className="lh-sponsor">{sponsor}</span>}
+      <span className="lh-tag">{tag}</span>
+    </span>
+  );
+};
+
 const Home = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -307,11 +321,20 @@ const Home = () => {
           <div className="live-hero-sets">
             {liveNow.slice(0, 3).map((m) => (
               <div key={m.id} className="live-hero-set">
-                <span className="live-hero-meta">{m.game_name}{m.round_text ? ` · ${m.round_text}` : ''}</span>
+                <div className="lh-set-header">
+                  <GameLogo name={m.game_name} height={20} />
+                  {m.round_text && <span className="live-hero-meta">{m.round_text}</span>}
+                </div>
                 <div className="live-hero-match">
-                  <span className="lh-player">{m.player1_name} <b>{Number(m.p1_live_odds).toFixed(2)}</b></span>
+                  <span className="lh-player">
+                    <LivePlayerName name={m.player1_name} />
+                    <b className="lh-odds">{Number(m.p1_live_odds).toFixed(2)}</b>
+                  </span>
                   <span className="lh-vs">vs</span>
-                  <span className="lh-player">{m.player2_name} <b>{Number(m.p2_live_odds).toFixed(2)}</b></span>
+                  <span className="lh-player">
+                    <LivePlayerName name={m.player2_name} />
+                    <b className="lh-odds">{Number(m.p2_live_odds).toFixed(2)}</b>
+                  </span>
                 </div>
               </div>
             ))}

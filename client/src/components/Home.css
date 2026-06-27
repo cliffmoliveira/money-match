@@ -115,7 +115,8 @@ body { background: var(--bg); color: var(--text); }
   border: 1px solid var(--border);
   border-radius: 15px; padding: 15px;
 }
-.live-hero-meta { display: block; font-family: 'Saira', sans-serif; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-bottom: 10px; }
+.lh-set-header { display: flex; align-items: center; gap: 7px; margin-bottom: 10px; }
+.live-hero-meta { font-family: 'Saira', sans-serif; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
 .live-hero-match { display: flex; flex-direction: column; gap: 8px; }
 .lh-player {
   display: flex; align-items: center; justify-content: space-between;
@@ -123,6 +124,10 @@ body { background: var(--bg); color: var(--text); }
   border-radius: 11px; padding: 11px 14px; font-family: 'Saira', sans-serif; font-weight: 600;
 }
 .lh-player b { font-size: 17px; font-variant-numeric: tabular-nums; }
+.lh-odds { color: var(--gold) !important; }
+.lh-name-stack { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.lh-sponsor { font-size: 8px; font-weight: 700; color: var(--faint); text-transform: uppercase; letter-spacing: .04em; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lh-tag { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.2; }
 .live-hero-cta {
   align-self: flex-start;
   font-family: 'Saira', sans-serif; font-weight: 600; font-size: 14px;
@@ -315,6 +320,8 @@ body { background: var(--bg); color: var(--text); }
 
 @media (max-width: 760px) {
   .live-hero-sets, .spotlight-grid, .champion-grid, .bets-grid { grid-template-columns: minmax(0, 1fr); }
+  .lh-player { padding: 9px 12px; }
+  .lh-odds { font-size: 15px; }
   /* Keep Rank / Open bets / 7-day P&L on one compact row on phones. */
   .stat-strip { grid-template-columns: repeat(2, 1fr); gap: 8px; }
   .stat-card { padding: 12px 10px; }

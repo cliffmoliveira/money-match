@@ -18,6 +18,11 @@
   gap: 10px;
 }
 
+/* When settled exhibitions render as result-card rows inside ex-list,
+   suppress the green star — we want gold via ex-section-title branding */
+.ex-list .result-card .rc-winner::before { color: var(--gold); }
+.ex-list .result-card .rc-score { color: var(--muted); font-size: 12px; }
+
 .ex-card {
   background: var(--card);
   border: 1px solid var(--gold);
