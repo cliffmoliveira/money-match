@@ -104,6 +104,19 @@ async function fillBracketSlot({
 }) {
   if (!playerId) return;
 
+  // Void any lingering preview_* projection for this player in this tournament
+  // now that their real set is known. Projected markets have synthetic set IDs;
+  // keeping them open alongside the real set creates duplicate bracket cards.
+  if (!startggSetId.startsWith('preview_')) {
+    await db.runAsync(
+      `UPDATE set_markets SET state='void'
+       WHERE tournament_id = ? AND startgg_set_id LIKE 'preview_%'
+         AND state NOT IN ('settled','void')
+         AND (player1_id = ? OR player2_id = ?)`,
+      [tournamentId, playerId, playerId]
+    );
+  }
+
   // Don't advance a player who still has an active (open/closed) match in this
   // tournament. Start.gg pre-populates next-round slots based on seeding before
   // feeder sets finish; without this guard a player appears in two live markets.
