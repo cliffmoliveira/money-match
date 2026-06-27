@@ -39,8 +39,12 @@
 
 .live-tournament { margin-bottom: 30px; }
 .live-tournament > h2 {
+  display: flex; align-items: center; gap: 10px;
   font-family: 'Saira', sans-serif; font-weight: 700; color: var(--text);
   font-size: 19px; margin: 0 0 16px;
+}
+.live-tournament-logo {
+  height: 36px; width: auto; border-radius: 6px; object-fit: contain; flex-shrink: 0;
 }
 .live-game { position: relative; margin-bottom: 30px; }
 .live-game-aside {

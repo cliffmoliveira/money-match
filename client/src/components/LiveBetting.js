@@ -280,14 +280,14 @@ const LiveBetting = () => {
 
   if (loading) return <p className="live-loading">Loading live markets…</p>;
 
-  // Group markets by tournament -> game
+  // Group markets by tournament -> game, capturing the tournament logo on first encounter
   const groups = {};
   for (const m of markets) {
     const tKey = m.tournament_name;
     const gKey = m.game_name;
-    groups[tKey] = groups[tKey] || {};
-    groups[tKey][gKey] = groups[tKey][gKey] || [];
-    groups[tKey][gKey].push(m);
+    if (!groups[tKey]) groups[tKey] = { logoUrl: m.tournament_logo_url || null, games: {} };
+    groups[tKey].games[gKey] = groups[tKey].games[gKey] || [];
+    groups[tKey].games[gKey].push(m);
   }
 
   return (
@@ -324,9 +324,12 @@ const LiveBetting = () => {
             </div>
           )
         ) : (
-          Object.entries(groups).map(([tournamentName, games]) => (
+          Object.entries(groups).map(([tournamentName, { logoUrl, games }]) => (
             <section key={tournamentName} className="live-tournament">
-              <h2>{tournamentName}</h2>
+              <h2>
+                {logoUrl && <img src={logoUrl} alt={tournamentName} className="live-tournament-logo" />}
+                {tournamentName}
+              </h2>
               {Object.entries(games).map(([gameName, mkts]) => (
                 <div key={gameName} className="live-game">
                   <div className="live-game-aside">
