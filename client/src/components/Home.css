@@ -127,7 +127,7 @@ body { background: var(--bg); color: var(--text); }
 .lh-player b { font-size: 17px; font-variant-numeric: tabular-nums; }
 .lh-odds { color: var(--gold) !important; }
 .lh-name-stack { display: flex; flex-direction: column; flex: 1; min-width: 0; }
-.lh-sponsor { font-size: 8px; font-weight: 700; color: var(--faint); text-transform: uppercase; letter-spacing: .04em; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lh-sponsor { font-size: 10px; font-weight: 700; color: var(--faint); text-transform: uppercase; letter-spacing: .04em; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lh-tag { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.2; }
 .live-hero-cta {
   align-self: flex-start;
