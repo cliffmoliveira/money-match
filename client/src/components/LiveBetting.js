@@ -44,7 +44,6 @@ const LiveBetting = () => {
   const [demoEnabled, setDemoEnabled] = useState(false);
   const [myBets, setMyBets] = useState([]);
   const [slipOpen, setSlipOpen] = useState(false); // desktop bet-slip drawer
-  const [oddsInfo, setOddsInfo] = useState(false); // "what are odds?" popover
 
   const userId = localStorage.getItem('userId');
 
@@ -314,29 +313,7 @@ const LiveBetting = () => {
           </div>
         )}
         {error && <p className="error-message">{error}</p>}
-        {markets.length > 0 && (
-          <div className="live-odds-legend">
-            <span>Gold number = <strong>odds</strong> · bar = <strong>pool split</strong></span>
-            <span className={`oddsinfo${oddsInfo ? ' open' : ''}`} onMouseLeave={() => setOddsInfo(false)}>
-              <button
-                type="button"
-                className="oddsinfo-btn"
-                aria-label="What do odds and the pool bar mean?"
-                aria-expanded={oddsInfo}
-                onClick={() => setOddsInfo((o) => !o)}
-              >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
-                </svg>
-              </button>
-              <span className="oddsinfo-pop" role="tooltip">
-                <strong>Odds</strong> — bet 10 FM at 2.50× to win 25 FM back (stake × odds). They're parimutuel: they shift as money comes in and lock in when the set starts.<br /><br />
-                <strong>Bar</strong> — shows how the FM pool is split between the two players. The more lopsided it is, the bigger the underdog's payout.
-              </span>
-            </span>
-          </div>
-        )}
+
         {markets.length === 0 ? (
           upcoming && upcoming.tournament ? (
             <WaitingRoom tournament={upcoming.tournament} games={upcoming.games} />

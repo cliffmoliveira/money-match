@@ -72,7 +72,7 @@ const PoolBar = ({ p1 = 0, p2 = 0 }) => {
   const pct = total > 0 ? (p1 / total) * 100 : 50;
   const usd = (c) => `${Math.round(c / 100).toLocaleString('en-US')} FM`;
   return (
-    <div className="bnode-pool" title="Live betting pool — odds are parimutuel and move as money comes in">
+    <div className="bnode-pool" title="Pool split — shows how much FM is wagered on each side. The more lopsided it is, the bigger the underdog's payout.">
       <div className="bnode-pool-bar"><span style={{ width: `${pct}%` }} /></div>
       <div className="bnode-pool-amts">
         <span>{usd(p1)}</span>
@@ -133,7 +133,10 @@ const Node = ({ market, slip, onPick, demoControls, registerRef, projected }) =>
       {settled
         ? <span className="bnode-score">{score}</span>
         : (open || closed)
-        ? <span className="bnode-odds">{Number(odds).toFixed(2)}</span>
+        ? <span className="bnode-odds-stack" title={`${Number(odds).toFixed(2)}× odds — bet 10 FM to win ${(10 * odds).toFixed(1)} FM back. Shifts as bets come in, locks when the set starts.`}>
+            <span className="bnode-odds-label">Odds</span>
+            <span className="bnode-odds">{Number(odds).toFixed(2)}</span>
+          </span>
         : <span className="bnode-odds muted">—</span>}
     </button>
   );

@@ -199,29 +199,6 @@
 .live-mybets-status.refunded { background: var(--surface); color: var(--muted); }
 .live-mybets-amount { font-family: 'Saira', sans-serif; font-size: 14px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
 
-/* "What are odds?" legend above the live markets, with a self-contained
-   hover+click info popover (own classes so it doesn't depend on another
-   route's stylesheet being loaded). */
-.live-odds-legend { display: flex; align-items: center; gap: 6px; margin: 0 0 14px; font-size: 12.5px; color: var(--muted); }
-.live-odds-legend strong { color: var(--gold); font-weight: 700; }
-.oddsinfo { position: relative; display: inline-flex; align-items: center; }
-.oddsinfo-btn {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 22px; height: 22px; padding: 0; border: none; border-radius: 999px;
-  background: transparent; color: var(--muted); cursor: pointer; transition: color 140ms ease;
-}
-.oddsinfo-btn:hover, .oddsinfo.open .oddsinfo-btn { color: var(--gold); }
-.oddsinfo-btn:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-.oddsinfo-pop {
-  position: absolute; top: calc(100% + 8px); left: 0; z-index: 50;
-  width: 240px; padding: 10px 12px;
-  background: var(--card); border: 1px solid var(--border-strong); border-radius: 10px;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
-  color: var(--text); font-size: 12.5px; line-height: 1.5; text-align: left; font-weight: 400;
-  opacity: 0; visibility: hidden; transform: translateY(-4px);
-  transition: opacity 140ms ease, transform 140ms ease, visibility 140ms ease;
-}
-.oddsinfo:hover .oddsinfo-pop, .oddsinfo.open .oddsinfo-pop { opacity: 1; visibility: visible; transform: translateY(0); }
 
 @media (max-width: 980px) {
   /* On mobile, keep the drawer pattern but slide it up from the bottom as a sheet,
