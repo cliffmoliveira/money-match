@@ -243,6 +243,9 @@ const Bracket = ({ markets = [], slip = {}, onPick, demoControls, waiting = fals
         right: (r.right - innerRect.left) / cur,
         left: (r.left - innerRect.left) / cur,
         mid: (midClient - innerRect.top) / cur,
+        bottom: (r.bottom - innerRect.top) / cur,
+        top: (r.top - innerRect.top) / cur,
+        cx: (r.left + r.width / 2 - innerRect.left) / cur,
       };
     };
     // Grand Final sits in a cell spanning both bracket halves, so its center
@@ -274,9 +277,20 @@ const Bracket = ({ markets = [], slip = {}, onPick, demoControls, waiting = fals
       // (e.g. Losers Final → Grand Final). In that case jog RIGHT first so the
       // line exits right → goes up → comes back left, instead of a reverse zig-zag.
       const gap = b.left - a.right;
-      const xbend = (gap < 0 && from === 'LF-0')
-        ? a.right + 18
-        : gap > 40 ? b.left - 18 : a.right + gap / 2;
+      // WF→GF on mobile: GF is stacked below WF, so exit from the bottom
+      // center of WF, drop down, then go right into GF's left edge.
+      if (from === 'WF-0' && to === 'GF-0' && bMid > a.mid) {
+        next.push(`M ${a.cx} ${a.bottom} V ${bMid} H ${b.left}`);
+        continue;
+      }
+      // LF→GF on mobile: GF is above LF, so exit from the top center of LF,
+      // go up to GF's mid, then right into GF's left edge. Avoids any rightward
+      // overflow that would clip at the screen edge.
+      if (from === 'LF-0' && to === 'GF-0' && bMid < a.mid) {
+        next.push(`M ${a.cx} ${a.top} V ${bMid} H ${b.left}`);
+        continue;
+      }
+      const xbend = gap > 40 ? b.left - 18 : a.right + gap / 2;
       next.push(`M ${a.right} ${a.mid} H ${xbend} V ${bMid} H ${b.left}`);
     }
 
