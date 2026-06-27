@@ -115,7 +115,7 @@ body { background: var(--bg); color: var(--text); }
   border: 1px solid var(--border);
   border-radius: 15px; padding: 15px;
 }
-.lh-set-header { display: flex; align-items: center; gap: 7px; margin-bottom: 10px; }
+.lh-set-header { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; margin-bottom: 12px; }
 .live-hero-meta { font-family: 'Saira', sans-serif; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
 .live-hero-match { display: flex; flex-direction: column; gap: 8px; }
 .lh-player {

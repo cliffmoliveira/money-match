@@ -322,7 +322,7 @@ const Home = () => {
             {liveNow.slice(0, 3).map((m) => (
               <div key={m.id} className="live-hero-set">
                 <div className="lh-set-header">
-                  <GameLogo name={m.game_name} height={20} />
+                  <GameLogo name={m.game_name} height={36} />
                   {m.round_text && <span className="live-hero-meta">{m.round_text}</span>}
                 </div>
                 <div className="live-hero-match">
