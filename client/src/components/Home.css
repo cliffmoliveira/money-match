@@ -252,6 +252,7 @@ body { background: var(--bg); color: var(--text); }
   padding: 18px 20px;
   box-shadow: none;
   transition: border-color 0.15s ease;
+  min-width: 0;
 }
 .champion-card:hover { transform: none; border-color: rgba(231,180,88,0.25); box-shadow: none; }
 .champion-game { display: flex; align-items: center; align-self: flex-start; height: auto; margin-bottom: 14px; }
@@ -264,7 +265,7 @@ body { background: var(--bg); color: var(--text); }
 .champion-winner::before { content: "★ "; color: var(--gold); }
 .champion-meta { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; color: var(--text-muted); margin-bottom: 14px; }
 .champion-tournament { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%; min-width: 0; }
-.champion-score { background: var(--surface); color: #C9CCD3; border: 1px solid var(--border-soft); border-radius: 8px; padding: 5px 11px; font-size: 12px; font-weight: 500; text-align: left; font-variant-numeric: tabular-nums; align-self: flex-start; }
+.champion-score { background: var(--surface); color: #C9CCD3; border: 1px solid var(--border-soft); border-radius: 8px; padding: 5px 11px; font-size: 12px; font-weight: 500; text-align: left; font-variant-numeric: tabular-nums; align-self: flex-start; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .champion-score b, .champion-score .score { font-family: 'Saira', sans-serif; color: var(--win); }
 
 /* ---------- Your Bets ---------- */
