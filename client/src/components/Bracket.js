@@ -146,11 +146,12 @@ const Node = ({ market, slip, onPick, demoControls, registerRef, projected }) =>
 
   return (
     <div ref={setRef} className={`bnode ${market.state}`}>
-      <div className="bnode-head">
-        <span>{market.round_text || 'Top 8'}</span>
-        {closed && <span className="bnode-live">LIVE</span>}
-        {pending && <span className="bnode-wait">WAITING</span>}
-      </div>
+      {(closed || pending) && (
+        <div className="bnode-head">
+          {closed && <span className="bnode-live">LIVE</span>}
+          {pending && <span className="bnode-wait">WAITING</span>}
+        </div>
+      )}
       {row(market.player1_id, market.player1_name, market.p1_live_odds, market.p1_score, p1Win, p2Win)}
       {row(market.player2_id, market.player2_name, market.p2_live_odds, market.p2_score, p2Win, p1Win)}
       {(open || closed) && <PoolBar p1={market.p1_pool_cents} p2={market.p2_pool_cents} />}
