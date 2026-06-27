@@ -39,24 +39,27 @@ const TournamentLogo = ({ name, logoUrl }) => {
   return <SmallLogo candidates={candidates} alt={getTournamentAlt(name || '')} className="ex-logo-tournament" />;
 };
 
-// Settled exhibitions: table-row style matching PastResults cards
+// Settled exhibitions: compact row with game logo + tight winner/def/loser
 const SettledRow = ({ ex }) => {
   const loser = ex.winner_name === ex.player1_name ? ex.player2_name : ex.player1_name;
   const dateStr = ex.event_date
     ? new Date(ex.event_date + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
     : null;
-  const meta = [ex.game_name, ex.tournament_name, dateStr].filter(Boolean).join(' · ');
+  const meta = [ex.tournament_name, dateStr].filter(Boolean).join(' · ');
 
   return (
-    <div className="result-card">
-      <TournamentLogo name={ex.tournament_name} logoUrl={ex.tournament_logo_url} height={30} />
-      <div className="rc-body">
-        <div className="rc-result">
-          <span className="rc-winner">{ex.winner_name || '?'}</span>
-          <span className="rc-score" style={{ color: 'var(--muted)', fontSize: '12px', fontWeight: 600 }}>def.</span>
-          <span className="rc-loser">{loser || '?'}</span>
+    <div className="ex-result-row">
+      <div className="ex-result-logos">
+        <GameLogo name={ex.game_name} />
+        <TournamentLogo name={ex.tournament_name} logoUrl={ex.tournament_logo_url} />
+      </div>
+      <div className="ex-result-body">
+        <div className="ex-result-match">
+          <span className="ex-result-winner">{ex.winner_name || '?'}</span>
+          <span className="ex-result-def">def.</span>
+          <span className="ex-result-loser">{loser || '?'}</span>
         </div>
-        {meta && <div className="rc-meta">{meta}</div>}
+        {meta && <div className="ex-result-meta">{meta}</div>}
       </div>
     </div>
   );
