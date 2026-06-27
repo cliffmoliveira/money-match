@@ -42,14 +42,19 @@
   font-family: 'Saira', sans-serif; font-weight: 700; color: var(--text);
   font-size: 19px; margin: 0 0 16px;
 }
-.live-game { margin-bottom: 20px; }
-.live-game > h3 {
-  display: flex; align-items: center; gap: 9px;
-  text-transform: uppercase; letter-spacing: .07em;
-  font-family: 'Saira', sans-serif; font-size: 12px; font-weight: 600;
-  color: var(--muted); margin: 0 0 11px;
+.live-game { display: flex; align-items: flex-start; gap: 32px; margin-bottom: 30px; }
+.live-game-bracket { flex: 1; min-width: 0; }
+.live-game-aside {
+  flex-shrink: 0; width: 220px;
+  display: flex; align-items: center; justify-content: center;
+  padding-top: 16px;
+  opacity: 0.85;
 }
-.live-game-title img { flex-shrink: 0; }
+
+@media (max-width: 820px) {
+  .live-game { flex-direction: column; gap: 16px; }
+  .live-game-aside { width: 100%; justify-content: flex-start; padding-top: 0; }
+}
 
 .live-market-grid { display: flex; flex-direction: column; gap: 12px; }
 

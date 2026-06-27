@@ -329,13 +329,17 @@ const LiveBetting = () => {
               <h2>{tournamentName}</h2>
               {Object.entries(games).map(([gameName, mkts]) => (
                 <div key={gameName} className="live-game">
-                  <h3 className="live-game-title"><GameLogo name={gameName} height={40} /></h3>
-                  <Bracket
-                    markets={mkts}
-                    slip={slip}
-                    onPick={togglePick}
-                    demoControls={demo ? renderDemoControls : null}
-                  />
+                  <div className="live-game-bracket">
+                    <Bracket
+                      markets={mkts}
+                      slip={slip}
+                      onPick={togglePick}
+                      demoControls={demo ? renderDemoControls : null}
+                    />
+                  </div>
+                  <div className="live-game-aside">
+                    <GameLogo name={gameName} height={90} />
+                  </div>
                 </div>
               ))}
             </section>
