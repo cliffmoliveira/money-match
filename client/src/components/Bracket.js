@@ -45,6 +45,10 @@ function classify(market) {
   return 'WSF';
 }
 
+// Start.gg tags often carry a "TEAM | gamerTag" prefix; the compact bracket
+// cards show just the gamer tag (the full name stays in a title tooltip).
+const shortName = (name) => (name && name.includes('|') ? name.split('|').pop().trim() : name);
+
 // Parimutuel pool split for a live/closed set: a bar + the money wagered on each
 // side, so a bettor can see exactly what drives the odds and that payouts come
 // from the pool.
@@ -64,7 +68,7 @@ const PoolBar = ({ p1 = 0, p2 = 0 }) => {
   );
 };
 
-const Node = ({ market, slip, onPick, demoControls, registerRef, pickemFor, onPickem, projected }) => {
+const Node = ({ market, slip, onPick, demoControls, registerRef, projected }) => {
   const setRef = (el) => registerRef(el);
   if (!market) {
     // Pre-tournament: show the seed-projected matchup (view-only — never a market,
@@ -81,7 +85,7 @@ const Node = ({ market, slip, onPick, demoControls, registerRef, pickemFor, onPi
             return (
               <div key={i} className="bnode-row projected">
                 {pl
-                  ? <span className="bnode-name"><span className="bnode-seed">#{pl.seed}</span>{pl.name}</span>
+                  ? <span className="bnode-name" title={pl.name}><span className="bnode-seed">#{pl.seed}</span>{shortName(pl.name)}</span>
                   : <span className="bnode-name tbd">TBD</span>}
               </div>
             );
@@ -110,7 +114,7 @@ const Node = ({ market, slip, onPick, demoControls, registerRef, pickemFor, onPi
       disabled={!open || !name}
       onClick={() => open && name && onPick(market, pid)}
     >
-      <span className={`bnode-name ${name ? '' : 'tbd'}`}>{name || 'TBD'}</span>
+      <span className={`bnode-name ${name ? '' : 'tbd'}`} title={name || undefined}>{name ? shortName(name) : 'TBD'}</span>
       {settled
         ? <span className="bnode-score">{score}</span>
         : (open || closed)
@@ -132,37 +136,15 @@ const Node = ({ market, slip, onPick, demoControls, registerRef, pickemFor, onPi
       {row(market.player1_id, market.player1_name, market.p1_live_odds, market.p1_score, p1Win, p2Win)}
       {row(market.player2_id, market.player2_name, market.p2_live_odds, market.p2_score, p2Win, p1Win)}
       {(open || closed) && <PoolBar p1={market.p1_pool_cents} p2={market.p2_pool_cents} />}
-      {pickemFor && (open || closed || settled) && (
-        <div className="bnode-pickem">
-          <div className="bnode-pickem-label">{pickemFor.locked ? "Pick locked" : "Free pick"}</div>
-          <div className="bnode-pickem-opts">
-            {[[market.player1_id, market.player1_name], [market.player2_id, market.player2_name]].map(([pid, name]) => {
-              const share = (pickemFor.split && (pickemFor.split[pid] ?? pickemFor.split[String(pid)])) || 0;
-              const mine = pickemFor.myPick === pid;
-              const won = settled && pickemFor.winnerId === pid;
-              return (
-                <button
-                  key={pid}
-                  type="button"
-                  className={`bnode-pick${mine ? ' mine' : ''}${won ? ' won' : ''}`}
-                  disabled={pickemFor.locked || !name || !onPickem}
-                  onClick={() => onPickem && onPickem(market.id, pid)}
-                  title={pickemFor.locked ? 'Picks are locked' : `Free pick: ${name || 'TBD'}`}
-                >
-                  <span className="bnode-pick-name">{name || 'TBD'}</span>
-                  <span className="bnode-pick-share">{Math.round(share * 100)}%</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+      {open && !picked(market.player1_id) && !picked(market.player2_id) && (
+        <div className="bnode-bethint">Tap a player to bet FM</div>
       )}
       {demoControls && demoControls(market)}
     </div>
   );
 };
 
-const Column = ({ col, markets, slip, onPick, demoControls, registerRef, pickem, onPickem, projected }) => {
+const Column = ({ col, markets, slip, onPick, demoControls, registerRef, projected }) => {
   const nodes = markets.filter((m) => classify(m) === col.key).sort((a, b) => a.id - b.id);
   // Render at least `cap` cells (TBD placeholders before markets exist), but more
   // if a column actually holds extra markets — notably the Grand Final + its
@@ -177,8 +159,6 @@ const Column = ({ col, markets, slip, onPick, demoControls, registerRef, pickem,
         slip={slip}
         onPick={onPick}
         demoControls={demoControls}
-        pickemFor={pickem ? pickem[nodes[i]?.id] : null}
-        onPickem={onPickem}
         projected={projected ? projected[`${col.key}-${i}`] : null}
         registerRef={(el) => registerRef(`${col.key}-${i}`, el)}
       />
@@ -192,7 +172,7 @@ const Column = ({ col, markets, slip, onPick, demoControls, registerRef, pickem,
   );
 };
 
-const Bracket = ({ markets = [], slip = {}, onPick, demoControls, waiting = false, pickem = {}, onPickem, projected = {} }) => {
+const Bracket = ({ markets = [], slip = {}, onPick, demoControls, waiting = false, projected = {} }) => {
   const fitRef = useRef(null);    // available-width container (overflow hidden)
   const innerRef = useRef(null);  // natural-size, scaled to fit
   const nodeRefs = useRef({});
@@ -299,7 +279,7 @@ const Bracket = ({ markets = [], slip = {}, onPick, demoControls, waiting = fals
   const colFor = (key) => COLUMNS.find((c) => c.key === key);
   const winners = ['WSF', 'WF'];
   const losers = ['LR1', 'LR2', 'LSF', 'LF'];
-  const common = { markets, slip, onPick, demoControls, registerRef, pickem, onPickem, projected };
+  const common = { markets, slip, onPick, demoControls, registerRef, projected };
 
   return (
     <div

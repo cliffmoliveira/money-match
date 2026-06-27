@@ -94,6 +94,13 @@
 .bnode-pool-amts { display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: var(--muted); margin-top: 4px; font-variant-numeric: tabular-nums; }
 .bnode-pool-mid { color: var(--faint); font-size: 9px; text-transform: uppercase; letter-spacing: .04em; }
 
+/* Hint that the player rows above are tappable to place an FM bet (shown until
+   the user has picked someone in this set). */
+.bnode-bethint {
+  padding: 6px 9px; border-top: 1px dashed var(--border-soft);
+  font-size: 10px; color: var(--muted); text-align: center; letter-spacing: .02em;
+}
+
 /* Waiting room: pulse the empty slots so it's clear what we're waiting to fill */
 .bracket-waiting .bnode.tbd {
   animation: bracketWait 1.8s ease-in-out infinite;

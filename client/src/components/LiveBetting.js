@@ -34,7 +34,6 @@ const GameLogo = ({ name, height = 30 }) => {
 const LiveBetting = () => {
   const [markets, setMarkets] = useState([]);
   const [upcoming, setUpcoming] = useState(null);
-  const [pickem, setPickem] = useState({}); // free pick'em overlay, keyed by market id
   const [balanceCents, setBalanceCents] = useState(null);
   const [slip, setSlip] = useState({}); // key: `${marketId}_${playerId}`
   const [placing, setPlacing] = useState(false);
@@ -57,18 +56,16 @@ const LiveBetting = () => {
 
   const refresh = useCallback(async () => {
     try {
-      const [mRes, wRes, bRes, uRes, pRes] = await Promise.all([
+      const [mRes, wRes, bRes, uRes] = await Promise.all([
         fetch('/api/live/markets'),
         apiFetch(`/api/wallet?userId=${userId}`),
         apiFetch(`/api/live/bets?userId=${userId}`),
         fetch('/api/live/upcoming'),
-        fetch(`/api/pickem/overlay?userId=${userId}`),
       ]);
       if (mRes.ok) setMarkets(await mRes.json());
       if (wRes.ok) setBalanceCents((await wRes.json()).balanceCents);
       if (bRes.ok) setMyBets(await bRes.json());
       if (uRes.ok) setUpcoming(await uRes.json());
-      if (pRes.ok) setPickem(await pRes.json());
       setError(null);
     } catch (err) {
       setError('Failed to load live markets.');
@@ -77,31 +74,21 @@ const LiveBetting = () => {
     }
   }, [userId]);
 
-  // Free pick'em: place/edit a winner pick (no money), then refresh the overlay.
-  const makePick = async (marketId, playerId) => {
-    if (!userId) return;
-    try {
-      const res = await fetch('/api/pickem/pick', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: Number(userId), marketId, pickedPlayerId: playerId }),
-      });
-      if (res.ok) refresh();
-    } catch { /* ignore transient errors */ }
-  };
-
   useEffect(() => {
     refresh();
     const id = setInterval(refresh, POLL_MS);
     return () => clearInterval(id);
   }, [refresh]);
 
-  const addToSlip = (market, playerId) => {
+  // Tap a player to add them to the slip; tap the same player again to remove
+  // them. Toggling means deselecting always clears the highlight.
+  const togglePick = (market, playerId) => {
     if (market.state !== 'open') return;
     const key = `${market.id}_${playerId}`;
-    const isP1 = playerId === market.player1_id;
+    const removing = Boolean(slip[key]);
     setSlip((prev) => {
-      if (prev[key]) return prev;
+      if (prev[key]) { const next = { ...prev }; delete next[key]; return next; }
+      const isP1 = playerId === market.player1_id;
       return {
         ...prev,
         [key]: {
@@ -119,7 +106,7 @@ const LiveBetting = () => {
       };
     });
     setPlaceMsg(null);
-    setSlipOpen(true); // surface the slip drawer the moment a pick is added
+    if (!removing) setSlipOpen(true); // surface the slip only when adding a pick
   };
 
   const removeFromSlip = (key) => {
@@ -345,10 +332,8 @@ const LiveBetting = () => {
                   <Bracket
                     markets={mkts}
                     slip={slip}
-                    onPick={addToSlip}
+                    onPick={togglePick}
                     demoControls={demo ? renderDemoControls : null}
-                    pickem={pickem}
-                    onPickem={makePick}
                   />
                 </div>
               ))}
