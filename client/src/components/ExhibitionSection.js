@@ -1,10 +1,42 @@
-import React from 'react';
+import React, { useState } from 'react';
 import './ExhibitionSection.css';
+import { getGameLogoSources, getGameAlt } from '../utils/gameLogos';
+import { getTournamentLogoSources, getTournamentAlt } from '../utils/tournamentLogos';
 
 const STATE_BADGE = {
-  open:    { label: 'LIVE',    cls: 'ex-badge-live' },
+  open:    { label: 'LIVE',        cls: 'ex-badge-live' },
   closed:  { label: 'IN PROGRESS', cls: 'ex-badge-live' },
-  settled: { label: 'FINAL',   cls: 'ex-badge-final' },
+  settled: { label: 'FINAL',       cls: 'ex-badge-final' },
+};
+
+const SmallLogo = ({ candidates, alt, className }) => {
+  const [index, setIndex] = useState(0);
+  const src = candidates[index];
+  if (!src) return null;
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className={className}
+      onError={() => setIndex((i) => i + 1)}
+    />
+  );
+};
+
+const GameLogo = ({ name }) => {
+  if (!name) return null;
+  const { svg, avif, webp, png, jpg, jpeg } = getGameLogoSources(name);
+  const candidates = [svg, avif, webp, png, jpg, jpeg].filter(Boolean);
+  if (!candidates.length) return null;
+  return <SmallLogo candidates={candidates} alt={getGameAlt(name)} className="ex-logo-game" />;
+};
+
+const TournamentLogo = ({ name, logoUrl }) => {
+  if (!name && !logoUrl) return null;
+  const { avif, webp, png, jpg, jpeg } = getTournamentLogoSources(name || '');
+  const candidates = [logoUrl, avif, webp, png, jpg, jpeg].filter(Boolean);
+  if (!candidates.length) return null;
+  return <SmallLogo candidates={candidates} alt={getTournamentAlt(name || '')} className="ex-logo-tournament" />;
 };
 
 const ExhibitionCard = ({ ex }) => {
@@ -18,8 +50,18 @@ const ExhibitionCard = ({ ex }) => {
       <div className="ex-card-top">
         <span className="ex-label">⭐ Exhibition</span>
         <div className="ex-card-meta">
-          {ex.game_name && <span className="ex-game">{ex.game_name}</span>}
-          {ex.tournament_name && <span className="ex-tournament">{ex.tournament_name}</span>}
+          {ex.game_name && (
+            <span className="ex-game">
+              <GameLogo name={ex.game_name} />
+              {ex.game_name}
+            </span>
+          )}
+          {ex.tournament_name && (
+            <span className="ex-tournament">
+              <TournamentLogo name={ex.tournament_name} logoUrl={ex.tournament_logo_url} />
+              {ex.tournament_name}
+            </span>
+          )}
           {badge.label && <span className={`ex-badge ${badge.cls}`}>{badge.label}</span>}
         </div>
       </div>

@@ -58,6 +58,9 @@
 }
 
 .ex-game {
+  display: flex;
+  align-items: center;
+  gap: 5px;
   font-family: 'Saira', sans-serif;
   font-size: 11px;
   font-weight: 600;
@@ -65,9 +68,27 @@
 }
 
 .ex-tournament {
+  display: flex;
+  align-items: center;
+  gap: 5px;
   font-family: 'Saira', sans-serif;
   font-size: 11px;
   color: var(--faint);
+}
+
+.ex-logo-game {
+  height: 18px;
+  width: auto;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.ex-logo-tournament {
+  height: 18px;
+  width: auto;
+  object-fit: contain;
+  border-radius: 3px;
+  flex-shrink: 0;
 }
 
 .ex-badge {
