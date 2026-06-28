@@ -64,7 +64,7 @@
 .live-game { position: relative; margin-bottom: 30px; }
 .live-game-aside {
   position: absolute; top: 0; right: 0;
-  opacity: 0.7; pointer-events: none;
+  opacity: 1; pointer-events: none;
 }
 .live-game-aside img {
   max-width: 360px !important;
