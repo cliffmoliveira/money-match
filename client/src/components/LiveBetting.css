@@ -76,7 +76,7 @@
   text-transform: uppercase; line-height: 1;
 }
 .live-tab-live-dot {
-  width: 5px; height: 5px; border-radius: 50%; background: #fff; flex-shrink: 0;
+  width: 5px; height: 5px; border-radius: 50%; background: var(--live-text); flex-shrink: 0;
   animation: liveTabPulse 1.8s ease-in-out infinite;
 }
 @keyframes liveTabPulse {
