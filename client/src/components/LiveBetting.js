@@ -46,6 +46,7 @@ const LiveBetting = () => {
   const [myBets, setMyBets] = useState([]);
   const [slipOpen, setSlipOpen] = useState(false); // desktop bet-slip drawer
   const [liveExhibitions, setLiveExhibitions] = useState([]);
+  const [activeTab, setActiveTab] = useState(null);
 
   const userId = localStorage.getItem('userId');
 
@@ -301,6 +302,24 @@ const LiveBetting = () => {
   const gamePriority = (mkts) =>
     Math.min(...mkts.map((m) => STATE_PRIORITY[m.state] ?? 4));
 
+  // Flat sorted tab list: one entry per (tournament, game) pair
+  const tabs = [];
+  for (const [tName, { logoUrl: tLogo, games }] of Object.entries(groups)) {
+    for (const [gName, mkts] of Object.entries(games).sort(([, a], [, b]) => gamePriority(a) - gamePriority(b))) {
+      tabs.push({
+        key: `${tName}::${gName}`,
+        tournamentName: tName,
+        gameName: gName,
+        mkts,
+        logoUrl: tLogo,
+        isLive: mkts.some((m) => m.state === 'closed'),
+      });
+    }
+  }
+  // Resolve effective tab: keep user selection if still valid, else first tab
+  const effectiveTabKey = tabs.find((t) => t.key === activeTab)?.key ?? tabs[0]?.key ?? null;
+  const activeTabData = tabs.find((t) => t.key === effectiveTabKey);
+
   return (
     <div className="live-layout">
       <div className="live-main">
@@ -337,27 +356,50 @@ const LiveBetting = () => {
             </div>
           )
         ) : (
-          Object.entries(groups).map(([tournamentName, { logoUrl, games }]) => (
-            <section key={tournamentName} className="live-tournament">
-              <h2>
-                {logoUrl && <img src={logoUrl} alt={tournamentName} className="live-tournament-logo" />}
-                {tournamentName}
-              </h2>
-              {Object.entries(games).sort(([, a], [, b]) => gamePriority(a) - gamePriority(b)).map(([gameName, mkts]) => (
-                <div key={gameName} className="live-game">
+          <>
+            {/* Scrollable game tab strip */}
+            <div className="live-tabs" role="tablist">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={tab.key === effectiveTabKey}
+                  className={`live-tab${tab.key === effectiveTabKey ? ' active' : ''}`}
+                  onClick={() => setActiveTab(tab.key)}
+                >
+                  {tab.isLive && <span className="live-tab-dot" aria-hidden="true" />}
+                  <div className="live-tab-logo">
+                    <GameLogo name={tab.gameName} height={28} />
+                  </div>
+                  <span className="live-tab-label">{tab.gameName}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Active bracket */}
+            {activeTabData && (
+              <section className="live-tournament" role="tabpanel">
+                <h2>
+                  {activeTabData.logoUrl && (
+                    <img src={activeTabData.logoUrl} alt={activeTabData.tournamentName} className="live-tournament-logo" />
+                  )}
+                  {activeTabData.tournamentName}
+                </h2>
+                <div className="live-game">
                   <div className="live-game-aside">
-                    <GameLogo name={gameName} height={200} />
+                    <GameLogo name={activeTabData.gameName} height={200} />
                   </div>
                   <Bracket
-                    markets={mkts}
+                    markets={activeTabData.mkts}
                     slip={slip}
                     onPick={togglePick}
                     demoControls={demo ? renderDemoControls : null}
                   />
                 </div>
-              ))}
-            </section>
-          ))
+              </section>
+            )}
+          </>
         )}
       </div>
 

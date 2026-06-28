@@ -37,6 +37,48 @@
 }
 .live-empty h2 { font-family: 'Saira', sans-serif; color: var(--text); margin-bottom: 8px; }
 
+/* Game tab strip — one tab per live game, horizontally scrollable */
+.live-tabs {
+  display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none;
+  padding-bottom: 4px; margin-bottom: 20px;
+}
+.live-tabs::-webkit-scrollbar { display: none; }
+
+.live-tab {
+  flex-shrink: 0; position: relative;
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  min-width: 100px; max-width: 130px; padding: 10px 12px; border-radius: 12px;
+  border: 1px solid var(--border); background: var(--card);
+  cursor: pointer; transition: border-color .15s, background .15s;
+}
+.live-tab:hover { border-color: rgba(231,180,88,0.4); }
+.live-tab.active { border-color: var(--gold); background: var(--gold-tint); }
+
+/* Pulsing red dot signals a set actively in progress */
+.live-tab-dot {
+  position: absolute; top: 7px; right: 7px;
+  width: 7px; height: 7px; border-radius: 50%; background: var(--live-text);
+  animation: liveTabPulse 1.8s ease-in-out infinite;
+}
+@keyframes liveTabPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.6; transform: scale(0.75); }
+}
+
+.live-tab-logo {
+  height: 34px; width: 100%;
+  display: flex; align-items: center; justify-content: center;
+}
+.live-tab-logo img { max-height: 34px !important; max-width: 88px !important; object-fit: contain; }
+
+.live-tab-label {
+  font-family: 'Saira', sans-serif; font-size: 9px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .04em; color: var(--muted);
+  text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  width: 100%;
+}
+.live-tab.active .live-tab-label { color: var(--gold); }
+
 .live-tournament { margin-bottom: 30px; }
 .live-tournament + .live-tournament {
   border-top: 2px solid rgba(255,255,255,0.35);
