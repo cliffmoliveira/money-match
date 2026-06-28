@@ -105,6 +105,8 @@ const PastResults = () => {
     };
 
     fetchAll();
+    const id = setInterval(fetchAll, 30000);
+    return () => clearInterval(id);
   }, []);
 
   // Reset the incremental window when filters change so a new result set starts at the top.
