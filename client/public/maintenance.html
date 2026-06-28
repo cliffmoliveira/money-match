@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hit Confirmed — Back Soon</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Saira:wght@700;800;900&family=Hanken+Grotesk:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0b0d12;
+      --card: #13161d;
+      --border: rgba(255,255,255,0.08);
+      --text: #e8eaf0;
+      --muted: #7b8190;
+      --gold: #E7B458;
+      --gold-grad: linear-gradient(135deg, #E7B458 0%, #caa044 100%);
+      --live: #ff5159;
+    }
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Hanken Grotesk', sans-serif; }
+    body { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; text-align: center; }
+
+    .logo {
+      font-family: 'Saira', sans-serif;
+      font-weight: 900;
+      font-size: clamp(28px, 6vw, 48px);
+      letter-spacing: -.01em;
+      background: var(--gold-grad);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 40px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 48px 40px;
+      max-width: 480px;
+      width: 100%;
+    }
+
+    .pulse {
+      display: inline-block;
+      width: 10px; height: 10px;
+      background: var(--gold);
+      border-radius: 50%;
+      margin-bottom: 24px;
+      animation: pulse 1.6s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(231,180,88,0.5); }
+      50% { opacity: 0.7; transform: scale(1.15); box-shadow: 0 0 0 8px rgba(231,180,88,0); }
+    }
+
+    h1 {
+      font-family: 'Saira', sans-serif;
+      font-weight: 800;
+      font-size: clamp(20px, 4vw, 26px);
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+
+    p {
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 28px 0;
+    }
+
+    .detail {
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .detail strong { color: var(--gold); }
+  </style>
+</head>
+<body>
+  <div class="logo">HITCONFIRMED</div>
+  <div class="card">
+    <div class="pulse"></div>
+    <h1>We'll be right back.</h1>
+    <p>Hit Confirmed is updating. This usually takes less than a minute — refresh and you'll be back in the action.</p>
+    <div class="divider"></div>
+    <p class="detail">Live bets and FM balances are safe. <strong>No action needed on your end.</strong></p>
+  </div>
+</body>
+</html>

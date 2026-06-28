@@ -38,6 +38,17 @@ app.use(express.static(path.join(__dirname, 'client', 'build')));
 // Password reset (forgot-password / reset-password) — uses the global express.json above.
 app.use('/api/auth', require('./auth/passwordReset'));
 
+// Health check — Render polls this before switching traffic on deploys.
+// Returns 503 if the DB isn't reachable so the old instance keeps serving.
+app.get('/api/health', async (req, res) => {
+  try {
+    await db.getAsync('SELECT 1');
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(503).json({ ok: false });
+  }
+});
+
 // API Routes
 app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
