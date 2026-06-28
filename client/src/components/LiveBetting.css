@@ -39,15 +39,18 @@
 
 .live-tournament { margin-bottom: 30px; }
 .live-tournament + .live-tournament {
-  border-top: 1px solid rgba(255,255,255,0.18);
+  border-top: 2px solid rgba(255,255,255,0.35);
   padding-top: 40px;
   margin-top: 40px;
 }
 .live-game + .live-game {
-  border-top: 1px solid rgba(255,255,255,0.12);
+  border-top: 1px solid rgba(255,255,255,0.30);
   padding-top: 40px;
   margin-top: 40px;
 }
+/* Pad the bottom of each game section so the absolutely-positioned game logo
+   doesn't overlap the divider line above the next section. */
+.live-game { padding-bottom: 220px; }
 .live-tournament > h2 {
   display: flex; align-items: center; gap: 10px;
   font-family: 'Saira', sans-serif; font-weight: 700; color: var(--text);
