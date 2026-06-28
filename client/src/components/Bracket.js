@@ -45,17 +45,21 @@ function classify(market) {
   return 'WSF';
 }
 
-// Start.gg tags often carry a "TEAM | gamerTag" prefix; the compact bracket
-// cards show just the gamer tag (the full name stays in a title tooltip).
-const shortName = (name) => (name && name.includes('|') ? name.split('|').pop().trim() : name);
+// Start.gg tags carry "TEAM | gamerTag" (English) or "日本語名/RomanTag" (Japanese).
+// Both separators work the same way: left = sponsor/prefix, right = display tag.
+const splitName = (name) => {
+  if (!name) return { sponsor: '', tag: name };
+  const pi = name.indexOf('|');
+  if (pi !== -1) return { sponsor: name.slice(0, pi).trim(), tag: name.slice(pi + 1).trim() };
+  const si = name.indexOf('/');
+  if (si !== -1) return { sponsor: name.slice(0, si).trim(), tag: name.slice(si + 1).trim() };
+  return { sponsor: '', tag: name };
+};
+const shortName = (name) => splitName(name).tag || name;
 
-// Render a player as the sponsor/team (small, above) + the gamer tag (main).
-// Plain names with no "TEAM |" prefix render as just the tag.
 const PlayerName = ({ name }) => {
   if (!name) return <span className="bnode-tag">TBD</span>;
-  const i = name.indexOf('|');
-  const sponsor = i === -1 ? '' : name.slice(0, i).trim();
-  const tag = (i === -1 ? name : name.slice(i + 1)).trim();
+  const { sponsor, tag } = splitName(name);
   return (
     <>
       {sponsor && <span className="bnode-sponsor">{sponsor}</span>}
