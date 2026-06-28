@@ -90,7 +90,9 @@ const ExhibitionTable = ({ exhibitions }) => (
                   </div>
                 </td>
                 <td className="winner" data-label="Winner">{ex.winner_name || '?'}</td>
-                <td className="score" data-label="Score">—</td>
+                <td className="score" data-label="Score">
+                  {ex.winner_score != null ? `${ex.winner_score} – ${ex.loser_score}` : '—'}
+                </td>
                 <td className="loser" data-label="Loser">{loser || '?'}</td>
               </tr>
             );

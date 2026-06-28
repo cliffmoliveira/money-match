@@ -11,10 +11,27 @@ async function applyExhibitionsSchema() {
       game_name TEXT,
       state TEXT NOT NULL DEFAULT 'pending',
       winner_name TEXT,
+      winner_score INTEGER,
+      loser_score INTEGER,
       notes TEXT,
       event_date TEXT,
       created_at TEXT DEFAULT (datetime('now'))
     )
+  `);
+  // Add score columns to existing tables on Render (ALTER TABLE ignores if already present via try/catch)
+  for (const col of ['winner_score INTEGER', 'loser_score INTEGER']) {
+    try {
+      await db.runAsync(`ALTER TABLE exhibitions ADD COLUMN ${col}`);
+    } catch (e) {
+      if (!e.message.includes('duplicate column name')) throw e;
+    }
+  }
+  // Fix Ludwig/Tyler1 exhibition: Ludwig won 10-3
+  await db.runAsync(`
+    UPDATE exhibitions
+    SET winner_name = 'Ludwig', winner_score = 10, loser_score = 3, state = 'settled'
+    WHERE player1_name IN ('Ludwig','Tyler1') AND player2_name IN ('Ludwig','Tyler1')
+      AND (winner_name IS NULL OR winner_name = 'Tyler1')
   `);
 }
 
@@ -47,10 +64,10 @@ async function createExhibition({ tournament_id, tournament_name, player1_name, 
   return result.lastID;
 }
 
-async function settleExhibition(id, winner_name) {
+async function settleExhibition(id, winner_name, winner_score = null, loser_score = null) {
   await db.runAsync(
-    `UPDATE exhibitions SET state = 'settled', winner_name = ? WHERE id = ?`,
-    [winner_name, id]
+    `UPDATE exhibitions SET state = 'settled', winner_name = ?, winner_score = ?, loser_score = ? WHERE id = ?`,
+    [winner_name, winner_score, loser_score, id]
   );
 }
 

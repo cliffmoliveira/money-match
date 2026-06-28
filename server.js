@@ -931,9 +931,13 @@ app.post('/api/admin/exhibition/:id/close', async (req, res) => {
 
 app.post('/api/admin/exhibition/:id/settle', async (req, res) => {
   try {
-    const { winner_name } = req.body;
+    const { winner_name, winner_score, loser_score } = req.body;
     if (!winner_name) return res.status(400).json({ error: 'winner_name required.' });
-    await exhibitions.settleExhibition(Number(req.params.id), winner_name);
+    await exhibitions.settleExhibition(
+      Number(req.params.id), winner_name,
+      winner_score != null ? Number(winner_score) : null,
+      loser_score != null ? Number(loser_score) : null
+    );
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: 'Failed to settle exhibition.' });
