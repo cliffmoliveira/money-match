@@ -47,7 +47,7 @@ async function getActiveExhibitions() {
 
 async function getSettledExhibitions() {
   return db.allAsync(`
-    SELECT e.*, t.logo_url AS tournament_logo_url
+    SELECT e.*, t.logo_url AS tournament_logo_url, t.city, t.country
     FROM exhibitions e
     LEFT JOIN tournaments t ON t.id = e.tournament_id
     WHERE e.state = 'settled'

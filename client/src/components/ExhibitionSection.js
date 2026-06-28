@@ -63,6 +63,7 @@ const ExhibitionTable = ({ exhibitions }) => (
         <thead>
           <tr>
             <th>Tournament</th>
+            <th>Location</th>
             <th>Date</th>
             <th className="game">Game</th>
             <th>Winner</th>
@@ -83,6 +84,9 @@ const ExhibitionTable = ({ exhibitions }) => (
                     <TournamentLogo name={ex.tournament_name} logoUrl={ex.tournament_logo_url} height={64} />
                     <span style={{ textAlign: 'center' }}>{ex.tournament_name}</span>
                   </div>
+                </td>
+                <td className="location" data-label="Location">
+                  {ex.city && ex.country ? `${ex.city}, ${ex.country}` : 'Online'}
                 </td>
                 <td className="date" data-label="Date">{dateStr}</td>
                 <td className="game" data-label="Game">
