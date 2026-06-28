@@ -82,6 +82,7 @@
 .bnode-tag-p2 { color: var(--text); margin-top: 1px; }
 .bnode-row.picked .bnode-sponsor { color: var(--on-gold); }
 .bnode-row.loss .bnode-name { color: var(--faint); font-weight: 500; }
+.bnode-row.loss .bnode-tag-p2 { color: var(--faint); font-weight: 500; }
 .bnode-row.loss .bnode-score { color: var(--live-text); }
 .bnode-odds-stack { display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0; }
 .bnode-odds-label { font-size: 8px; font-weight: 700; color: var(--faint); text-transform: uppercase; letter-spacing: .04em; line-height: 1.15; }
