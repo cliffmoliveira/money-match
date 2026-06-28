@@ -122,8 +122,8 @@
 .date { color: var(--muted); font-family: 'Saira', sans-serif; font-weight: 500; font-variant-numeric: tabular-nums; min-width: 70px; max-width: 90px; font-size: 12px; white-space: nowrap; }
 .game { color: var(--muted); font-family: 'Saira', sans-serif; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; min-width: 100px; text-align: center; }
 .results-table td.game > div { display: flex; align-items: center; justify-content: center; width: 100%; }
-.winner { font-family: 'Saira', sans-serif; color: var(--text); font-weight: 700; min-width: 100px; max-width: 180px; overflow-wrap: anywhere; display: flex; align-items: center; gap: 8px; vertical-align: middle; }
-.winner::before { content: "★"; color: var(--gold); font-size: 20px; flex: none; align-self: center; }
+.winner { font-family: 'Saira', sans-serif; color: var(--text); font-weight: 700; min-width: 100px; max-width: 180px; overflow-wrap: anywhere; }
+.winner::before { content: "★"; color: var(--gold); font-size: 20px; margin-right: 8px; vertical-align: middle; }
 .pr-name-stack { display: inline-flex; flex-direction: column; line-height: 1; gap: 2px; vertical-align: middle; }
 .pr-sponsor { font-size: 12px; font-weight: 700; color: var(--faint); text-transform: uppercase; letter-spacing: .04em; }
 .pr-tag { font-size: 18px; font-weight: 700; font-family: 'Saira', sans-serif; }
