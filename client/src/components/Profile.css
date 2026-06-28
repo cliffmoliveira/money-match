@@ -67,6 +67,7 @@
 .pf-bet-pick { font-weight: 700; color: var(--gold); }
 .pf-bet-stake { display: flex; align-items: center; gap: 6px; flex: none; margin-left: auto; font-family: 'Saira', sans-serif; font-size: 13px; white-space: nowrap; }
 .pf-bet-amount { font-weight: 700; font-variant-numeric: tabular-nums; }
+.pf-bet-amount.loss { color: var(--live-text); }
 .pf-bet-odds { color: var(--muted); font-weight: 600; }
 .pf-bet-payout { font-weight: 700; color: var(--win); font-variant-numeric: tabular-nums; }
 

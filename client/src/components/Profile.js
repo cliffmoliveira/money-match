@@ -132,7 +132,7 @@ const Profile = () => {
                   </div>
                   <div className="bet-player pf-bet-pick">{picked}{opp ? ` vs ${opp}` : ''}</div>
                   <div className="pf-bet-stake">
-                    <span className="pf-bet-amount">{stakeFm} FM</span>
+                    <span className={`pf-bet-amount${b.state === 'lost' ? ' loss' : ''}`}>{stakeFm} FM</span>
                     {odds && <span className="pf-bet-odds">@ {odds}×</span>}
                     {payoutFm && <span className="pf-bet-payout">→ {payoutFm} FM</span>}
                   </div>
