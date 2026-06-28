@@ -89,17 +89,6 @@ const Profile = () => {
 
   return (
     <div className="profile-page">
-      <div className="pf-head">
-        <div>
-          <h1>{data.display_name || username || 'You'} &middot; Picks</h1>
-          <p className="pf-sub">{data.correct_count}/{data.total_picks} winners called.</p>
-        </div>
-        <div className="pf-head-actions">
-          <Link to="/leaderboard" className="pf-ranks-link">Leaderboard</Link>
-          <Link to="/account" className="pf-edit">Edit profile</Link>
-        </div>
-      </div>
-
       <div className="pf-stats">
         {stats.map((s) => (
           <div key={s.label} className={`pf-stat${s.gold ? ' gold' : ''}`}>
