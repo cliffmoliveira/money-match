@@ -41,16 +41,18 @@
 .live-tournament + .live-tournament {
   border-top: 2px solid rgba(255,255,255,0.35);
   padding-top: 40px;
-  margin-top: 40px;
+  margin-top: 16px;
 }
 .live-game + .live-game {
   border-top: 1px solid rgba(255,255,255,0.30);
-  padding-top: 40px;
-  margin-top: 40px;
+  padding-top: 52px;
+  margin-top: 16px;
 }
-/* Pad the bottom of each game section so the absolutely-positioned game logo
-   doesn't overlap the divider line above the next section. */
-.live-game { padding-bottom: 220px; }
+/* The game logo is abs-positioned at top:0 so it lands right on the border.
+   Offset it downward only when it follows a sibling game section. */
+.live-game + .live-game .live-game-aside {
+  top: 52px;
+}
 .live-tournament > h2 {
   display: flex; align-items: center; gap: 10px;
   font-family: 'Saira', sans-serif; font-weight: 700; color: var(--text);
