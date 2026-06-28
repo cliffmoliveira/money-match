@@ -33,6 +33,12 @@ export const gameSlugMap = {
   'Vampire Savior: The Lord of Vampire': 'vampire-savior',
   'Vampire Savior': 'vampire-savior', // alias
   'Under Night In-Birth II Sys:Celes': 'under-night-in-birth-2-sysceles', // Evo 2026 name
+  // start.gg all-caps / punctuation variants
+  'TEKKEN 8': 'tekken-8',
+  'DRAGON BALL FighterZ': 'dragon-ball-fighterz',
+  'Granblue Fantasy Versus: Rising': 'granblue-fantasy-versus-rising',
+  'Guilty Gear: Strive': 'guilty-gear-strive',
+  'Guilty Gear -Strive-': 'guilty-gear-strive',
 };
 
 // Per-game visual tuning (very wide logos, etc.) by slug
