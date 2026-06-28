@@ -57,25 +57,27 @@
 
 .live-tab {
   flex-shrink: 0; position: relative;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  width: 90px; height: 64px; padding: 8px; border-radius: 12px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  width: 110px; padding: 10px 10px 8px; border-radius: 12px;
   border: 1px solid var(--border); background: var(--card);
   cursor: pointer; transition: border-color .15s, background .15s;
 }
 .live-tab:hover { border-color: rgba(231,180,88,0.4); }
 .live-tab.active { border-color: var(--gold); background: var(--gold-tint); }
+.live-tab.settled { border-color: rgba(231,180,88,0.35); background: var(--gold-tint); }
+.live-tab.settled.active { border-color: var(--gold); }
 
-/* LIVE badge — top-left corner, red pill with pulsing dot */
+/* LIVE badge — top-left corner, red pill with pulsing dot + white text */
 .live-tab-live-badge {
   position: absolute; top: 5px; left: 5px;
   display: inline-flex; align-items: center; gap: 3px;
-  background: var(--live-tint); color: var(--live-text);
+  background: var(--live-tint); color: #fff;
   font-family: 'Saira', sans-serif; font-size: 7px; font-weight: 800;
   letter-spacing: .06em; padding: 2px 4px 2px 3px; border-radius: 4px;
   text-transform: uppercase; line-height: 1;
 }
 .live-tab-live-dot {
-  width: 5px; height: 5px; border-radius: 50%; background: var(--live-text); flex-shrink: 0;
+  width: 5px; height: 5px; border-radius: 50%; background: #fff; flex-shrink: 0;
   animation: liveTabPulse 1.8s ease-in-out infinite;
 }
 @keyframes liveTabPulse {
@@ -84,10 +86,18 @@
 }
 
 .live-tab-logo {
-  height: 38px; width: 100%;
+  height: 46px; width: 100%;
   display: flex; align-items: center; justify-content: center;
 }
-.live-tab-logo img { max-height: 38px !important; max-width: 76px !important; object-fit: contain; }
+.live-tab-logo img { max-height: 46px !important; max-width: 92px !important; object-fit: contain; }
+
+/* Winner name shown below the logo on settled (completed) game tabs */
+.live-tab-winner {
+  font-family: 'Saira', sans-serif; font-size: 9px; font-weight: 700;
+  color: var(--gold); text-align: center;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;
+  line-height: 1;
+}
 
 .live-tournament { margin-bottom: 30px; }
 .live-tournament + .live-tournament {

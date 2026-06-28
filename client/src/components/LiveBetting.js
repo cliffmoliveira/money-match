@@ -305,9 +305,17 @@ const LiveBetting = () => {
     Math.min(...mkts.map((m) => STATE_PRIORITY[m.state] ?? 4));
 
   // Flat sorted tab list: one entry per (tournament, game) pair
+  const shortTag = (name) => (name && name.includes('|') ? name.split('|').pop().trim() : name);
   const tabs = [];
   for (const [tName, { logoUrl: tLogo, games }] of Object.entries(groups)) {
     for (const [gName, mkts] of Object.entries(games).sort(([, a], [, b]) => gamePriority(a) - gamePriority(b))) {
+      const isSettled = mkts.length > 0 && mkts.every((m) => m.state === 'settled' || m.state === 'void');
+      const gfMarket = isSettled
+        ? mkts.find((m) => m.state === 'settled' && /grand.final/i.test(m.round_text || ''))
+        : null;
+      const winner = gfMarket
+        ? shortTag(gfMarket.winner_id === gfMarket.player1_id ? gfMarket.player1_name : gfMarket.player2_name)
+        : null;
       tabs.push({
         key: `${tName}::${gName}`,
         tournamentName: tName,
@@ -315,6 +323,8 @@ const LiveBetting = () => {
         mkts,
         logoUrl: tLogo,
         isLive: mkts.some((m) => m.state === 'closed'),
+        isSettled,
+        winner,
       });
     }
   }
@@ -369,7 +379,7 @@ const LiveBetting = () => {
                     type="button"
                     role="tab"
                     aria-selected={tab.key === effectiveTabKey}
-                    className={`live-tab${tab.key === effectiveTabKey ? ' active' : ''}`}
+                    className={`live-tab${tab.key === effectiveTabKey ? ' active' : ''}${tab.isSettled ? ' settled' : ''}`}
                     onClick={() => setActiveTab(tab.key)}
                   >
                     {tab.isLive && (
@@ -379,8 +389,11 @@ const LiveBetting = () => {
                       </span>
                     )}
                     <div className="live-tab-logo">
-                      <GameLogo name={tab.gameName} height={28} />
+                      <GameLogo name={tab.gameName} height={32} />
                     </div>
+                    {tab.isSettled && tab.winner && (
+                      <span className="live-tab-winner">{tab.winner}</span>
+                    )}
                   </button>
                 ))}
               </div>
