@@ -174,6 +174,8 @@ const PastResults = () => {
 
       <ExhibitionSection exhibitions={exhibitions} title="Exhibition Results" layout="table" />
 
+      <h2 className="pr-section-title">Tournament Results</h2>
+
       {/* Filters */}
       <div className="filter-bar">
         <button

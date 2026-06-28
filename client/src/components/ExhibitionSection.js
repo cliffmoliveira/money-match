@@ -65,6 +65,7 @@ const ExhibitionTable = ({ exhibitions }) => (
             <th>Date</th>
             <th className="game">Game</th>
             <th>Winner</th>
+            <th>Score</th>
             <th>Loser</th>
           </tr>
         </thead>
@@ -89,6 +90,7 @@ const ExhibitionTable = ({ exhibitions }) => (
                   </div>
                 </td>
                 <td className="winner" data-label="Winner">{ex.winner_name || '?'}</td>
+                <td className="score" data-label="Score">—</td>
                 <td className="loser" data-label="Loser">{loser || '?'}</td>
               </tr>
             );

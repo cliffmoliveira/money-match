@@ -169,8 +169,8 @@ app.get('/api/past-results', async (req, res) => {
         g.name AS game,
         pw.name AS winner,
         pl.name AS loser,
-        NULL AS winnerRoundsWon,
-        NULL AS loserRoundsWon,
+        CASE WHEN sm.winner_id = sm.player1_id THEN sm.p1_score ELSE sm.p2_score END AS winnerRoundsWon,
+        CASE WHEN sm.winner_id = sm.player1_id THEN sm.p2_score ELSE sm.p1_score END AS loserRoundsWon,
         sm.round_text AS roundText
       FROM set_markets sm
       JOIN tournaments t ON t.id = sm.tournament_id
