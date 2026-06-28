@@ -118,9 +118,7 @@ const Profile = () => {
 
       {/* Live bet history — full list */}
       <h2 className="pf-recent-title">Bet history</h2>
-      {betsLoading ? (
-        <p className="pf-muted">Loading bets…</p>
-      ) : liveBets.length === 0 ? (
+      {liveBets.length === 0 ? (
         <p className="pf-muted">No bets yet — head to the <Link to="/live">Live bracket</Link> to place one.</p>
       ) : (
         <div className="pf-picks">
