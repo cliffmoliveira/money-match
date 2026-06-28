@@ -170,6 +170,9 @@ async function processTournamentEvents(tRow, events = []) {
         // poller saw an incomplete set earlier and reset it; treat that the same
         // as "never seen" so we can create + close with the now-known players.
         const activeExisting = existing && existing.state !== 'void' ? existing : null;
+        // Live scores from Start.gg — updated on every poll while the set is in progress.
+        const p1s = scoreOf(set.slots[0]);
+        const p2s = scoreOf(set.slots[1]);
         if (!activeExisting && e0?.id && e1?.id) {
           // Set went in-progress before we ever saw it fully populated (poller
           // missed the state-1 window). Create the market and immediately close
@@ -181,11 +184,11 @@ async function processTournamentEvents(tRow, events = []) {
             await lm.fillBracketSlot({ tournamentId: tRow.id, gameId, startggSetId: setId, roundText: set.fullRoundText, roundInt: set.round ?? null, phaseGroupId, slot: 1, playerId: p0, seed: seedOf(e0) });
             await lm.fillBracketSlot({ tournamentId: tRow.id, gameId, startggSetId: setId, roundText: set.fullRoundText, roundInt: set.round ?? null, phaseGroupId, slot: 2, playerId: p1, seed: seedOf(e1) });
             const fresh = await db.getAsync('SELECT id, state FROM set_markets WHERE startgg_set_id = ?', [setId]);
-            if (fresh && fresh.state !== 'closed') await lm.closeMarket(fresh.id);
+            if (fresh) await lm.closeMarket(fresh.id, p1s, p2s);
             stats.closed++;
           }
         } else if (activeExisting) {
-          await lm.closeMarket(activeExisting.id);
+          await lm.closeMarket(activeExisting.id, p1s, p2s);
           stats.closed++;
         }
         continue;

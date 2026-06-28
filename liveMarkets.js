@@ -177,13 +177,24 @@ async function fillBracketSlot({
   }
 }
 
-/** Set in progress -> stop taking bets. */
-async function closeMarket(marketId) {
-  await db.runAsync(
-    `UPDATE set_markets SET state='closed', closed_at=datetime('now')
-     WHERE id=? AND state='open'`,
-    [marketId]
-  );
+/** Set in progress -> stop taking bets. Optionally write mid-match scores (updates on every poll). */
+async function closeMarket(marketId, p1Score = null, p2Score = null) {
+  if (p1Score != null && p2Score != null) {
+    // Update scores on both open→closed transitions AND re-polls of already-closed markets.
+    // COALESCE preserves the original closed_at timestamp on subsequent polls.
+    await db.runAsync(
+      `UPDATE set_markets
+       SET state='closed', closed_at=COALESCE(closed_at, datetime('now')), p1_score=?, p2_score=?
+       WHERE id=? AND state IN ('open','closed')`,
+      [p1Score, p2Score, marketId]
+    );
+  } else {
+    await db.runAsync(
+      `UPDATE set_markets SET state='closed', closed_at=COALESCE(closed_at, datetime('now'))
+       WHERE id=? AND state='open'`,
+      [marketId]
+    );
+  }
 }
 
 /**
