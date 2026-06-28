@@ -67,7 +67,8 @@
 .bnode-row.picked { background: var(--gold-grad); }
 .bnode-row.picked .bnode-name, .bnode-row.picked .bnode-odds { color: var(--on-gold); }
 .bnode-row.win { background: var(--win-tint); font-weight: 700; }
-.bnode-row.gf-win { background: var(--gold-tint); font-weight: 700; }
+.bnode-row.gf-win { background: rgba(231,180,88,0.22); border-left: 3px solid var(--gold); font-weight: 700; }
+.bnode-row.gf-win .bnode-name { color: var(--gold); }
 .bnode-row.gf-win .bnode-score { color: var(--gold); }
 .bnode-row.loss { color: var(--faint); }
 
