@@ -7,7 +7,7 @@ const COLUMNS = [
   { key: 'WSF', side: 'winners', label: 'Winners Semis', cap: 2 },
   { key: 'WF', side: 'winners', label: 'Winners Final', cap: 1 },
   { key: 'GF', side: 'grand', label: 'Grand Final', cap: 1 },
-  { key: 'LR1', side: 'losers', label: 'Losers Round 1', cap: 2 },
+  { key: 'LR1', side: 'losers', label: 'Losers Round 1', cap: 2, sortDesc: true },
   { key: 'LR2', side: 'losers', label: 'Losers Round 2', cap: 2 },
   { key: 'LSF', side: 'losers', label: 'Losers Semis', cap: 1 },
   { key: 'LF', side: 'losers', label: 'Losers Final', cap: 1 },
@@ -18,7 +18,7 @@ const COLUMNS = [
 const EDGES = [
   ['WSF-0', 'WF-0'], ['WSF-1', 'WF-0'],
   ['WF-0', 'GF-0'],
-  ['LR1-0', 'LR2-1'], ['LR1-1', 'LR2-0'],
+  ['LR1-0', 'LR2-0'], ['LR1-1', 'LR2-1'],
   ['LR2-0', 'LSF-0'], ['LR2-1', 'LSF-0'],
   ['LSF-0', 'LF-0'],
   ['LF-0', 'GF-0'],
@@ -165,7 +165,7 @@ const Node = ({ market, slip, onPick, demoControls, registerRef, projected }) =>
 };
 
 const Column = ({ col, markets, slip, onPick, demoControls, registerRef, projected }) => {
-  const nodes = markets.filter((m) => classify(m) === col.key).sort((a, b) => a.id - b.id);
+  const nodes = markets.filter((m) => classify(m) === col.key).sort((a, b) => col.sortDesc ? b.id - a.id : a.id - b.id);
   // Render at least `cap` cells (TBD placeholders before markets exist), but more
   // if a column actually holds extra markets — notably the Grand Final + its
   // Reset, which both classify to GF and must both be shown.
