@@ -359,8 +359,8 @@ const Home = () => {
     if (liveNow.length === 0 && pendingMatches.length === 0 && liveActiveTournament) {
       return (
         <section className="next-hero">
-          <span className="live-hero-badge">
-            <span className="live-dot" /> In progress
+          <span className="live-hero-badge" style={{ border: '1px solid var(--live)', padding: '4px 12px', borderRadius: '20px', background: 'var(--live-tint)' }}>
+            <span className="live-dot" /> IN PROGRESS
           </span>
           <div className="next-hero-body">
             {liveActiveTournament.logoUrl && (
