@@ -63,6 +63,12 @@
 .pf-recent-title { font-family: 'Saira', sans-serif; font-size: 16px; font-weight: 700; margin: 0 0 12px; }
 .pf-picks { display: flex; flex-direction: column; gap: 10px; }
 
+.pf-bet-pick { font-weight: 700; color: var(--gold); }
+.pf-bet-stake { display: flex; align-items: center; gap: 6px; flex: none; margin-left: auto; font-family: 'Saira', sans-serif; font-size: 13px; white-space: nowrap; }
+.pf-bet-amount { font-weight: 700; font-variant-numeric: tabular-nums; }
+.pf-bet-odds { color: var(--muted); font-weight: 600; }
+.pf-bet-payout { font-weight: 700; color: var(--win); font-variant-numeric: tabular-nums; }
+
 @media (max-width: 600px) {
   .profile-page { padding: 22px 14px 90px; }
   .pf-stats { grid-template-columns: repeat(2, 1fr); }
