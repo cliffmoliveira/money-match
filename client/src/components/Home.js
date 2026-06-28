@@ -82,6 +82,7 @@ const Home = () => {
   // Live betting + wallet — the marquee feature, surfaced here as a hero.
   const [liveMarkets, setLiveMarkets] = useState([]);
   const [liveBets, setLiveBets] = useState([]);
+  const [liveActiveTournament, setLiveActiveTournament] = useState(null);
   const [profile, setProfile] = useState(null);      // pick'em rank/points
   const [dailyBonus, setDailyBonus] = useState(null); // login-streak FM bonus
   const [claiming, setClaiming] = useState(false);
@@ -196,13 +197,20 @@ const Home = () => {
     return () => clearInterval(id);
   }, [userId, betsReloadKey]);
 
-  // Poll live markets so the "Live Now" hero stays current.
+  // Poll live markets + active tournament so the hero stays current.
   useEffect(() => {
     let active = true;
     const load = async () => {
       try {
-        const mRes = await fetch('/api/live/markets');
+        const [mRes, upRes] = await Promise.all([
+          fetch('/api/live/markets'),
+          fetch('/api/live/upcoming'),
+        ]);
         if (active && mRes.ok) setLiveMarkets(await mRes.json());
+        if (active && upRes.ok) {
+          const { tournament } = await upRes.json();
+          setLiveActiveTournament(tournament?.isLive ? tournament : null);
+        }
       } catch {
         /* non-fatal — the hero just falls back to its idle state */
       }
@@ -247,7 +255,7 @@ const Home = () => {
   const pendingMatches = (liveMarkets || []).filter((m) => m.state === 'pending');
   // The idle hero features the immediate next event, so the "Next Up" list below
   // skips it (when shown) to avoid surfacing the same event twice.
-  const heroShowsNext = !!userId && liveNow.length === 0 && pendingMatches.length === 0 && (upcoming?.length || 0) > 0;
+  const heroShowsNext = !!userId && liveNow.length === 0 && pendingMatches.length === 0 && !liveActiveTournament && (upcoming?.length || 0) > 0;
   const spotlight = (heroShowsNext ? upcoming.slice(1) : (upcoming || [])).slice(0, 4);
 
   // Countdown shows only on the next big upcoming major — skip World Warrior / LCQ
@@ -344,6 +352,30 @@ const Home = () => {
             ))}
           </div>
           <Link to="/live" className="btn live-hero-cta">Watch &amp; bet →</Link>
+        </section>
+      );
+    }
+    // Logged-in, tournament is live but no sets open right now (between streams/rounds).
+    if (liveNow.length === 0 && pendingMatches.length === 0 && liveActiveTournament) {
+      return (
+        <section className="next-hero">
+          <span className="next-hero-badge" style={{ background: 'var(--live-tint)', color: 'var(--live-text)' }}>
+            <span className="live-dot" /> In progress
+          </span>
+          <div className="next-hero-body">
+            {liveActiveTournament.logoUrl && (
+              <img src={liveActiveTournament.logoUrl} alt={liveActiveTournament.name}
+                style={{ height: 52, width: 'auto', objectFit: 'contain', borderRadius: 6 }} />
+            )}
+            <div className="next-hero-info">
+              <h2>{liveActiveTournament.name}</h2>
+              <p className="next-hero-meta">Top 8 brackets open as streams go live</p>
+            </div>
+          </div>
+          <div className="hero-actions">
+            <Link to="/live" className="btn primary">Watch &amp; bet →</Link>
+            <Link to="/future-tournaments" className="btn">Browse futures</Link>
+          </div>
         </section>
       );
     }
