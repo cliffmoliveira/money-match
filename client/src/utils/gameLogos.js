@@ -94,7 +94,7 @@ export function getGameAlt(name) {
 // (which on the dev server return index.html and can make a logo flicker to its
 // text label) and keeps each logo to a single network hit.
 const logoFileBySlug = {
-  '2xko': '2xko.svg',
+  '2xko': '2xko.png',
   'blazblue-central-fiction': 'blazblue-central-fiction.webp',
   'capcom-vs-snk-2': 'capcom-vs-snk-2.png',
   'dragon-ball-fighterz': 'dragon-ball-fighterz.png',
