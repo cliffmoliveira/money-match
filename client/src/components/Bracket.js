@@ -169,7 +169,7 @@ const Node = ({ market, slip, onPick, demoControls, registerRef, projected, isCh
         <div className="bnode-head">
           {closed && <span className="bnode-live"><span className="live-dot" /> LIVE</span>}
           {pending && <span className="bnode-wait">WAITING</span>}
-          {isReset && <span className="bnode-reset-badge">RESET</span>}
+          {isReset && <span className="bnode-reset-badge">GRAND FINAL RESET</span>}
         </div>
       )}
       {row(market.player1_id, market.player1_name, market.p1_live_odds, market.p1_score, p1Win, p2Win)}
