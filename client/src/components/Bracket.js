@@ -64,6 +64,16 @@ const shortName = (name) => splitName(name).tag || name;
 const PlayerName = ({ name }) => {
   if (!name) return <span className="bnode-tag">TBD</span>;
   const { sponsor, tag } = splitName(name);
+  // 2v2 team (e.g. 2XKO): no Japanese prefix but has slash → stack player names
+  if (!sponsor && name.includes('/')) {
+    const [p1, ...rest] = name.split('/').map((s) => s.trim());
+    return (
+      <>
+        <span className="bnode-tag">{p1}</span>
+        <span className="bnode-tag bnode-tag-p2">{rest.join(' / ')}</span>
+      </>
+    );
+  }
   return (
     <>
       {sponsor && <span className="bnode-sponsor">{sponsor}</span>}
