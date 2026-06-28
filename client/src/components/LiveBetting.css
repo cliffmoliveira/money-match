@@ -177,7 +177,7 @@
 
 .live-slip-stake { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 /* stake input styling now lives in StakeStepper.css */
-.live-slip-payout { font-size: 12px; color: var(--win); font-family: 'Saira', sans-serif; white-space: nowrap; }
+.live-slip-payout { font-size: 12px; color: var(--win); font-family: 'Saira', sans-serif; white-space: nowrap; min-width: 80px; text-align: right; }
 .live-slip-remove { border: none; background: none; color: var(--faint); font-size: 18px; line-height: 1; cursor: pointer; padding: 0 2px; }
 .live-slip-remove:hover { color: var(--live-text); }
 
