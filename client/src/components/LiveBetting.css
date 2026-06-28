@@ -138,10 +138,10 @@
 .live-drawer-close {
   display: block; width: 100%; text-align: left; flex-shrink: 0;
   background: var(--surface); border: none; border-bottom: 1px solid var(--border);
-  color: var(--muted); padding: 11px 16px; cursor: pointer;
-  font-family: 'Saira', sans-serif; font-weight: 700; font-size: 13px;
+  color: var(--text); padding: 13px 16px; cursor: pointer;
+  font-family: 'Saira', sans-serif; font-weight: 700; font-size: 14px;
 }
-.live-drawer-close:hover { color: var(--text); }
+.live-drawer-close:hover { color: var(--gold); }
 .live-drawer-body { flex: 1; overflow-y: auto; min-height: 0; }
 
 /* Floating "Slip (n)" handle — opens the drawer (desktop only). */
@@ -234,7 +234,7 @@
      reachable the moment you add a pick, instead of stranded below the bracket. */
   .live-drawer {
     position: fixed; left: 0; right: 0; top: auto; bottom: 0; width: 100%;
-    height: auto; max-height: 86vh; z-index: 1100;
+    height: auto; max-height: calc(100vh - 70px); z-index: 1100;
     transform: none; /* bottom-anchored sheet; shown/hidden via display, not slide */
     border: none; border-radius: 16px 16px 0 0;
     box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
