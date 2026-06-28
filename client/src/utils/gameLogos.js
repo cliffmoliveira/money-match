@@ -39,6 +39,9 @@ export const gameSlugMap = {
   'Granblue Fantasy Versus: Rising': 'granblue-fantasy-versus-rising',
   'Guilty Gear: Strive': 'guilty-gear-strive',
   'Guilty Gear -Strive-': 'guilty-gear-strive',
+  'SAMURAI SHODOWN': 'samurai-shodown',
+  'Samurai Shodown': 'samurai-shodown',
+  'Samurai Shodown 2019': 'samurai-shodown',
 };
 
 // Per-game visual tuning (very wide logos, etc.) by slug
@@ -62,6 +65,9 @@ const customStyles = {
   'Super Street Fighter 2: Turbo': { height: 48, marginTop: -12, marginBottom: -12 },
   'Super Street Fighter II: Turbo': { height: 48, marginTop: -12, marginBottom: -12 }, // Alias
   'Virtua Fighter 5 R.E.V.O.': { height: 48, marginTop: -12, marginBottom: -12 },
+  'SAMURAI SHODOWN': { height: 44, marginTop: -10, marginBottom: -10 },
+  'Samurai Shodown': { height: 44, marginTop: -10, marginBottom: -10 },
+  'Samurai Shodown 2019': { height: 44, marginTop: -10, marginBottom: -10 },
 };
 
 function slugifyGameName(name) {
@@ -116,6 +122,7 @@ const logoFileBySlug = {
   'under-night-in-birth-2-sysceles': 'under-night-in-birth-2-sysceles.webp',
   'vampire-savior': 'vampire-savior.png',
   'virtua-fighter-5-revo': 'virtua-fighter-5-revo.png',
+  'samurai-shodown': 'samurai-shodown.png',
 };
 
 export function getGameLogoSources(name) {
