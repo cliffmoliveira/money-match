@@ -30,6 +30,9 @@ const IconResults = (
 const IconRanks = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="6" y1="20" x2="6" y2="14" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="18" y1="20" x2="18" y2="10" /></svg>
 );
+const IconPicks = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
+);
 
 // Single source of truth for the primary destinations — rendered both as
 // the desktop link row and the mobile bottom tab bar.
@@ -38,7 +41,7 @@ const NAV = [
   { to: '/live', label: 'Live', icon: IconLive, live: true },
   { to: '/future-tournaments', label: 'Futures', icon: IconFutures },
   { to: '/past-results', label: 'Results', icon: IconResults },
-  { to: '/leaderboard', label: 'Ranks', icon: IconRanks },
+  { to: '/profile', label: 'Picks', icon: IconPicks },
 ];
 
 // Mirrors economy.js DAILY_BONUS_RAMP; only used if the API omits `ramp`.
@@ -319,7 +322,7 @@ const Navbar = ({ isLoggedIn }) => {
                     <div className="account-menu" role="menu">
                       {userName && <div className="account-menu-name">{userName}</div>}
                       <NavLink to="/account" className="account-menu-item" role="menuitem" onClick={() => setAccountOpen(false)}>Account &amp; profile</NavLink>
-                      <NavLink to="/profile" className="account-menu-item" role="menuitem" onClick={() => setAccountOpen(false)}>My Picks</NavLink>
+                      <NavLink to="/leaderboard" className="account-menu-item" role="menuitem" onClick={() => setAccountOpen(false)}>Leaderboard</NavLink>
                       <button className="account-menu-item" role="menuitem" onClick={logout}>Log out</button>
                     </div>
                   )}

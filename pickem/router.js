@@ -93,8 +93,18 @@ router.get('/profile', async (req, res) => {
        WHERE scope = 'global' AND scope_ref = '' AND points > ?`, [myPoints]
     );
     const recent = await db.allAsync(
-      `SELECT market_id, picked_player_id, result, points_awarded, coins_awarded, created_at
-       FROM pickem_picks WHERE user_id = ? ORDER BY id DESC LIMIT 20`, [userId]
+      `SELECT pp.market_id, pp.picked_player_id, pp.result, pp.points_awarded, pp.coins_awarded, pp.created_at,
+              m.round_text, g.name AS game_name, t.name AS tournament_name,
+              p1.name AS player1_name, p2.name AS player2_name, m.player1_id,
+              CASE WHEN pp.picked_player_id = m.player1_id THEN p1.name ELSE p2.name END AS picked_name,
+              CASE WHEN pp.picked_player_id = m.player1_id THEN p2.name ELSE p1.name END AS opp_name
+       FROM pickem_picks pp
+       LEFT JOIN set_markets m ON m.id = pp.market_id
+       LEFT JOIN tournaments t ON t.id = m.tournament_id
+       LEFT JOIN games g ON g.id = m.game_id
+       LEFT JOIN players p1 ON p1.id = m.player1_id
+       LEFT JOIN players p2 ON p2.id = m.player2_id
+       WHERE pp.user_id = ? ORDER BY pp.id DESC LIMIT 20`, [userId]
     );
     const u = await db.getAsync('SELECT COALESCE(display_name, username) AS display_name FROM users WHERE id = ?', [userId]);
     res.json({

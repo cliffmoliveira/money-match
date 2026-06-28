@@ -6,8 +6,16 @@
   color: var(--text);
 }
 .pf-head {
-  display: flex; align-items: flex-start; justify-content: space-between; gap: 14px;
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 6px;
 }
+.pf-head-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; margin-top: 6px; }
+.pf-ranks-link {
+  font-family: 'Saira', sans-serif; font-weight: 700; font-size: 13px;
+  color: var(--muted); background: var(--surface);
+  border: 1px solid var(--border); border-radius: 9px; padding: 7px 12px;
+  text-decoration: none; white-space: nowrap;
+}
+.pf-ranks-link:hover { color: var(--text); border-color: var(--text); }
 .pf-head h1 {
   font-family: 'Saira', sans-serif;
   font-weight: 800;
@@ -55,20 +63,38 @@
 .pf-recent-title { font-family: 'Saira', sans-serif; font-size: 16px; font-weight: 700; margin: 0 0 12px; }
 .pf-picks { display: flex; flex-direction: column; gap: 8px; }
 .pf-pick {
-  display: flex; align-items: center; gap: 12px;
+  display: flex; flex-direction: column; gap: 5px;
   background: var(--card); border: 1px solid var(--border);
-  border-radius: 11px; padding: 11px 14px; font-size: 14px;
+  border-radius: 12px; padding: 12px 14px;
 }
+.pf-pick.correct { border-color: rgba(67,209,136,0.25); }
+.pf-pick.incorrect { border-color: rgba(255,81,89,0.2); }
+
+.pf-pick-top { display: flex; align-items: center; gap: 8px; }
 .pf-pick-badge {
   font-family: 'Saira', sans-serif; font-size: 10px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.05em;
+  text-transform: uppercase; letter-spacing: 0.06em;
   padding: 3px 9px; border-radius: 6px;
 }
 .pf-pick-badge.correct { background: var(--win-tint); color: var(--win); }
 .pf-pick-badge.incorrect { background: var(--live-tint); color: var(--live-text); }
 .pf-pick-badge.pending { background: var(--gold-tint); color: var(--gold); }
-.pf-pick-meta { font-family: 'Saira', sans-serif; font-weight: 600; color: var(--muted); }
-.pf-pick-reward { margin-left: auto; font-family: 'Saira', sans-serif; font-weight: 700; color: var(--win); font-variant-numeric: tabular-nums; }
+.pf-pick-badge.void { background: var(--surface); color: var(--muted); }
+.pf-pick-reward { margin-left: auto; font-family: 'Saira', sans-serif; font-weight: 700; font-size: 13px; color: var(--win); font-variant-numeric: tabular-nums; }
+
+.pf-pick-matchup { font-size: 15px; font-weight: 600; }
+.pf-pick-picked { color: var(--gold); }
+.pf-pick.correct .pf-pick-picked { color: var(--win); }
+.pf-pick.incorrect .pf-pick-picked { color: var(--live-text); }
+.pf-pick-vs { color: var(--faint); font-weight: 400; }
+.pf-pick-opp { color: var(--muted); }
+
+.pf-pick-context {
+  display: flex; align-items: center; gap: 5px; flex-wrap: wrap;
+  font-size: 12px; color: var(--muted);
+}
+.pf-pick-game { font-weight: 600; }
+.pf-pick-dot { color: var(--faint); }
 
 @media (max-width: 600px) {
   .profile-page { padding: 22px 14px 90px; }
