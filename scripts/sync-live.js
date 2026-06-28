@@ -166,7 +166,28 @@ async function processTournamentEvents(tRow, events = []) {
       }
 
       if (set.state === 2) {
-        if (existing) { await lm.closeMarket(existing.id); stats.closed++; }
+        // Only treat a non-void market as "existing" — voided slots mean the
+        // poller saw an incomplete set earlier and reset it; treat that the same
+        // as "never seen" so we can create + close with the now-known players.
+        const activeExisting = existing && existing.state !== 'void' ? existing : null;
+        if (!activeExisting && e0?.id && e1?.id) {
+          // Set went in-progress before we ever saw it fully populated (poller
+          // missed the state-1 window). Create the market and immediately close
+          // it so the match appears in the bracket with the LIVE badge.
+          const phaseGroupId = set.phaseGroup?.id != null ? String(set.phaseGroup.id) : null;
+          const p0 = await findOrCreatePlayerId(e0);
+          const p1 = await findOrCreatePlayerId(e1);
+          if (p0 && p1) {
+            await lm.fillBracketSlot({ tournamentId: tRow.id, gameId, startggSetId: setId, roundText: set.fullRoundText, roundInt: set.round ?? null, phaseGroupId, slot: 1, playerId: p0, seed: seedOf(e0) });
+            await lm.fillBracketSlot({ tournamentId: tRow.id, gameId, startggSetId: setId, roundText: set.fullRoundText, roundInt: set.round ?? null, phaseGroupId, slot: 2, playerId: p1, seed: seedOf(e1) });
+            const fresh = await db.getAsync('SELECT id, state FROM set_markets WHERE startgg_set_id = ?', [setId]);
+            if (fresh && fresh.state !== 'closed') await lm.closeMarket(fresh.id);
+            stats.closed++;
+          }
+        } else if (activeExisting) {
+          await lm.closeMarket(activeExisting.id);
+          stats.closed++;
+        }
         continue;
       }
 
