@@ -80,6 +80,7 @@
 .bnode-tag { overflow: hidden; text-overflow: ellipsis; line-height: 1.2; }
 .bnode-row.picked .bnode-sponsor { color: var(--on-gold); }
 .bnode-row.loss .bnode-name { color: var(--faint); font-weight: 500; }
+.bnode-row.loss .bnode-score { color: var(--live-text); }
 .bnode-odds-stack { display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0; }
 .bnode-odds-label { font-size: 8px; font-weight: 700; color: var(--faint); text-transform: uppercase; letter-spacing: .04em; line-height: 1.15; }
 .bnode-odds { font-weight: 700; color: var(--gold); flex-shrink: 0; font-variant-numeric: tabular-nums; }
