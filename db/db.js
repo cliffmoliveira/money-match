@@ -36,6 +36,26 @@ db.pragma('journal_mode = WAL');
 db.pragma('busy_timeout = 5000');
 db.pragma('synchronous = NORMAL');
 
+// Ensure "KOF XV & SAMSHO at EVO 2026 BYOC" (Start.gg id 881081) exists so the
+// live poller picks it up. Idempotent — no-op if already present.
+try {
+  const existing = db.prepare('SELECT id FROM tournaments WHERE startgg_id = 881081').get();
+  if (!existing) {
+    db.prepare(
+      `INSERT INTO tournaments (name, date, city, country, startgg_id, is_live)
+       VALUES ('KOF XV & SAMSHO at EVO 2026 BYOC', '2026-06-26', 'Las Vegas', 'US', 881081, 1)`
+    ).run();
+    console.log('[boot] inserted KOF XV & SAMSHO at EVO 2026 BYOC tournament');
+  }
+  for (const [name, startggId] of [['SAMURAI SHODOWN', 3568], ['The King of Fighters XV', 36963]]) {
+    const g = db.prepare('SELECT id FROM games WHERE startgg_id = ? OR name = ?').get(startggId, name);
+    if (!g) {
+      db.prepare('INSERT INTO games (name, startgg_id) VALUES (?, ?)').run(name, startggId);
+      console.log(`[boot] inserted game: ${name}`);
+    }
+  }
+} catch (e) { console.error('[boot] KOF/SAMSHO seed failed:', e.message); }
+
 // Void any stale preview_* projection markets left over from pre-tournament
 // seeding. Once real start.gg sets arrive they replace these; keeping them open
 // creates duplicate bracket cards. Runs synchronously at boot so Render picks
