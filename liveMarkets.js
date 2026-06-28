@@ -143,7 +143,19 @@ async function fillBracketSlot({
     );
     return;
   }
-  if (existing.state === 'settled' || existing.state === 'void') return;
+  if (existing.state === 'settled') return;
+  if (existing.state === 'void') {
+    // Void markets can be re-used when a bracket re-seeds or an opponent was
+    // entered late. Reset to blank-pending so the slot updates below re-fill it
+    // and the market opens normally once both players are known.
+    await db.runAsync(
+      `UPDATE set_markets SET state='pending', player1_id=0, player2_id=0,
+       p1_seed=NULL, p2_seed=NULL, winner_id=NULL, settled_at=NULL,
+       p1_prob=0.5, p2_prob=0.5, p1_live_odds=0, p2_live_odds=0,
+       round_text=COALESCE(?,round_text), round_int=COALESCE(?,round_int) WHERE id=?`,
+      [roundText ?? null, roundInt ?? null, existing.id]
+    );
+  }
 
   const idCol = slot === 1 ? 'player1_id' : 'player2_id';
   const seedCol = slot === 1 ? 'p1_seed' : 'p2_seed';
