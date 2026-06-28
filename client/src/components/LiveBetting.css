@@ -39,13 +39,14 @@
 
 .live-tournament { margin-bottom: 30px; }
 .live-tournament + .live-tournament {
-  border-top: 1px solid var(--border);
-  padding-top: 32px;
-  margin-top: 12px;
+  border-top: 1px solid rgba(255,255,255,0.18);
+  padding-top: 40px;
+  margin-top: 40px;
 }
 .live-game + .live-game {
-  border-top: 1px solid var(--border-soft);
-  padding-top: 28px;
+  border-top: 1px solid rgba(255,255,255,0.12);
+  padding-top: 40px;
+  margin-top: 40px;
 }
 .live-tournament > h2 {
   display: flex; align-items: center; gap: 10px;
