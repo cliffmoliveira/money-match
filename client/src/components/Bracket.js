@@ -46,13 +46,17 @@ function classify(market) {
 }
 
 // Start.gg tags carry "TEAM | gamerTag" (English) or "日本語名/RomanTag" (Japanese).
-// Both separators work the same way: left = sponsor/prefix, right = display tag.
+// For /, only treat it as a separator when the left side contains Japanese/CJK characters —
+// otherwise "/" is two players on a 2v2 team (e.g. 2XKO) and should stay intact.
+const hasJapanese = (s) => /[぀-ヿ一-鿿＀-￯]/.test(s);
 const splitName = (name) => {
   if (!name) return { sponsor: '', tag: name };
   const pi = name.indexOf('|');
   if (pi !== -1) return { sponsor: name.slice(0, pi).trim(), tag: name.slice(pi + 1).trim() };
   const si = name.indexOf('/');
-  if (si !== -1) return { sponsor: name.slice(0, si).trim(), tag: name.slice(si + 1).trim() };
+  if (si !== -1 && hasJapanese(name.slice(0, si))) {
+    return { sponsor: name.slice(0, si).trim(), tag: name.slice(si + 1).trim() };
+  }
   return { sponsor: '', tag: name };
 };
 const shortName = (name) => splitName(name).tag || name;
