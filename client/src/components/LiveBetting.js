@@ -383,8 +383,10 @@ const LiveBetting = () => {
             >
               ‹ Close
             </button>
-            {renderSlip()}
-            {renderMyBets()}
+            <div className="live-drawer-body">
+              {renderSlip()}
+              {renderMyBets()}
+            </div>
           </div>
         </>
       )}
