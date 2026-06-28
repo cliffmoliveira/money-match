@@ -149,7 +149,7 @@ app.get('/api/past-results', async (req, res) => {
         player2.name AS loser,
         matches.player1RoundsWon AS winnerRoundsWon,
         matches.player2RoundsWon AS loserRoundsWon,
-        matches.round_text AS roundText
+        NULL AS roundText
       FROM matches
       JOIN players AS player1 ON matches.winner_id = player1.id
       JOIN players AS player2 ON matches.loser_id = player2.id
