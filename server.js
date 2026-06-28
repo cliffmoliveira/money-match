@@ -137,25 +137,51 @@ app.get('/api/stats', async (req, res) => {
 app.get('/api/past-results', async (req, res) => {
   try {
     const query = `
-      SELECT 
-        matches.id, 
+      SELECT
+        matches.id,
         tournaments.name AS tournament,
         tournaments.date,
         tournaments.city AS city,
         tournaments.country AS country,
         tournaments.logo_url AS logoUrl,
-        games.name AS game, 
-        player1.name AS winner, 
-        player2.name AS loser, 
-        matches.player1RoundsWon AS winnerRoundsWon, 
-        matches.player2RoundsWon AS loserRoundsWon
+        games.name AS game,
+        player1.name AS winner,
+        player2.name AS loser,
+        matches.player1RoundsWon AS winnerRoundsWon,
+        matches.player2RoundsWon AS loserRoundsWon,
+        matches.round_text AS roundText
       FROM matches
       JOIN players AS player1 ON matches.winner_id = player1.id
       JOIN players AS player2 ON matches.loser_id = player2.id
       JOIN tournaments ON matches.tournament_id = tournaments.id
       JOIN games ON matches.game_id = games.id
       WHERE tournaments.date <= DATE('now', '+30 days')
-      ORDER BY tournaments.date DESC;
+
+      UNION ALL
+
+      SELECT
+        sm.id,
+        t.name AS tournament,
+        t.date,
+        t.city,
+        t.country,
+        t.logo_url AS logoUrl,
+        g.name AS game,
+        pw.name AS winner,
+        pl.name AS loser,
+        NULL AS winnerRoundsWon,
+        NULL AS loserRoundsWon,
+        sm.round_text AS roundText
+      FROM set_markets sm
+      JOIN tournaments t ON t.id = sm.tournament_id
+      JOIN games g ON g.id = sm.game_id
+      JOIN players pw ON pw.id = sm.winner_id
+      JOIN players pl ON pl.id = CASE WHEN sm.winner_id = sm.player1_id THEN sm.player2_id ELSE sm.player1_id END
+      WHERE sm.winner_id IS NOT NULL
+        AND sm.state = 'settled'
+        AND t.date <= DATE('now', '+30 days')
+
+      ORDER BY date DESC;
     `;
     const results = await db.allAsync(query);
     res.json({ data: results });
