@@ -97,11 +97,14 @@ const PlayerName = ({ name }) => {
 // from the pool.
 const PoolBar = ({ p1 = 0, p2 = 0 }) => {
   const total = p1 + p2;
-  const pct = total > 0 ? (p1 / total) * 100 : 50;
+  const p1Pct = total > 0 ? (p1 / total) * 100 : null;
   const usd = (c) => `${Math.round(c / 100).toLocaleString('en-US')} FM`;
   return (
     <div className="bnode-pool" title="Pool split — shows how much FM is wagered on each side. The more lopsided it is, the bigger the underdog's payout.">
-      <div className="bnode-pool-bar"><span style={{ width: `${pct}%` }} /></div>
+      <div className="bnode-pool-bar">
+        {p1Pct !== null && <span className="p1-fill" style={{ width: `${p1Pct}%` }} />}
+        {p1Pct !== null && <span className="p2-fill" style={{ width: `${100 - p1Pct}%` }} />}
+      </div>
       <div className="bnode-pool-amts">
         <span>{usd(p1)}</span>
         <span className="bnode-pool-mid">pool {usd(total)}</span>

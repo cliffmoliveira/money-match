@@ -110,8 +110,9 @@
 
 /* Parimutuel pool split */
 .bnode-pool { padding: 7px 9px; border-top: 1px solid var(--border-soft); }
-.bnode-pool-bar { height: 5px; border-radius: 99px; background: rgba(255,255,255,0.08); overflow: hidden; display: flex; }
-.bnode-pool-bar span { display: block; height: 100%; background: linear-gradient(90deg,#E7B458,#caa044); }
+.bnode-pool-bar { height: 5px; border-radius: 99px; background: rgba(255,255,255,0.07); overflow: hidden; display: flex; }
+.bnode-pool-bar .p1-fill { display: block; height: 100%; background: linear-gradient(90deg,#E7B458,#caa044); }
+.bnode-pool-bar .p2-fill { display: block; height: 100%; background: rgba(255,255,255,0.22); }
 .bnode-pool-amts { display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: var(--muted); margin-top: 4px; font-variant-numeric: tabular-nums; }
 .bnode-pool-mid { color: var(--faint); font-size: 9px; text-transform: uppercase; letter-spacing: .04em; }
 
