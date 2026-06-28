@@ -8,7 +8,6 @@ import { apiFetch } from '../utils/api';
 
 const shortTag = (name) => (name && name.includes('|') ? name.split('|').pop().trim() : name);
 
-const PICK_BADGE = { correct: 'CORRECT', incorrect: 'INCORRECT', pending: 'PENDING', void: 'VOID' };
 
 const TournamentLogo = ({ name, height = 24 }) => {
   const [index, setIndex] = useState(0);
@@ -155,42 +154,6 @@ const Profile = () => {
         </div>
       )}
 
-      {/* Free pick'em picks */}
-      <h2 className="pf-recent-title" style={{ marginTop: 32 }}>Free picks</h2>
-      {data.picks.length === 0 ? (
-        <p className="pf-muted">No picks yet — head to the Live bracket and call some winners.</p>
-      ) : (
-        <div className="pf-picks">
-          {data.picks.map((p, i) => {
-            const picked = shortTag(p.picked_name) || `#${p.picked_player_id}`;
-            const opp = shortTag(p.opp_name);
-            const outcomeClass = p.result === 'correct' ? 'win' : p.result === 'incorrect' ? 'loss' : 'pending';
-            return (
-              <div key={`${p.market_id}-${i}`} className="bet-card">
-                <div className="bet-row bet-row-top">
-                  <div className="bet-tournament">
-                    <TournamentLogo name={p.tournament_name} height={20} />
-                    <span className="bet-tournament-name">{p.tournament_name || '—'}</span>
-                  </div>
-                  {p.round_text && <span className="bet-kind">{p.round_text}</span>}
-                  <div className={`bet-outcome ${outcomeClass}`}>
-                    {PICK_BADGE[p.result] || p.result}
-                  </div>
-                </div>
-                <div className="bet-row bet-row-bottom">
-                  <div className="bet-game">
-                    <GameLogo name={p.game_name} height={24} />
-                  </div>
-                  <div className="bet-player">{picked}{opp ? ` vs ${opp}` : ''}</div>
-                  {p.result === 'correct' && p.points_awarded > 0 && (
-                    <div className="bet-amount">+{p.points_awarded} pts</div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 };
