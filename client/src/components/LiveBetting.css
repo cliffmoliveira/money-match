@@ -140,6 +140,7 @@
   background: var(--surface); border: none; border-bottom: 1px solid var(--border);
   color: var(--muted); padding: 11px 16px; cursor: pointer;
   font-family: 'Saira', sans-serif; font-weight: 700; font-size: 13px;
+  position: sticky; top: 0; z-index: 2;
 }
 .live-drawer-close:hover { color: var(--text); }
 
