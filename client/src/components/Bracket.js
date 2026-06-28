@@ -165,11 +165,10 @@ const Node = ({ market, slip, onPick, demoControls, registerRef, projected, isCh
 
   return (
     <div ref={setRef} className={`bnode ${market.state}`}>
-      {(closed || pending || isReset) && (
+      {(closed || pending) && (
         <div className="bnode-head">
           {closed && <span className="bnode-live"><span className="live-dot" /> LIVE</span>}
           {pending && <span className="bnode-wait">WAITING</span>}
-          {isReset && <span className="bnode-reset-badge">GRAND FINAL RESET</span>}
         </div>
       )}
       {row(market.player1_id, market.player1_name, market.p1_live_odds, market.p1_score, p1Win, p2Win)}
@@ -196,9 +195,10 @@ const Column = ({ col, markets, slip, onPick, demoControls, registerRef, project
   for (let i = 0; i < count; i++) {
     const roundText = (nodes[i]?.round_text || '').toLowerCase();
     const isChampionMatch = col.key === 'GF' && (!gfHasReset || roundText.includes('reset'));
-    cells.push(
+    const isResetNode = col.key === 'GF' && roundText.includes('reset');
+    const nodeKey = nodes[i]?.id ?? `${col.key}-tbd-${i}`;
+    const nodeEl = (
       <Node
-        key={nodes[i]?.id ?? `${col.key}-tbd-${i}`}
         market={nodes[i] || null}
         slip={slip}
         onPick={onPick}
@@ -207,6 +207,10 @@ const Column = ({ col, markets, slip, onPick, demoControls, registerRef, project
         registerRef={(el) => registerRef(`${col.key}-${i}`, el)}
         isChampionMatch={isChampionMatch}
       />
+    );
+    cells.push(isResetNode
+      ? <div key={nodeKey} className="bnode-reset-group">{nodeEl}<div className="bnode-reset-label">Grand Final Reset</div></div>
+      : <React.Fragment key={nodeKey}>{nodeEl}</React.Fragment>
     );
   }
   return (
@@ -283,12 +287,15 @@ const Bracket = ({ markets = [], slip = {}, onPick, demoControls, waiting = fals
     // On mobile the grid stacks winners/grand/losers vertically — GF is already
     // in the right place by DOM order, so the offset must be zero.
     const isMobile = availW <= 820;
+    // Sink GF below the exact feeder midpoint so the incoming connector lines
+    // have visible space above the node before entering it.
+    const GF_SINK = 50;
     if (isMobile) {
       if (gfOffsetRef.current !== 0) { gfOffsetRef.current = 0; setGfOffset(0); }
     } else if (wfBox && lfBox && gfBox) {
       const feederMid = (wfBox.mid + lfBox.mid) / 2;
       const naturalGfMid = gfBox.mid - gfOffsetRef.current;
-      const desiredOffset = feederMid - naturalGfMid;
+      const desiredOffset = feederMid - naturalGfMid + GF_SINK;
       if (Math.abs(desiredOffset - gfOffsetRef.current) > 0.5) {
         gfOffsetRef.current = desiredOffset;
         setGfOffset(desiredOffset);
