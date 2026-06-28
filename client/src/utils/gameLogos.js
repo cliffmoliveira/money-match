@@ -94,7 +94,7 @@ export function getGameAlt(name) {
 // (which on the dev server return index.html and can make a logo flicker to its
 // text label) and keeps each logo to a single network hit.
 const logoFileBySlug = {
-  '2xko': '2xko.png',
+  '2xko': '2xko.svg',
   'blazblue-central-fiction': 'blazblue-central-fiction.webp',
   'capcom-vs-snk-2': 'capcom-vs-snk-2.png',
   'dragon-ball-fighterz': 'dragon-ball-fighterz.png',
@@ -146,6 +146,7 @@ export function getGameLogoSources(name) {
 // the asset level instead (Smash's white box baked to transparency + white
 // text; TEKKEN's lettering whitened while keeping its red "8").
 const logoTreatmentMap = {
+  '2xko': { filter: 'brightness(0) invert(1)' },
   'street-fighter-6': { filter: 'brightness(0) invert(1)' },
   'guilty-gear-strive': { filter: 'brightness(0) invert(1)' },
 };
