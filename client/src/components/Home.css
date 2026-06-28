@@ -287,10 +287,10 @@ body { background: var(--bg); color: var(--text); }
 .bet-tournament { font-family: 'Saira', sans-serif; font-weight: 600; display: flex; align-items: center; gap: 8px; min-width: 0; flex: 0 1 auto; }
 .bet-tournament img { flex: none; }
 .bet-tournament-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.bet-outcome { font-family: 'Saira', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: .06em; padding: 3px 8px; border-radius: 6px; margin-left: auto; flex: none; }
-.bet-outcome.win { background: var(--win-tint); color: var(--win); }
-.bet-outcome.loss { background: var(--live-tint); color: var(--live-text); }
-.bet-outcome.pending { background: var(--gold-tint); color: var(--gold); }
+.bet-outcome { font-family: 'Saira', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: .06em; padding: 3px 10px; border-radius: 20px; margin-left: auto; flex: none; border: 1px solid transparent; }
+.bet-outcome.win { background: var(--win-tint); color: var(--win); border-color: var(--win); }
+.bet-outcome.loss { background: var(--live-tint); color: var(--live-text); border-color: var(--live-text); }
+.bet-outcome.pending { background: var(--gold-tint); color: var(--gold); border-color: var(--gold); }
 .bet-player { flex: 1; min-width: 0; text-align: left; font-family: 'Saira', sans-serif; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bet-amount { flex: none; text-align: right; font-family: 'Saira', sans-serif; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .bet-kind { font-family: 'Saira', sans-serif; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 1px 6px; border-radius: 5px; background: transparent; border: 1px solid var(--futures); color: var(--futures); flex: none; }
