@@ -39,7 +39,7 @@
   border-radius: 12px; box-shadow: none; overflow: hidden;
 }
 .bnode.tbd { opacity: 0.45; border-style: dashed; }
-.bnode.closed { box-shadow: 0 0 0 1.5px var(--gold), 0 0 10px rgba(231,180,88,0.15); }
+.bnode.closed { box-shadow: 0 0 0 1.5px var(--gold), 0 0 8px 2px rgba(231,180,88,0.45), 0 0 22px 4px rgba(231,180,88,0.18); }
 .bnode.settled { background: var(--card); }
 
 .bnode-head {
