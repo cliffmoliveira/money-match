@@ -146,7 +146,6 @@ export function getGameLogoSources(name) {
 // the asset level instead (Smash's white box baked to transparency + white
 // text; TEKKEN's lettering whitened while keeping its red "8").
 const logoTreatmentMap = {
-  '2xko': { filter: 'brightness(0) invert(1)' },
   'street-fighter-6': { filter: 'brightness(0) invert(1)' },
   'guilty-gear-strive': { filter: 'brightness(0) invert(1)' },
 };
