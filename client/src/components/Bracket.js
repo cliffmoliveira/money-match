@@ -289,6 +289,12 @@ const Bracket = ({ markets = [], slip = {}, onPick, demoControls, waiting = fals
         next.push(`M ${a.cx} ${a.bottom} V ${bMid} H ${b.left}`);
         continue;
       }
+      // LF→GF desktop: exit from LF's right side, run right to GF's center-x,
+      // then go up into the bottom of the GF card.
+      if (from === 'LF-0' && to === 'GF-0' && !isMobile) {
+        next.push(`M ${a.right} ${a.mid} H ${b.cx} V ${b.bottom}`);
+        continue;
+      }
       // LF→GF on mobile: GF is above LF, so exit from the top center of LF,
       // go up to GF's mid, then right into GF's left edge. Avoids any rightward
       // overflow that would clip at the screen edge.
