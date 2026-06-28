@@ -134,7 +134,7 @@ const Profile = () => {
             const statusLabel = b.state === 'won' ? 'WON' : b.state === 'lost' ? 'LOST' : b.state === 'refunded' ? 'REFUNDED' : 'PENDING';
             const stakeFm = fmAmount(b.amount_cents);
             const odds = b.locked_odds != null ? Number(b.locked_odds).toFixed(2) : null;
-            const payoutFm = b.state === 'won' ? fmAmount(b.payout_cents) : null;
+            const profitFm = b.state === 'won' ? fmAmount(b.payout_cents - b.amount_cents) : null;
             return (
               <div key={b.id} className="bet-card">
                 <div className="bet-row bet-row-top">
@@ -153,7 +153,7 @@ const Profile = () => {
                   <div className="pf-bet-stake">
                     <span className={`pf-bet-amount${b.state === 'lost' ? ' loss' : ''}`}>{stakeFm} FM</span>
                     {odds && <span className="pf-bet-odds">@ {odds}×</span>}
-                    {payoutFm && <span className="pf-bet-payout">→ {payoutFm} FM</span>}
+                    {profitFm && <span className="pf-bet-payout">+{profitFm} FM</span>}
                   </div>
                 </div>
               </div>
