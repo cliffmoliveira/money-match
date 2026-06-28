@@ -39,7 +39,7 @@
   border-radius: 12px; box-shadow: none; overflow: hidden;
 }
 .bnode.tbd { opacity: 0.45; border-style: dashed; }
-.bnode.closed { box-shadow: 0 0 0 1px rgba(255,81,89,0.4); }
+.bnode.closed { box-shadow: 0 0 0 1.5px var(--gold), 0 0 10px rgba(231,180,88,0.15); }
 .bnode.settled { background: var(--card); }
 
 .bnode-head {
@@ -48,7 +48,7 @@
   text-transform: uppercase; letter-spacing: .05em; color: var(--gold);
   background: transparent; border-bottom: 1px solid var(--border-soft);
 }
-.bnode-live { display: inline-flex; align-items: center; gap: 5px; color: var(--live-text); background: var(--live-tint); padding: 2px 7px; border-radius: 5px; font-size: 9px; }
+.bnode-live { display: inline-flex; align-items: center; gap: 5px; color: var(--text); background: var(--live-tint); padding: 2px 7px; border-radius: 5px; font-size: 9px; }
 .bnode-live .live-dot { width: 6px; height: 6px; flex-shrink: 0; }
 .bnode-wait { color: var(--muted); background: var(--surface); padding: 2px 7px; border-radius: 5px; font-size: 9px; }
 .bnode-reset-label { text-align: center; color: var(--muted); font-family: 'Saira', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; margin-top: 8px; }
