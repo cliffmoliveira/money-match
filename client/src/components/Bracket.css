@@ -48,7 +48,8 @@
   text-transform: uppercase; letter-spacing: .05em; color: var(--gold);
   background: transparent; border-bottom: 1px solid var(--border-soft);
 }
-.bnode-live { color: var(--live-text); background: var(--live-tint); padding: 2px 7px; border-radius: 5px; font-size: 9px; }
+.bnode-live { display: inline-flex; align-items: center; gap: 5px; color: var(--live-text); background: var(--live-tint); padding: 2px 7px; border-radius: 5px; font-size: 9px; }
+.bnode-live .live-dot { width: 6px; height: 6px; flex-shrink: 0; }
 .bnode-wait { color: var(--muted); background: var(--surface); padding: 2px 7px; border-radius: 5px; font-size: 9px; }
 .bnode.pending { border-style: dashed; }
 .bnode-name.tbd { color: var(--faint); font-weight: 500; }

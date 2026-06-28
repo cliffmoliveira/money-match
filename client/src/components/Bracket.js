@@ -150,7 +150,7 @@ const Node = ({ market, slip, onPick, demoControls, registerRef, projected }) =>
     <div ref={setRef} className={`bnode ${market.state}`}>
       {(closed || pending) && (
         <div className="bnode-head">
-          {closed && <span className="bnode-live">LIVE</span>}
+          {closed && <span className="bnode-live"><span className="live-dot" /> LIVE</span>}
           {pending && <span className="bnode-wait">WAITING</span>}
         </div>
       )}

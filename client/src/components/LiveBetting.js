@@ -294,6 +294,11 @@ const LiveBetting = () => {
     groups[tKey].games[gKey].push(m);
   }
 
+  // Sort games: closed (set in progress) first, then open, then pending, then settled
+  const STATE_PRIORITY = { closed: 0, open: 1, pending: 2, settled: 3 };
+  const gamePriority = (mkts) =>
+    Math.min(...mkts.map((m) => STATE_PRIORITY[m.state] ?? 4));
+
   return (
     <div className="live-layout">
       <div className="live-main">
@@ -336,7 +341,7 @@ const LiveBetting = () => {
                 {logoUrl && <img src={logoUrl} alt={tournamentName} className="live-tournament-logo" />}
                 {tournamentName}
               </h2>
-              {Object.entries(games).map(([gameName, mkts]) => (
+              {Object.entries(games).sort(([, a], [, b]) => gamePriority(a) - gamePriority(b)).map(([gameName, mkts]) => (
                 <div key={gameName} className="live-game">
                   <div className="live-game-aside">
                     <GameLogo name={gameName} height={200} />
