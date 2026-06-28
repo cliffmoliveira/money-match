@@ -192,6 +192,8 @@ const Home = () => {
       } catch { /* non-fatal */ }
     };
     load();
+    const id = setInterval(load, 30000);
+    return () => clearInterval(id);
   }, [userId, betsReloadKey]);
 
   // Poll live markets so the "Live Now" hero stays current.
