@@ -125,6 +125,11 @@
   border-radius: 3px;
   flex-shrink: 0;
 }
+/* In the results table, let the logo fill up to 64px like Tournament Results */
+.results-table .ex-logo-tournament {
+  height: auto;
+  max-height: 64px;
+}
 
 .ex-badge {
   font-family: 'Saira', sans-serif;
