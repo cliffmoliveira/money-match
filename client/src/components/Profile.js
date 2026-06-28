@@ -43,34 +43,24 @@ const GameLogo = ({ name, height = 24 }) => {
   );
 };
 
-// Pick'em profile (spec §7.6): coins, points, accuracy, streaks, recent picks.
 const Profile = () => {
-  const [data, setData] = useState(null);
+  const [liveBets, setLiveBets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [liveBets, setLiveBets] = useState([]);
-  const [betsLoading, setBetsLoading] = useState(true);
   const userId = localStorage.getItem('userId');
-  const username = localStorage.getItem('username');
 
   useEffect(() => {
-    if (!userId) { setError('Not logged in.'); setLoading(false); setBetsLoading(false); return; }
+    if (!userId) { setError('Not logged in.'); setLoading(false); return; }
     let active = true;
     (async () => {
       try {
-        const [pRes, bRes] = await Promise.all([
-          fetch(`/api/pickem/profile?userId=${userId}`),
-          apiFetch(`/api/live/bets?userId=${userId}`),
-        ]);
-        if (!pRes.ok) throw new Error('Failed to load profile.');
-        if (active) {
-          setData(await pRes.json());
-          if (bRes.ok) setLiveBets(await bRes.json());
-        }
+        const bRes = await apiFetch(`/api/live/bets?userId=${userId}`);
+        if (!bRes.ok) throw new Error('Failed to load bets.');
+        if (active) setLiveBets(await bRes.json());
       } catch (e) {
         if (active) setError(e.message);
       } finally {
-        if (active) { setLoading(false); setBetsLoading(false); }
+        if (active) setLoading(false);
       }
     })();
     return () => { active = false; };
@@ -79,12 +69,40 @@ const Profile = () => {
   if (loading) return <div className="profile-page"><p className="pf-muted">Loading…</p></div>;
   if (error) return <div className="profile-page"><p className="error-message">{error}</p></div>;
 
+  // Compute stats from live bets
+  const settled = liveBets.filter(b => b.state === 'won' || b.state === 'lost');
+  const wonCount = settled.filter(b => b.state === 'won').length;
+  const accuracy = settled.length > 0 ? wonCount / settled.length : 0;
+  const netCents = liveBets.reduce((sum, b) => {
+    if (b.state === 'won') return sum + (b.payout_cents - b.amount_cents);
+    if (b.state === 'lost') return sum - b.amount_cents;
+    return sum;
+  }, 0);
+
+  // Current streak: walk newest-first through settled bets
+  let currentStreak = 0;
+  let streakState = null;
+  for (const b of liveBets) {
+    if (b.state !== 'won' && b.state !== 'lost') continue;
+    if (streakState === null) { streakState = b.state; currentStreak = 1; }
+    else if (b.state === streakState) currentStreak++;
+    else break;
+  }
+
+  // Best win streak: walk oldest-first
+  let bestStreak = 0;
+  let run = 0;
+  for (const b of [...liveBets].reverse()) {
+    if (b.state === 'won') { run++; bestStreak = Math.max(bestStreak, run); }
+    else if (b.state === 'lost') run = 0;
+  }
+
   const stats = [
-    { label: 'Points', value: data.points.toLocaleString(), gold: true },
-    { label: 'Accuracy', value: `${Math.round((data.accuracy || 0) * 100)}%` },
-    { label: 'Current streak', value: data.current_streak },
-    { label: 'Best streak', value: data.best_streak },
-    { label: 'Total picks', value: data.total_picks },
+    { label: 'FM Net', value: (netCents >= 0 ? '+' : '') + fmAmount(netCents), gold: netCents > 0 },
+    { label: 'Accuracy', value: `${Math.round(accuracy * 100)}%` },
+    { label: 'Current streak', value: currentStreak },
+    { label: 'Best streak', value: bestStreak },
+    { label: 'Total bets', value: liveBets.length },
   ];
 
   return (
