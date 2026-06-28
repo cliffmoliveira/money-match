@@ -89,6 +89,7 @@
 .bnode-odds { font-weight: 700; color: var(--gold); flex-shrink: 0; font-variant-numeric: tabular-nums; }
 .bnode-row.picked .bnode-odds-label { color: var(--on-gold); }
 .bnode-score { font-weight: 700; color: var(--win); flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.bnode-score.live { color: var(--gold); }
 
 /* Demo controls */
 .bnode-demo { display: flex; gap: 4px; padding: 6px; border-top: 1px solid var(--border-soft); flex-wrap: wrap; }
