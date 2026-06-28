@@ -117,6 +117,8 @@ const LiveBetting = () => {
     setSlip((prev) => { const next = { ...prev }; delete next[key]; return next; });
   };
 
+  const closeSlip = () => { setSlipOpen(false); setSlip({}); setPlaceMsg(null); };
+
   const updateStake = (key, value) => {
     const clean = value.replace(/[^0-9.]/g, '');
     setSlip((prev) => ({ ...prev, [key]: { ...prev[key], stake: clean } }));
@@ -374,12 +376,12 @@ const LiveBetting = () => {
               Slip ({Object.keys(slip).length})
             </button>
           )}
-          {slipOpen && <div className="live-drawer-scrim" onClick={() => setSlipOpen(false)} />}
+          {slipOpen && <div className="live-drawer-scrim" onClick={closeSlip} />}
           <div className={`live-drawer${slipOpen ? ' open' : ''}`}>
             <button
               type="button"
               className="live-drawer-close"
-              onClick={() => setSlipOpen(false)}
+              onClick={closeSlip}
               aria-label="Close bet slip"
             >
               ‹ Close
