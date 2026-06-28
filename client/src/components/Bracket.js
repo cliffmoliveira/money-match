@@ -188,7 +188,6 @@ const Node = ({ market, slip, onPick, demoControls, registerRef, projected, isCh
       )}
       {row(market.player1_id, market.player1_name, market.p1_live_odds, market.p1_score, p1Win, p2Win)}
       {row(market.player2_id, market.player2_name, market.p2_live_odds, market.p2_score, p2Win, p1Win)}
-      {(open || closed) && <PoolBar p1={market.p1_pool_cents} p2={market.p2_pool_cents} />}
       {open && !picked(market.player1_id) && !picked(market.player2_id) && (
         <div className="bnode-bethint">Tap a player to bet FM</div>
       )}
