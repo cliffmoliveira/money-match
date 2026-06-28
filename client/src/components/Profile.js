@@ -97,10 +97,13 @@ const Profile = () => {
     else if (b.state === 'lost') run = 0;
   }
 
+  const lossCount = settled.length - wonCount;
+
   const stats = [
-    { label: 'FM Net', value: (netCents >= 0 ? '+' : '') + fmAmount(netCents), gold: netCents > 0 },
+    { label: 'FM Net', value: (netCents >= 0 ? '+' : '') + fmAmount(netCents), green: netCents > 0, red: netCents < 0 },
+    { label: 'Wins', value: wonCount, green: wonCount > 0 },
+    { label: 'Losses', value: lossCount, red: lossCount > 0 },
     { label: 'Accuracy', value: `${Math.round(accuracy * 100)}%` },
-    { label: 'Current streak', value: currentStreak },
     { label: 'Best streak', value: bestStreak },
     { label: 'Total bets', value: liveBets.length },
   ];
@@ -109,7 +112,7 @@ const Profile = () => {
     <div className="profile-page">
       <div className="pf-stats">
         {stats.map((s) => (
-          <div key={s.label} className={`pf-stat${s.gold ? ' gold' : ''}`}>
+          <div key={s.label} className={`pf-stat${s.gold ? ' gold' : ''}${s.green ? ' green' : ''}${s.red ? ' red' : ''}`}>
             <div className="pf-stat-value">{s.value}</div>
             <div className="pf-stat-label">{s.label}</div>
           </div>

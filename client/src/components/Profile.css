@@ -46,7 +46,9 @@
   padding: 16px 18px;
   text-align: center;
 }
-.pf-stat.gold { border-color: rgba(231, 180, 88, 0.35); background: var(--gold-tint); }
+.pf-stat.gold  { border-color: rgba(231, 180, 88, 0.35); background: var(--gold-tint); }
+.pf-stat.green { border-color: rgba(67, 209, 136, 0.35); background: var(--win-tint); }
+.pf-stat.red   { border-color: rgba(255, 81, 89, 0.35);  background: var(--live-tint); }
 .pf-stat-value {
   font-family: 'Saira', sans-serif;
   font-weight: 800;
@@ -54,7 +56,9 @@
   color: var(--text);
   font-variant-numeric: tabular-nums;
 }
-.pf-stat.gold .pf-stat-value { color: var(--gold); }
+.pf-stat.gold  .pf-stat-value { color: var(--gold); }
+.pf-stat.green .pf-stat-value { color: var(--win); }
+.pf-stat.red   .pf-stat-value { color: var(--live-text); }
 .pf-stat-label {
   font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
   color: var(--muted); margin-top: 4px; font-weight: 600;
