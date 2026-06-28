@@ -251,7 +251,11 @@ const Home = () => {
     );
   }
 
-  const liveNow = (liveMarkets || []).filter((m) => m.state === 'open' || m.state === 'closed');
+  // Closed = in-progress (LIVE badge) — surface those first so the hero shows
+  // what's actually on stream right now, not just upcoming open markets.
+  const liveNow = (liveMarkets || [])
+    .filter((m) => m.state === 'open' || m.state === 'closed')
+    .sort((a, b) => (b.state === 'closed') - (a.state === 'closed') || b.id - a.id);
   const pendingMatches = (liveMarkets || []).filter((m) => m.state === 'pending');
   // The idle hero features the immediate next event, so the "Next Up" list below
   // skips it (when shown) to avoid surfacing the same event twice.
