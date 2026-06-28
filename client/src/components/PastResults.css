@@ -12,8 +12,9 @@
 }
 .pr-section-title {
   font-family: 'Saira', sans-serif;
-  font-size: 20px;
-  font-weight: 800;
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   margin: 28px 0 16px;
   color: var(--text);
 }
