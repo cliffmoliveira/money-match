@@ -264,7 +264,7 @@ const PastResults = () => {
                   <td className="location" data-label="Location">
                     {result.city && result.country
                       ? `${result.city}, ${result.country}`
-                      : 'Unknown Location'
+                      : 'Online'
                     }
                   </td>
                   <td className="date" data-label="Date">
