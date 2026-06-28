@@ -101,7 +101,7 @@ const PoolBar = ({ p1 = 0, p2 = 0 }) => {
   );
 };
 
-const Node = ({ market, slip, onPick, demoControls, registerRef, projected }) => {
+const Node = ({ market, slip, onPick, demoControls, registerRef, projected, isChampionMatch }) => {
   const setRef = (el) => registerRef(el);
   if (!market) {
     // Pre-tournament: show the seed-projected matchup (view-only — never a market,
@@ -139,12 +139,12 @@ const Node = ({ market, slip, onPick, demoControls, registerRef, projected }) =>
   const closed = market.state === 'closed';
   const pending = market.state === 'pending';
   const picked = (pid) => Boolean(slip[`${market.id}_${pid}`]);
-  const isGF = (market.round_text || '').toLowerCase().includes('grand final');
+  const isReset = (market.round_text || '').toLowerCase().includes('reset');
 
   const row = (pid, name, odds, score, isWin, isLoss) => (
     <button
       type="button"
-      className={`bnode-row ${isWin ? (isGF ? 'gf-win' : 'win') : ''} ${isLoss ? 'loss' : ''} ${picked(pid) ? 'picked' : ''}`}
+      className={`bnode-row ${isWin ? (isChampionMatch ? 'gf-win' : 'win') : ''} ${isLoss ? 'loss' : ''} ${picked(pid) ? 'picked' : ''}`}
       disabled={!open || !name}
       onClick={() => open && name && onPick(market, pid)}
     >
@@ -165,10 +165,11 @@ const Node = ({ market, slip, onPick, demoControls, registerRef, projected }) =>
 
   return (
     <div ref={setRef} className={`bnode ${market.state}`}>
-      {(closed || pending) && (
+      {(closed || pending || isReset) && (
         <div className="bnode-head">
           {closed && <span className="bnode-live"><span className="live-dot" /> LIVE</span>}
           {pending && <span className="bnode-wait">WAITING</span>}
+          {isReset && <span className="bnode-reset-badge">RESET</span>}
         </div>
       )}
       {row(market.player1_id, market.player1_name, market.p1_live_odds, market.p1_score, p1Win, p2Win)}
@@ -189,7 +190,12 @@ const Column = ({ col, markets, slip, onPick, demoControls, registerRef, project
   // Reset, which both classify to GF and must both be shown.
   const cells = [];
   const count = Math.max(col.cap, nodes.length);
+  // Gold champion highlight only belongs on the deciding match: the reset (if one
+  // exists) or the sole GF (if no reset). Never on an initial GF that was reset.
+  const gfHasReset = col.key === 'GF' && nodes.some((n) => (n?.round_text || '').toLowerCase().includes('reset'));
   for (let i = 0; i < count; i++) {
+    const roundText = (nodes[i]?.round_text || '').toLowerCase();
+    const isChampionMatch = col.key === 'GF' && (!gfHasReset || roundText.includes('reset'));
     cells.push(
       <Node
         key={nodes[i]?.id ?? `${col.key}-tbd-${i}`}
@@ -199,6 +205,7 @@ const Column = ({ col, markets, slip, onPick, demoControls, registerRef, project
         demoControls={demoControls}
         projected={projected ? projected[`${col.key}-${i}`] : null}
         registerRef={(el) => registerRef(`${col.key}-${i}`, el)}
+        isChampionMatch={isChampionMatch}
       />
     );
   }
