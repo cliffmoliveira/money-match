@@ -139,7 +139,24 @@ async function processTournamentEvents(tRow, events = []) {
       const existing = await db.getAsync('SELECT id, state FROM set_markets WHERE startgg_set_id = ?', [setId]);
 
       if (set.state === 3 && set.winnerId != null) {
-        if (existing && existing.state !== 'settled' && existing.state !== 'void' && e0?.id && e1?.id) {
+        if (!existing && e0?.id && e1?.id) {
+          // Set completed before we ever saw it as upcoming (poller missed the window).
+          // Create + settle it now so it appears in the bracket with the winner highlighted.
+          const phaseGroupId = set.phaseGroup?.id != null ? String(set.phaseGroup.id) : null;
+          const p0 = await findOrCreatePlayerId(e0);
+          const p1 = await findOrCreatePlayerId(e1);
+          if (p0 && p1) {
+            await lm.fillBracketSlot({ tournamentId: tRow.id, gameId, startggSetId: setId, roundText: set.fullRoundText, roundInt: set.round ?? null, phaseGroupId, slot: 1, playerId: p0, seed: seedOf(e0) });
+            await lm.fillBracketSlot({ tournamentId: tRow.id, gameId, startggSetId: setId, roundText: set.fullRoundText, roundInt: set.round ?? null, phaseGroupId, slot: 2, playerId: p1, seed: seedOf(e1) });
+            const fresh = await db.getAsync('SELECT id, state FROM set_markets WHERE startgg_set_id = ?', [setId]);
+            if (fresh && fresh.state !== 'settled') {
+              const winnerEntrant = set.winnerId === e0.id ? e0 : e1;
+              const winnerPid = await findOrCreatePlayerId(winnerEntrant);
+              await lm.settleMarket(fresh.id, winnerPid, scoreOf(set.slots[0]), scoreOf(set.slots[1]));
+              stats.settled++;
+            }
+          }
+        } else if (existing && existing.state !== 'settled' && existing.state !== 'void' && e0?.id && e1?.id) {
           const winnerEntrant = set.winnerId === e0.id ? e0 : e1;
           const winnerPid = await findOrCreatePlayerId(winnerEntrant);
           await lm.settleMarket(existing.id, winnerPid, scoreOf(set.slots[0]), scoreOf(set.slots[1]));
