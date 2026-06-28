@@ -226,11 +226,9 @@ const Bracket = ({ markets = [], slip = {}, onPick, demoControls, waiting = fals
   const innerRef = useRef(null);  // natural-size, scaled to fit
   const nodeRefs = useRef({});
   const scaleRef = useRef(1);     // scale currently applied in the DOM
-  const gfOffsetRef = useRef(0);  // vertical nudge applied to Grand Final
   const [paths, setPaths] = useState([]);
   const [dims, setDims] = useState({ w: 0, h: 0 });
   const [scale, setScale] = useState(1);
-  const [gfOffset, setGfOffset] = useState(0);
 
   const registerRef = useCallback((key, el) => {
     if (el) nodeRefs.current[key] = el;
@@ -278,30 +276,9 @@ const Bracket = ({ markets = [], slip = {}, onPick, demoControls, waiting = fals
         cx: (r.left + r.width / 2 - innerRect.left) / cur,
       };
     };
-    // Grand Final sits in a cell spanning both bracket halves, so its center
-    // doesn't naturally fall on the midpoint of its two feeders (the winners
-    // half is shorter than the losers half). Nudge it onto that midpoint so the
-    // two incoming lines meet symmetrically at its center.
     const wfBox = box('WF-0'), lfBox = box('LF-0'), gfBox = box('GF-0');
-    let gfMid = gfBox ? gfBox.mid : null;
-    // On mobile the grid stacks winners/grand/losers vertically — GF is already
-    // in the right place by DOM order, so the offset must be zero.
+    const gfMid = gfBox ? gfBox.mid : null;
     const isMobile = availW <= 820;
-    // Sink GF below the exact feeder midpoint so the incoming connector lines
-    // have visible space above the node before entering it.
-    const GF_SINK = 50;
-    if (isMobile) {
-      if (gfOffsetRef.current !== 0) { gfOffsetRef.current = 0; setGfOffset(0); }
-    } else if (wfBox && lfBox && gfBox) {
-      const feederMid = (wfBox.mid + lfBox.mid) / 2;
-      const naturalGfMid = gfBox.mid - gfOffsetRef.current;
-      const desiredOffset = feederMid - naturalGfMid + GF_SINK;
-      if (Math.abs(desiredOffset - gfOffsetRef.current) > 0.5) {
-        gfOffsetRef.current = desiredOffset;
-        setGfOffset(desiredOffset);
-      }
-      gfMid = feederMid;
-    }
 
     const next = [];
     for (const [from, to] of EDGES) {
@@ -317,7 +294,7 @@ const Bracket = ({ markets = [], slip = {}, onPick, demoControls, waiting = fals
       const gap = b.left - a.right;
       // WF→GF on mobile: GF is stacked below WF, so exit from the bottom
       // center of WF, drop down, then go right into GF's left edge.
-      if (from === 'WF-0' && to === 'GF-0' && bMid > a.mid) {
+      if (from === 'WF-0' && to === 'GF-0' && bMid > a.mid && isMobile) {
         next.push(`M ${a.cx} ${a.bottom} V ${bMid} H ${b.left}`);
         continue;
       }
@@ -381,7 +358,7 @@ const Bracket = ({ markets = [], slip = {}, onPick, demoControls, waiting = fals
           <div className="bracket-winners">
             {winners.map((k) => <Column key={k} col={colFor(k)} {...common} />)}
           </div>
-          <div className="bracket-grand" style={{ transform: `translateY(${gfOffset}px)` }}>
+          <div className="bracket-grand">
             <Column col={colFor('GF')} {...common} />
           </div>
           <div className="bracket-losers">

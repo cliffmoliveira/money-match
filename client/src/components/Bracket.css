@@ -9,7 +9,7 @@
 .bracket-grid {
   display: grid;
   grid-template-columns: 1fr auto;
-  grid-template-areas: "winners grand" "losers grand";
+  grid-template-areas: "winners ." "losers grand";
   gap: 16px 20px;
   align-items: center;
   padding: 8px 4px 12px;
@@ -20,8 +20,8 @@
 .bracket-lines path { fill: none; stroke: rgba(255,255,255,0.12); stroke-width: 2; }
 
 .bracket-winners { grid-area: winners; }
-.bracket-losers { grid-area: losers; padding-top: 60px; }
-.bracket-grand { grid-area: grand; display: flex; align-items: center; }
+.bracket-losers { grid-area: losers; }
+.bracket-grand { grid-area: grand; display: flex; align-items: flex-start; align-self: start; }
 .bracket-winners, .bracket-losers, .bracket-grand { position: relative; z-index: 1; }
 .bracket-winners, .bracket-losers { display: flex; gap: 18px; align-items: stretch; }
 
