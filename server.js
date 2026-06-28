@@ -179,6 +179,7 @@ app.get('/api/past-results', async (req, res) => {
       JOIN players pl ON pl.id = CASE WHEN sm.winner_id = sm.player1_id THEN sm.player2_id ELSE sm.player1_id END
       WHERE sm.winner_id IS NOT NULL
         AND sm.state = 'settled'
+        AND sm.round_text = 'Grand Final'
         AND t.date <= DATE('now', '+30 days')
 
       ORDER BY date DESC;
