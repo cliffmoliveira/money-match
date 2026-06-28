@@ -122,11 +122,12 @@ const Node = ({ market, slip, onPick, demoControls, registerRef, projected }) =>
   const closed = market.state === 'closed';
   const pending = market.state === 'pending';
   const picked = (pid) => Boolean(slip[`${market.id}_${pid}`]);
+  const isGF = (market.round_text || '').toLowerCase().includes('grand final');
 
   const row = (pid, name, odds, score, isWin, isLoss) => (
     <button
       type="button"
-      className={`bnode-row ${isWin ? 'win' : ''} ${isLoss ? 'loss' : ''} ${picked(pid) ? 'picked' : ''}`}
+      className={`bnode-row ${isWin ? (isGF ? 'gf-win' : 'win') : ''} ${isLoss ? 'loss' : ''} ${picked(pid) ? 'picked' : ''}`}
       disabled={!open || !name}
       onClick={() => open && name && onPick(market, pid)}
     >
