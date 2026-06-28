@@ -64,7 +64,6 @@
 }
 .live-tab:hover { border-color: rgba(231,180,88,0.4); }
 .live-tab.active { border-color: var(--gold); background: var(--gold-tint); }
-.live-tab.settled { border-color: rgba(231,180,88,0.35); background: var(--gold-tint); }
 .live-tab.settled.active { border-color: var(--gold); }
 
 /* LIVE badge — top-left corner, red pill with pulsing dot + white text */
