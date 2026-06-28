@@ -244,9 +244,10 @@ const Home = () => {
   }
 
   const liveNow = (liveMarkets || []).filter((m) => m.state === 'open' || m.state === 'closed');
+  const pendingMatches = (liveMarkets || []).filter((m) => m.state === 'pending');
   // The idle hero features the immediate next event, so the "Next Up" list below
   // skips it (when shown) to avoid surfacing the same event twice.
-  const heroShowsNext = !!userId && liveNow.length === 0 && (upcoming?.length || 0) > 0;
+  const heroShowsNext = !!userId && liveNow.length === 0 && pendingMatches.length === 0 && (upcoming?.length || 0) > 0;
   const spotlight = (heroShowsNext ? upcoming.slice(1) : (upcoming || [])).slice(0, 4);
 
   // Countdown shows only on the next big upcoming major — skip World Warrior / LCQ
@@ -343,6 +344,27 @@ const Home = () => {
             ))}
           </div>
           <Link to="/live" className="btn live-hero-cta">Watch &amp; bet →</Link>
+        </section>
+      );
+    }
+    // Logged-in, tournament in progress but between rounds — show upcoming rounds.
+    if (liveNow.length === 0 && pendingMatches.length > 0) {
+      const tName = pendingMatches[0].tournament_name;
+      const tLogo = pendingMatches[0].tournament_logo_url;
+      const rounds = [...new Set(pendingMatches.map((m) => m.round_text).filter(Boolean))];
+      return (
+        <section className="next-hero">
+          <span className="next-hero-badge">Coming up</span>
+          <div className="next-hero-body">
+            {tLogo && <img src={tLogo} alt={tName} style={{ height: 52, width: 'auto', objectFit: 'contain', borderRadius: 6 }} />}
+            <div className="next-hero-info">
+              <h2>{tName}</h2>
+              {rounds.length > 0 && <p className="next-hero-meta">{rounds.join(' · ')}</p>}
+            </div>
+          </div>
+          <div className="hero-actions">
+            <Link to="/live" className="btn primary">Watch bracket →</Link>
+          </div>
         </section>
       );
     }
