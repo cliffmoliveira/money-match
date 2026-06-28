@@ -4,6 +4,19 @@ import { getGameAlt, getGameLogoSources, getGameLogoStyle } from '../utils/gameL
 import { getTournamentLogoSources, getTournamentAlt, getTournamentLogoStyle } from '../utils/tournamentLogos';
 import ExhibitionSection from './ExhibitionSection';
 
+const PlayerName = ({ name }) => {
+  if (!name) return null;
+  const i = name.indexOf('|');
+  const sponsor = i === -1 ? '' : name.slice(0, i).trim();
+  const tag = (i === -1 ? name : name.slice(i + 1)).trim();
+  return (
+    <span className="pr-name-stack">
+      {sponsor && <span className="pr-sponsor">{sponsor}</span>}
+      <span className="pr-tag">{tag}</span>
+    </span>
+  );
+};
+
 const PastResults = () => {
   const [pastResults, setPastResults] = useState([]);
   const [exhibitions, setExhibitions] = useState([]);
@@ -262,11 +275,11 @@ const PastResults = () => {
                   <td className="game" data-label="Game">
                     <GameTitle name={result.game} height={56} />
                   </td>
-                  <td className="winner" data-label="Winner">{result.winner}</td>
+                  <td className="winner" data-label="Winner"><PlayerName name={result.winner} /></td>
                   <td className="score" data-label="Score">
                     {result.winnerRoundsWon} - {result.loserRoundsWon}
                   </td>
-                  <td className="loser" data-label="Loser">{result.loser}</td>
+                  <td className="loser" data-label="Loser"><PlayerName name={result.loser} /></td>
                 </tr>
               ))}
             </tbody>
@@ -279,9 +292,9 @@ const PastResults = () => {
               <TournamentNameOrLogo name={result.tournament} logoUrl={result.logoUrl} height={30} />
               <div className="rc-body">
                 <div className="rc-result">
-                  <span className="rc-winner">{result.winner}</span>
+                  <span className="rc-winner"><PlayerName name={result.winner} /></span>
                   <span className="rc-score">{result.winnerRoundsWon}–{result.loserRoundsWon}</span>
-                  <span className="rc-loser">{result.loser}</span>
+                  <span className="rc-loser"><PlayerName name={result.loser} /></span>
                 </div>
                 <div className="rc-meta">
                   {result.game} · {new Date(result.date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} · {result.tournament}
