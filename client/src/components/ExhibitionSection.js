@@ -42,7 +42,8 @@ const GameLogo = ({ name, height = 28 }) => {
 const TournamentLogo = ({ name, logoUrl, height = 24 }) => {
   if (!name && !logoUrl) return null;
   const { avif, webp, png, jpg, jpeg } = getTournamentLogoSources(name || '');
-  const candidates = [logoUrl, avif, webp, png, jpg, jpeg].filter(Boolean);
+  // Local assets first — remote logo_url is often a small platform favicon
+  const candidates = [avif, webp, png, jpg, jpeg, logoUrl].filter(Boolean);
   if (!candidates.length) return null;
   return (
     <SmallLogo
