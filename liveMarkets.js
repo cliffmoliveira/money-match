@@ -327,7 +327,7 @@ async function getMarkets({ includeAll = false } = {}) {
      JOIN games g ON g.id = m.game_id
      LEFT JOIN players p1 ON p1.id = m.player1_id
      LEFT JOIN players p2 ON p2.id = m.player2_id
-     WHERE ${where}
+     WHERE ${where} AND m.state != 'void'
      ORDER BY (m.state='open') DESC, (m.state='closed') DESC, m.id DESC`
   );
 }
