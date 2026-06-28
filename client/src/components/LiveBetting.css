@@ -38,46 +38,56 @@
 .live-empty h2 { font-family: 'Saira', sans-serif; color: var(--text); margin-bottom: 8px; }
 
 /* Game tab strip — one tab per live game, horizontally scrollable */
+.live-tabs-wrap {
+  display: flex; align-items: center; gap: 6px; margin-bottom: 20px;
+}
+.live-tabs-arrow {
+  flex-shrink: 0; width: 32px; height: 32px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--card); color: var(--text);
+  font-size: 18px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: border-color .15s, color .15s;
+}
+.live-tabs-arrow:hover { border-color: var(--gold); color: var(--gold); }
+
 .live-tabs {
   display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none;
-  padding-bottom: 4px; margin-bottom: 20px;
+  flex: 1; padding-bottom: 2px;
 }
 .live-tabs::-webkit-scrollbar { display: none; }
 
 .live-tab {
   flex-shrink: 0; position: relative;
-  display: flex; flex-direction: column; align-items: center; gap: 5px;
-  min-width: 100px; max-width: 130px; padding: 10px 12px; border-radius: 12px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  width: 90px; height: 64px; padding: 8px; border-radius: 12px;
   border: 1px solid var(--border); background: var(--card);
   cursor: pointer; transition: border-color .15s, background .15s;
 }
 .live-tab:hover { border-color: rgba(231,180,88,0.4); }
 .live-tab.active { border-color: var(--gold); background: var(--gold-tint); }
 
-/* Pulsing red dot signals a set actively in progress */
-.live-tab-dot {
-  position: absolute; top: 7px; right: 7px;
-  width: 7px; height: 7px; border-radius: 50%; background: var(--live-text);
+/* LIVE badge — top-left corner, red pill with pulsing dot */
+.live-tab-live-badge {
+  position: absolute; top: 5px; left: 5px;
+  display: inline-flex; align-items: center; gap: 3px;
+  background: var(--live-tint); color: var(--live-text);
+  font-family: 'Saira', sans-serif; font-size: 7px; font-weight: 800;
+  letter-spacing: .06em; padding: 2px 4px 2px 3px; border-radius: 4px;
+  text-transform: uppercase; line-height: 1;
+}
+.live-tab-live-dot {
+  width: 5px; height: 5px; border-radius: 50%; background: var(--live-text); flex-shrink: 0;
   animation: liveTabPulse 1.8s ease-in-out infinite;
 }
 @keyframes liveTabPulse {
   0%, 100% { opacity: 1; transform: scale(1); }
-  50%       { opacity: 0.6; transform: scale(0.75); }
+  50%       { opacity: 0.5; transform: scale(0.7); }
 }
 
 .live-tab-logo {
-  height: 34px; width: 100%;
+  height: 38px; width: 100%;
   display: flex; align-items: center; justify-content: center;
 }
-.live-tab-logo img { max-height: 34px !important; max-width: 88px !important; object-fit: contain; }
-
-.live-tab-label {
-  font-family: 'Saira', sans-serif; font-size: 9px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .04em; color: var(--muted);
-  text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  width: 100%;
-}
-.live-tab.active .live-tab-label { color: var(--gold); }
+.live-tab-logo img { max-height: 38px !important; max-width: 76px !important; object-fit: contain; }
 
 .live-tournament { margin-bottom: 30px; }
 .live-tournament + .live-tournament {

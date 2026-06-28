@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import './LiveBetting.css';
 import Bracket from './Bracket';
 import WaitingRoom from './WaitingRoom';
@@ -47,6 +47,8 @@ const LiveBetting = () => {
   const [slipOpen, setSlipOpen] = useState(false); // desktop bet-slip drawer
   const [liveExhibitions, setLiveExhibitions] = useState([]);
   const [activeTab, setActiveTab] = useState(null);
+  const tabsRef = useRef(null);
+  const scrollTabs = (dir) => tabsRef.current?.scrollBy({ left: dir * 220, behavior: 'smooth' });
 
   const userId = localStorage.getItem('userId');
 
@@ -358,23 +360,31 @@ const LiveBetting = () => {
         ) : (
           <>
             {/* Scrollable game tab strip */}
-            <div className="live-tabs" role="tablist">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.key}
-                  type="button"
-                  role="tab"
-                  aria-selected={tab.key === effectiveTabKey}
-                  className={`live-tab${tab.key === effectiveTabKey ? ' active' : ''}`}
-                  onClick={() => setActiveTab(tab.key)}
-                >
-                  {tab.isLive && <span className="live-tab-dot" aria-hidden="true" />}
-                  <div className="live-tab-logo">
-                    <GameLogo name={tab.gameName} height={28} />
-                  </div>
-                  <span className="live-tab-label">{tab.gameName}</span>
-                </button>
-              ))}
+            <div className="live-tabs-wrap">
+              <button type="button" className="live-tabs-arrow" aria-label="Scroll left" onClick={() => scrollTabs(-1)}>‹</button>
+              <div className="live-tabs" role="tablist" ref={tabsRef}>
+                {tabs.map((tab) => (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    role="tab"
+                    aria-selected={tab.key === effectiveTabKey}
+                    className={`live-tab${tab.key === effectiveTabKey ? ' active' : ''}`}
+                    onClick={() => setActiveTab(tab.key)}
+                  >
+                    {tab.isLive && (
+                      <span className="live-tab-live-badge">
+                        <span className="live-tab-live-dot" aria-hidden="true" />
+                        LIVE
+                      </span>
+                    )}
+                    <div className="live-tab-logo">
+                      <GameLogo name={tab.gameName} height={28} />
+                    </div>
+                  </button>
+                ))}
+              </div>
+              <button type="button" className="live-tabs-arrow" aria-label="Scroll right" onClick={() => scrollTabs(1)}>›</button>
             </div>
 
             {/* Active bracket */}
