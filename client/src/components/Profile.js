@@ -1,10 +1,46 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import './Profile.css';
+import { getTournamentLogoSources, getTournamentAlt, getTournamentLogoStyle } from '../utils/tournamentLogos';
+import { getGameLogoSources, getGameAlt, getGameLogoStyle } from '../utils/gameLogos';
 
 const shortTag = (name) => (name && name.includes('|') ? name.split('|').pop().trim() : name);
 
 const BADGE = { correct: 'CORRECT', incorrect: 'INCORRECT', pending: 'PENDING', void: 'VOID' };
+
+const TournamentLogo = ({ name, height = 24 }) => {
+  const [index, setIndex] = useState(0);
+  if (!name) return null;
+  const { avif, webp, png, jpg, jpeg } = getTournamentLogoSources(name);
+  const candidates = [avif, webp, png, jpg, jpeg].filter(Boolean);
+  const src = candidates[index];
+  if (!src) return null;
+  return (
+    <img
+      src={src}
+      alt={getTournamentAlt(name)}
+      style={getTournamentLogoStyle(name, height)}
+      title={name}
+      onError={() => setIndex((i) => i + 1)}
+    />
+  );
+};
+
+const GameLogo = ({ name, height = 24 }) => {
+  const [index, setIndex] = useState(0);
+  if (!name) return null;
+  const candidates = Object.values(getGameLogoSources(name)).filter(Boolean);
+  const src = candidates[index];
+  if (!src) return null;
+  return (
+    <img
+      src={src}
+      alt={getGameAlt(name)}
+      style={getGameLogoStyle(name, height)}
+      onError={() => { if (index + 1 < candidates.length) setIndex(index + 1); }}
+    />
+  );
+};
 
 // Pick'em profile (spec §7.6): coins, points, accuracy, streaks, recent picks.
 const Profile = () => {
@@ -72,25 +108,28 @@ const Profile = () => {
           {data.picks.map((p, i) => {
             const picked = shortTag(p.picked_name) || `#${p.picked_player_id}`;
             const opp = shortTag(p.opp_name);
+            const outcomeClass = p.result === 'correct' ? 'win' : p.result === 'incorrect' ? 'loss' : 'pending';
             return (
-              <div key={`${p.market_id}-${i}`} className={`pf-pick ${p.result}`}>
-                <div className="pf-pick-top">
-                  <span className={`pf-pick-badge ${p.result}`}>{BADGE[p.result] || p.result}</span>
-                  {p.result === 'correct' && (
-                    <span className="pf-pick-reward">+{p.points_awarded} pts</span>
+              <div key={`${p.market_id}-${i}`} className="bet-card">
+                <div className="bet-row bet-row-top">
+                  <div className="bet-tournament">
+                    <TournamentLogo name={p.tournament_name} height={20} />
+                    <span className="bet-tournament-name">{p.tournament_name || '—'}</span>
+                  </div>
+                  {p.round_text && <span className="bet-kind">{p.round_text}</span>}
+                  <div className={`bet-outcome ${outcomeClass}`}>
+                    {BADGE[p.result] || p.result}
+                  </div>
+                </div>
+                <div className="bet-row bet-row-bottom">
+                  <div className="bet-game">
+                    <GameLogo name={p.game_name} height={24} />
+                  </div>
+                  <div className="bet-player">{picked}{opp ? ` vs ${opp}` : ''}</div>
+                  {p.result === 'correct' && p.points_awarded > 0 && (
+                    <div className="bet-amount">+{p.points_awarded} pts</div>
                   )}
                 </div>
-                <div className="pf-pick-matchup">
-                  <span className="pf-pick-picked">{picked}</span>
-                  {opp && <><span className="pf-pick-vs"> vs </span><span className="pf-pick-opp">{opp}</span></>}
-                </div>
-                {(p.game_name || p.round_text || p.tournament_name) && (
-                  <div className="pf-pick-context">
-                    {p.game_name && <span className="pf-pick-game">{p.game_name}</span>}
-                    {p.round_text && <><span className="pf-pick-dot">·</span><span>{p.round_text}</span></>}
-                    {p.tournament_name && <><span className="pf-pick-dot">·</span><span>{p.tournament_name}</span></>}
-                  </div>
-                )}
               </div>
             );
           })}
