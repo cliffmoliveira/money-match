@@ -126,7 +126,7 @@
 /* Right rail */
 /* Bet-slip drawer (desktop): slides in from the right over the bracket. */
 .live-drawer {
-  position: fixed; top: 57px; right: 0; height: calc(100vh - 57px); width: min(380px, 92vw);
+  position: fixed; top: 83px; right: 0; height: calc(100vh - 83px); width: min(380px, 92vw);
   z-index: 60; overflow: hidden;
   background: var(--card); border-left: 1px solid var(--border);
   box-shadow: -16px 0 48px rgba(0, 0, 0, 0.45);
