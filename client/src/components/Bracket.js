@@ -199,7 +199,7 @@ const Node = ({ market, slip, onPick, demoControls, registerRef, projected, isCh
         if (b.state === 'won') {
           return (
             <div className="bnode-bet-result won">
-              <span className="bnode-bet-label">Won</span>
+              <span className="bnode-bet-label won">WON</span>
               <span className="bnode-bet-value">+{fmAmount(b.payout_cents - b.amount_cents)} FM</span>
             </div>
           );
@@ -207,15 +207,15 @@ const Node = ({ market, slip, onPick, demoControls, registerRef, projected, isCh
         if (b.state === 'lost') {
           return (
             <div className="bnode-bet-result lost">
-              <span className="bnode-bet-label">Lost</span>
+              <span className="bnode-bet-label lost">LOST</span>
               <span className="bnode-bet-value">−{fm(b.amount_cents)}</span>
             </div>
           );
         }
-        // placed — open or in-progress
+        const inPlay = market.state === 'closed';
         return (
-          <div className="bnode-bet-result pending">
-            <span className="bnode-bet-label">In play</span>
+          <div className={`bnode-bet-result ${inPlay ? 'inplay' : 'pending'}`}>
+            <span className={`bnode-bet-label ${inPlay ? 'inplay' : 'pending'}`}>{inPlay ? 'IN PLAY' : 'PENDING'}</span>
             <span className="bnode-bet-value">{fm(b.amount_cents)} × {Number(b.locked_odds).toFixed(2)}</span>
           </div>
         );

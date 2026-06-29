@@ -103,7 +103,8 @@
   color: var(--muted); font-family: 'Saira', sans-serif; font-size: 12px; font-weight: 700;
   letter-spacing: .05em; text-transform: uppercase; padding: 4px 10px;
   cursor: pointer; display: inline-flex; align-items: center;
-  margin-bottom: 10px; transition: color 0.15s, border-color 0.15s;
+  margin-left: auto; flex-shrink: 0;
+  transition: color 0.15s, border-color 0.15s;
 }
 .live-pnl-toggle:hover { border-color: rgba(255,255,255,0.35); color: var(--text); }
 .live-pnl-toggle.active { color: var(--gold); border-color: var(--gold); }

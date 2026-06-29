@@ -133,12 +133,17 @@
   font-size: 9px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
   color: var(--muted);
 }
+.bnode-bet-label.won   { color: #4caf79; }
+.bnode-bet-label.lost  { color: #e05c5c; }
+.bnode-bet-label.inplay  { color: var(--gold); }
+.bnode-bet-label.pending { color: var(--muted); }
 .bnode-bet-value {
   font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums;
 }
-.bnode-bet-result.won .bnode-bet-value { color: #4caf79; }
-.bnode-bet-result.lost .bnode-bet-value { color: #e05c5c; }
-.bnode-bet-result.pending .bnode-bet-value { color: var(--gold); }
+.bnode-bet-result.won    .bnode-bet-value { color: #4caf79; }
+.bnode-bet-result.lost   .bnode-bet-value { color: #e05c5c; }
+.bnode-bet-result.inplay .bnode-bet-value { color: var(--gold); }
+.bnode-bet-result.pending .bnode-bet-value { color: var(--muted); }
 
 /* Waiting room: pulse the empty slots so it's clear what we're waiting to fill */
 .bracket-waiting .bnode.tbd {

@@ -377,6 +377,11 @@ const LiveBetting = () => {
                   <img src={activeTabData.logoUrl} alt={activeTabData.tournamentName} className="live-tourn-header-logo" />
                 )}
                 <span className="live-tourn-header-name">{activeTabData.tournamentName}</span>
+                {myBets.some((b) => b.game_name === activeTabData.gameName && b.tournament_name === activeTabData.tournamentName) && (
+                  <button className={`live-pnl-toggle${showPnl ? ' active' : ''}`} type="button" onClick={() => setShowPnl((v) => !v)}>
+                    My bets
+                  </button>
+                )}
               </div>
             )}
 
@@ -420,11 +425,6 @@ const LiveBetting = () => {
                   )}
                   {activeTabData.tournamentName}
                 </h2>
-                {myBets.some((b) => b.game_name === activeTabData.gameName && b.tournament_name === activeTabData.tournamentName) && (
-                  <button className={`live-pnl-toggle${showPnl ? ' active' : ''}`} type="button" onClick={() => setShowPnl((v) => !v)}>
-                    My bets
-                  </button>
-                )}
                 <div className="live-game">
                   <div className="live-game-aside">
                     <GameLogo name={activeTabData.gameName} height={200} />
