@@ -280,6 +280,20 @@ async function syncLive({ all = false } = {}) {
       console.error(`[sync-live] ${tRow.name} (${tRow.startgg_id}) failed: ${err.message}`);
     }
   }
+  // Auto-clear is_live for tournaments that have ended: date in the past and no
+  // open or closed markets remain (everything is settled or void).
+  await db.runAsync(`
+    UPDATE tournaments
+    SET is_live = 0
+    WHERE is_live = 1
+      AND date(date) < date('now')
+      AND NOT EXISTS (
+        SELECT 1 FROM set_markets sm
+        WHERE sm.tournament_id = tournaments.id
+          AND sm.state IN ('open', 'closed')
+      )
+  `);
+
   console.log(`[sync-live] ${totals.tournaments} tournament(s): +${totals.opened} open, ${totals.closed} closed, ${totals.settled} settled`);
   return totals;
 }
