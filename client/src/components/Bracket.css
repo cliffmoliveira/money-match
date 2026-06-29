@@ -127,7 +127,7 @@
 .bnode-bet-result {
   display: flex; align-items: center; justify-content: space-between;
   padding: 5px 9px; border-radius: 0 0 8px 8px;
-  background: rgba(231,180,88,0.22);
+  background: rgba(231,180,88,0.32);
   font-family: 'Saira', sans-serif;
 }
 .bnode-bet-label {
@@ -142,6 +142,10 @@
   font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums;
   color: var(--text);
 }
+.bnode-bet-result.won    .bnode-bet-value { color: #4caf79; }
+.bnode-bet-result.lost   .bnode-bet-value { color: #e05c5c; }
+.bnode-bet-result.inplay .bnode-bet-value { color: var(--gold); }
+.bnode-bet-result.pending .bnode-bet-value { color: var(--muted); }
 
 /* Waiting room: pulse the empty slots so it's clear what we're waiting to fill */
 .bracket-waiting .bnode.tbd {
