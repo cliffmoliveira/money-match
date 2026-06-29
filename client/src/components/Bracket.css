@@ -126,24 +126,22 @@
 /* Per-match bet result overlay */
 .bnode-bet-result {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 5px 9px; border-top: 1px solid rgba(255,255,255,0.08);
+  padding: 5px 9px; border-radius: 0 0 8px 8px;
+  background: var(--gold);
   font-family: 'Saira', sans-serif;
 }
 .bnode-bet-label {
   font-size: 9px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
-  color: var(--muted);
+  color: rgba(0,0,0,0.5);
 }
-.bnode-bet-label.won   { color: #4caf79; }
-.bnode-bet-label.lost  { color: #e05c5c; }
-.bnode-bet-label.inplay  { color: var(--gold); }
-.bnode-bet-label.pending { color: var(--muted); }
+.bnode-bet-label.won    { color: #1a5c35; }
+.bnode-bet-label.lost   { color: #7a1a1a; }
+.bnode-bet-label.inplay { color: rgba(0,0,0,0.5); }
+.bnode-bet-label.pending { color: rgba(0,0,0,0.4); }
 .bnode-bet-value {
   font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums;
+  color: rgba(0,0,0,0.85);
 }
-.bnode-bet-result.won    .bnode-bet-value { color: #4caf79; }
-.bnode-bet-result.lost   .bnode-bet-value { color: #e05c5c; }
-.bnode-bet-result.inplay .bnode-bet-value { color: var(--gold); }
-.bnode-bet-result.pending .bnode-bet-value { color: var(--muted); }
 
 /* Waiting room: pulse the empty slots so it's clear what we're waiting to fill */
 .bracket-waiting .bnode.tbd {
