@@ -127,7 +127,7 @@
 .bnode-bet-result {
   display: flex; align-items: center; justify-content: space-between;
   padding: 5px 9px; border-radius: 0 0 8px 8px;
-  background: linear-gradient(90deg, rgba(231,180,88,0.38) 0%, rgba(231,180,88,0.06) 100%);
+  background: linear-gradient(90deg, rgba(231,180,88,0.65) 0%, rgba(231,180,88,0.04) 100%);
   font-family: 'Saira', sans-serif;
 }
 .bnode-bet-label {
