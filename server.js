@@ -38,6 +38,16 @@ app.use(express.static(path.join(__dirname, 'client', 'build')));
 // Password reset (forgot-password / reset-password) — uses the global express.json above.
 app.use('/api/auth', require('./auth/passwordReset'));
 
+// Temporary DB download — remove after use.
+// Requires ADMIN_DOWNLOAD_SECRET env var set in Render dashboard.
+// Usage: GET /api/internal/db-download?secret=<ADMIN_DOWNLOAD_SECRET>
+app.get('/api/internal/db-download', (req, res) => {
+  const secret = process.env.ADMIN_DOWNLOAD_SECRET;
+  if (!secret || req.query.secret !== secret) return res.status(403).end();
+  const dbPath = process.env.DATABASE_PATH || './database.db';
+  res.download(dbPath, 'database.db');
+});
+
 // Health check — Render polls this before switching traffic on deploys.
 // Returns 503 if the DB isn't reachable so the old instance keeps serving.
 app.get('/api/health', async (req, res) => {
