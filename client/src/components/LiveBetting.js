@@ -369,6 +369,16 @@ const LiveBetting = () => {
           )
         ) : (
           <>
+            {/* Tournament identity header */}
+            {activeTabData && (
+              <div className="live-tourn-header">
+                {activeTabData.logoUrl && (
+                  <img src={activeTabData.logoUrl} alt={activeTabData.tournamentName} className="live-tourn-header-logo" />
+                )}
+                <span className="live-tourn-header-name">{activeTabData.tournamentName}</span>
+              </div>
+            )}
+
             {/* Scrollable game tab strip */}
             <div className="live-tabs-wrap">
               <button type="button" className="live-tabs-arrow" aria-label="Scroll left" onClick={() => scrollTabs(-1)}>‹</button>

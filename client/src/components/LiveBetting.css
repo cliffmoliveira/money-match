@@ -98,7 +98,20 @@
   line-height: 1;
 }
 
+.live-tourn-header {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 14px;
+}
+.live-tourn-header-logo {
+  height: 32px; width: auto; border-radius: 6px; object-fit: contain; flex-shrink: 0;
+}
+.live-tourn-header-name {
+  font-family: 'Saira', sans-serif; font-weight: 700; font-size: 19px;
+  color: var(--text); letter-spacing: -0.01em;
+}
+
 .live-tournament { margin-bottom: 30px; }
+.live-tournament > h2 { display: none; }
 .live-tournament + .live-tournament {
   border-top: 2px solid rgba(255,255,255,0.35);
   padding-top: 40px;
@@ -113,11 +126,6 @@
    Offset it downward only when it follows a sibling game section. */
 .live-game + .live-game .live-game-aside {
   top: 52px;
-}
-.live-tournament > h2 {
-  display: flex; align-items: center; gap: 10px;
-  font-family: 'Saira', sans-serif; font-weight: 700; color: var(--text);
-  font-size: 19px; margin: 0 0 16px;
 }
 .live-tournament-logo {
   height: 36px; width: auto; border-radius: 6px; object-fit: contain; flex-shrink: 0;
