@@ -360,7 +360,6 @@ const Home = () => {
                       </div>
                     )}
                   </span>
-                  <span className="lh-vs">vs</span>
                   <span className="lh-player">
                     <LivePlayerName name={m.player2_name} />
                     {m.state === 'closed' && m.p2_score != null && (
