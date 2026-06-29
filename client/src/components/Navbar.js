@@ -38,7 +38,7 @@ const IconPicks = (
 // the desktop link row and the mobile bottom tab bar.
 const NAV = [
   { to: '/', label: 'Home', end: true, icon: IconHome },
-  { to: '/live', label: 'Live', icon: IconLive, live: true },
+  { to: '/brackets', label: 'Brackets', icon: IconLive, live: true },
   { to: '/future-tournaments', label: 'Futures', icon: IconFutures },
   { to: '/past-results', label: 'Results', icon: IconResults },
   { to: '/leaderboard', label: 'Ranks', icon: IconRanks },

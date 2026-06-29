@@ -59,7 +59,7 @@ const Leaderboard = () => {
       ) : error ? (
         <p className="error-message">{error}</p>
       ) : rows.length === 0 ? (
-        <p className="lb-muted">No picks scored yet — make some on the Live bracket and check back.</p>
+        <p className="lb-muted">No picks scored yet — make some on the Brackets page and check back.</p>
       ) : (
         <div className="lb-table" role="table">
           <div className="lb-row lb-colhead" role="row">

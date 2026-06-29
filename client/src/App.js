@@ -38,7 +38,7 @@ function AppShell({ isLoggedIn, setIsLoggedIn }) {
           element={isLoggedIn ? <FutureTournaments /> : <Navigate to="/login" />}
         />
         <Route
-          path="/live"
+          path="/brackets"
           element={isLoggedIn ? <LiveBetting /> : <Navigate to="/login" />}
         />
         <Route path="/leaderboard" element={<Leaderboard />} />

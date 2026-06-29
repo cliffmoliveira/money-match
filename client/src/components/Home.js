@@ -79,7 +79,7 @@ const Home = () => {
   const [adjustingBet, setAdjustingBet] = useState(null); // open bet in the adjust sheet
   const [betsReloadKey, setBetsReloadKey] = useState(0);   // bump to re-fetch bets+wallet
 
-  // Live betting + wallet — the marquee feature, surfaced here as a hero.
+  // Brackets + wallet — the marquee feature, surfaced here as a hero.
   const [liveMarkets, setLiveMarkets] = useState([]);
   const [liveBets, setLiveBets] = useState([]);
   const [liveActiveTournament, setLiveActiveTournament] = useState(null);
@@ -376,7 +376,7 @@ const Home = () => {
               </div>
             ))}
           </div>
-          <Link to="/live" className="btn live-hero-cta">Watch &amp; bet →</Link>
+          <Link to="/brackets" className="btn live-hero-cta">Watch &amp; bet →</Link>
         </section>
       );
     }
@@ -398,7 +398,7 @@ const Home = () => {
             </div>
           </div>
           <div className="hero-actions">
-            <Link to="/live" className="btn primary">Watch &amp; bet →</Link>
+            <Link to="/brackets" className="btn primary">Watch &amp; bet →</Link>
             <Link to="/future-tournaments" className="btn">Browse futures</Link>
           </div>
         </section>
@@ -420,7 +420,7 @@ const Home = () => {
             </div>
           </div>
           <div className="hero-actions">
-            <Link to="/live" className="btn primary">Watch bracket →</Link>
+            <Link to="/brackets" className="btn primary">Watch bracket →</Link>
           </div>
         </section>
       );
@@ -445,7 +445,7 @@ const Home = () => {
           {next.id === nextMajorId && <Countdown date={next.date} compact />}
           <div className="hero-actions">
             <Link to="/future-tournaments" className="btn primary">Browse futures</Link>
-            <Link to="/live" className="btn">Live betting</Link>
+            <Link to="/brackets" className="btn">Brackets</Link>
           </div>
         </section>
       );
@@ -457,7 +457,7 @@ const Home = () => {
           <h1>Welcome back.</h1>
           <p>No upcoming majors scheduled yet — check back soon.</p>
           <div className="hero-actions">
-            <Link to="/live" className="btn primary">Live betting</Link>
+            <Link to="/brackets" className="btn primary">Brackets</Link>
             <Link to="/future-tournaments" className="btn">Browse futures</Link>
           </div>
         </div>
@@ -501,7 +501,7 @@ const Home = () => {
       )}
 
       {userId && (
-        <Link to="/live" className="pickem-nudge">
+        <Link to="/brackets" className="pickem-nudge">
           <span className="pn-icon" aria-hidden="true">🎯</span>
           <span className="pn-text">Predict bracket winners — free picks earn ranked points.</span>
           <span className="pn-cta">Make picks →</span>
@@ -513,7 +513,7 @@ const Home = () => {
         <section className="bets">
           <div className="section-header">
             <h2>Your Bets</h2>
-            <Link to="/live" className="link">Place bets</Link>
+            <Link to="/brackets" className="link">Place bets</Link>
           </div>
           {betsLoading ? (
             <div className="skeleton">Loading bets…</div>
