@@ -161,7 +161,7 @@ app.get('/api/past-results', async (req, res) => {
         matches.player1RoundsWon AS winnerRoundsWon,
         matches.player2RoundsWon AS loserRoundsWon,
         NULL AS roundText,
-        NULL AS settled_at
+        tournaments.date AS sort_ts
       FROM matches
       JOIN players AS player1 ON matches.winner_id = player1.id
       JOIN players AS player2 ON matches.loser_id = player2.id
@@ -184,7 +184,7 @@ app.get('/api/past-results', async (req, res) => {
         CASE WHEN sm.winner_id = sm.player1_id THEN sm.p1_score ELSE sm.p2_score END AS winnerRoundsWon,
         CASE WHEN sm.winner_id = sm.player1_id THEN sm.p2_score ELSE sm.p1_score END AS loserRoundsWon,
         sm.round_text AS roundText,
-        sm.settled_at
+        COALESCE(sm.settled_at, t.date) AS sort_ts
       FROM set_markets sm
       JOIN tournaments t ON t.id = sm.tournament_id
       JOIN games g ON g.id = sm.game_id
@@ -195,7 +195,7 @@ app.get('/api/past-results', async (req, res) => {
         AND sm.round_text = 'Grand Final'
         AND t.date <= DATE('now', '+30 days')
 
-      ORDER BY COALESCE(settled_at, date) DESC;
+      ORDER BY sort_ts DESC;
     `;
     const results = await db.allAsync(query);
     res.json({ data: results });
