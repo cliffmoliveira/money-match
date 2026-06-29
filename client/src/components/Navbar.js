@@ -127,6 +127,7 @@ const Navbar = ({ isLoggedIn }) => {
   const [claiming, setClaiming] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [rewardOpen, setRewardOpen] = useState(false);
+  const [isLiveNow, setIsLiveNow] = useState(false);
   const accountRef = useRef(null);
   const rewardRef = useRef(null);
   const autoOpenedRef = useRef(false);
@@ -186,6 +187,22 @@ const Navbar = ({ isLoggedIn }) => {
     window.addEventListener('mm-wallet-changed', load);
     return () => { active = false; clearInterval(id); window.removeEventListener('mm-wallet-changed', load); };
   }, [isLoggedIn]);
+
+  // Poll for live markets so the Brackets dot only shows when Top 8 is active.
+  useEffect(() => {
+    const check = async () => {
+      try {
+        const res = await fetch('/api/live/markets');
+        if (res.ok) {
+          const data = await res.json();
+          setIsLiveNow(Array.isArray(data) && data.length > 0);
+        }
+      } catch { /* ignore */ }
+    };
+    check();
+    const id = setInterval(check, 30000);
+    return () => clearInterval(id);
+  }, []);
 
   // Close the account menu when clicking outside it.
   useEffect(() => {
@@ -268,7 +285,7 @@ const Navbar = ({ isLoggedIn }) => {
             {NAV.map(({ to, label, end, live }) => (
               <li key={to}>
                 <NavLink to={to} end={end} className={linkClass}>
-                  {live && <span className="live-dot"></span>}{label}
+                  {live && isLiveNow && <span className="live-dot"></span>}{label}
                 </NavLink>
               </li>
             ))}
@@ -340,7 +357,7 @@ const Navbar = ({ isLoggedIn }) => {
       <nav className="mobile-tabbar" aria-label="Primary">
         {NAV.map(({ to, label, end, icon, live }) => (
           <NavLink key={to} to={to} end={end} className={tabClass}>
-            <span className="tabbar-icon">{icon}{live && <span className="tabbar-live-dot"></span>}</span>
+            <span className="tabbar-icon">{icon}{live && isLiveNow && <span className="tabbar-live-dot"></span>}</span>
             <span className="tabbar-label">{label}</span>
           </NavLink>
         ))}
