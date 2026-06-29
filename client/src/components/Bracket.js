@@ -1,5 +1,6 @@
 import React, { useRef, useState, useLayoutEffect, useCallback } from 'react';
 import './Bracket.css';
+import { fm, fmAmount } from '../utils/money';
 
 // Fixed Top 8 double-elim template. Each column has a known capacity so empty
 // positions render as TBD until their set is created.
@@ -114,7 +115,7 @@ const PoolBar = ({ p1 = 0, p2 = 0 }) => {
   );
 };
 
-const Node = ({ market, slip, onPick, demoControls, registerRef, projected, isChampionMatch }) => {
+const Node = ({ market, slip, onPick, demoControls, registerRef, projected, isChampionMatch, bets = {} }) => {
   const setRef = (el) => registerRef(el);
   if (!market) {
     // Pre-tournament: show the seed-projected matchup (view-only — never a market,
@@ -192,11 +193,38 @@ const Node = ({ market, slip, onPick, demoControls, registerRef, projected, isCh
         <div className="bnode-bethint">Tap a player to bet FM</div>
       )}
       {demoControls && demoControls(market)}
+      {market && (() => {
+        const b = bets[market.id];
+        if (!b) return null;
+        if (b.state === 'won') {
+          return (
+            <div className="bnode-bet-result won">
+              <span className="bnode-bet-label">Won</span>
+              <span className="bnode-bet-value">+{fmAmount(b.payout_cents - b.amount_cents)} FM</span>
+            </div>
+          );
+        }
+        if (b.state === 'lost') {
+          return (
+            <div className="bnode-bet-result lost">
+              <span className="bnode-bet-label">Lost</span>
+              <span className="bnode-bet-value">−{fm(b.amount_cents)}</span>
+            </div>
+          );
+        }
+        // placed — open or in-progress
+        return (
+          <div className="bnode-bet-result pending">
+            <span className="bnode-bet-label">In play</span>
+            <span className="bnode-bet-value">{fm(b.amount_cents)} × {Number(b.locked_odds).toFixed(2)}</span>
+          </div>
+        );
+      })()}
     </div>
   );
 };
 
-const Column = ({ col, markets, slip, onPick, demoControls, registerRef, projected }) => {
+const Column = ({ col, markets, slip, onPick, demoControls, registerRef, projected, bets }) => {
   const nodes = markets.filter((m) => classify(m) === col.key).sort((a, b) => col.sortDesc ? b.id - a.id : a.id - b.id);
   // Render at least `cap` cells (TBD placeholders before markets exist), but more
   // if a column actually holds extra markets — notably the Grand Final + its
@@ -220,6 +248,7 @@ const Column = ({ col, markets, slip, onPick, demoControls, registerRef, project
         projected={projected ? projected[`${col.key}-${i}`] : null}
         registerRef={(el) => registerRef(`${col.key}-${i}`, el)}
         isChampionMatch={isChampionMatch}
+        bets={bets}
       />
     );
     cells.push(isResetNode
@@ -235,7 +264,7 @@ const Column = ({ col, markets, slip, onPick, demoControls, registerRef, project
   );
 };
 
-const Bracket = ({ markets = [], slip = {}, onPick, demoControls, waiting = false, projected = {} }) => {
+const Bracket = ({ markets = [], slip = {}, onPick, demoControls, waiting = false, projected = {}, bets = {} }) => {
   const fitRef = useRef(null);    // available-width container (overflow hidden)
   const innerRef = useRef(null);  // natural-size, scaled to fit
   const nodeRefs = useRef({});
@@ -352,7 +381,7 @@ const Bracket = ({ markets = [], slip = {}, onPick, demoControls, waiting = fals
   const colFor = (key) => COLUMNS.find((c) => c.key === key);
   const winners = ['WSF', 'WF'];
   const losers = ['LR1', 'LR2', 'LSF', 'LF'];
-  const common = { markets, slip, onPick, demoControls, registerRef, projected };
+  const common = { markets, slip, onPick, demoControls, registerRef, projected, bets };
 
   return (
     <div

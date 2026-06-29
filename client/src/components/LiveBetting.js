@@ -47,7 +47,6 @@ const LiveBetting = () => {
   const [slipOpen, setSlipOpen] = useState(false); // desktop bet-slip drawer
   const [liveExhibitions, setLiveExhibitions] = useState([]);
   const [activeTab, setActiveTab] = useState(null);
-  const [showPnl, setShowPnl] = useState(false);
   const tabsRef = useRef(null);
   const scrollTabs = (dir) => tabsRef.current?.scrollBy({ left: dir * 220, behavior: 'smooth' });
 
@@ -420,45 +419,6 @@ const LiveBetting = () => {
                   )}
                   {activeTabData.tournamentName}
                 </h2>
-                {(() => {
-                  const tabBets = myBets.filter(
-                    (b) => b.game_name === activeTabData.gameName && b.tournament_name === activeTabData.tournamentName
-                  );
-                  if (!tabBets.length) return null;
-                  const won = tabBets.filter((b) => b.state === 'won').reduce((s, b) => s + (b.payout_cents - b.amount_cents), 0);
-                  const lost = tabBets.filter((b) => b.state === 'lost').reduce((s, b) => s + b.amount_cents, 0);
-                  const pending = tabBets.filter((b) => b.state === 'placed').reduce((s, b) => s + b.amount_cents, 0);
-                  return (
-                    <div className="live-pnl-wrap">
-                      <button className="live-pnl-toggle" type="button" onClick={() => setShowPnl((v) => !v)}>
-                        My bets <span className="live-pnl-chevron">{showPnl ? '▲' : '▼'}</span>
-                      </button>
-                      {showPnl && (
-                        <div className="live-pnl-bar">
-                          {won !== 0 && (
-                            <span className="live-pnl-item live-pnl-won">
-                              <span className="live-pnl-label">Won</span>
-                              <span className="live-pnl-value">+{fmt(won)}</span>
-                            </span>
-                          )}
-                          {lost > 0 && (
-                            <span className="live-pnl-item live-pnl-lost">
-                              <span className="live-pnl-label">Lost</span>
-                              <span className="live-pnl-value">−{fmt(lost)}</span>
-                            </span>
-                          )}
-                          {pending > 0 && (
-                            <span className="live-pnl-item live-pnl-pending">
-                              <span className="live-pnl-label">In play</span>
-                              <span className="live-pnl-value">{fmt(pending)}</span>
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
-
                 <div className="live-game">
                   <div className="live-game-aside">
                     <GameLogo name={activeTabData.gameName} height={200} />
@@ -468,6 +428,7 @@ const LiveBetting = () => {
                     slip={slip}
                     onPick={togglePick}
                     demoControls={demo ? renderDemoControls : null}
+                    bets={Object.fromEntries(myBets.filter((b) => b.game_name === activeTabData.gameName && b.tournament_name === activeTabData.tournamentName).map((b) => [b.market_id, b]))}
                   />
                 </div>
               </section>

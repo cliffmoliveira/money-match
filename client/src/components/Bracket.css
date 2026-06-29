@@ -123,6 +123,23 @@
   font-size: 10px; color: var(--muted); text-align: center; letter-spacing: .02em;
 }
 
+/* Per-match bet result overlay */
+.bnode-bet-result {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 5px 9px; border-top: 1px solid rgba(255,255,255,0.08);
+  font-family: 'Saira', sans-serif;
+}
+.bnode-bet-label {
+  font-size: 9px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
+  color: var(--muted);
+}
+.bnode-bet-value {
+  font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums;
+}
+.bnode-bet-result.won .bnode-bet-value { color: #4caf79; }
+.bnode-bet-result.lost .bnode-bet-value { color: #e05c5c; }
+.bnode-bet-result.pending .bnode-bet-value { color: var(--gold); }
+
 /* Waiting room: pulse the empty slots so it's clear what we're waiting to fill */
 .bracket-waiting .bnode.tbd {
   animation: bracketWait 1.8s ease-in-out infinite;
