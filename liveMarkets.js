@@ -495,7 +495,7 @@ async function clearDemoMarkets() {
 // markets exist. Returns { tournament: null, games: [] } when nothing is coming.
 async function getUpcoming() {
   const tournament = await db.getAsync(
-    `SELECT id, name, date, logo_url AS logoUrl, is_live AS isLive FROM tournaments t
+    `SELECT id, name, date, city, country, logo_url AS logoUrl, is_live AS isLive FROM tournaments t
      WHERE startgg_id IS NOT NULL
        AND (is_live = 1 OR date(date) >= date('now','-1 day'))
        AND date(date) >= date('now','-3 day')

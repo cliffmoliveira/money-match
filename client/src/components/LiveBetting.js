@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import './LiveBetting.css';
 import Bracket from './Bracket';
 import WaitingRoom from './WaitingRoom';
+import Countdown from './Countdown';
 import StakeStepper from './StakeStepper';
 import { getGameLogoSources, getGameAlt, getGameLogoStyle } from '../utils/gameLogos';
 // Fight Money formatters (fmt/signed kept as names so call sites are unchanged).
@@ -360,11 +361,19 @@ const LiveBetting = () => {
               const isExpanded = expandedTourneys.has(t.name);
               return (
                 <div className="live-tourney-pill">
-                  <div className="live-tourney-pill-header">
+                  <div className="live-tourney-pill-header live-tourney-pill-header--upcoming">
                     <button type="button" className="live-tourney-pill-expand" onClick={() => toggleTourney(t.name)} aria-expanded={isExpanded}>
                       {t.logoUrl && <img src={t.logoUrl} alt={t.name} className="live-tourn-header-logo" />}
-                      <span className="live-tourn-header-name">{t.name}</span>
-                      <span className="live-tourn-upcoming-badge">UPCOMING</span>
+                      <div className="live-tourn-header-meta">
+                        <span className="live-tourn-header-name">{t.name}</span>
+                        <span className="live-tourn-header-sub">
+                          {new Date(`${t.date}T00:00:00`).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                          {(t.city || t.country) && ` · ${[t.city, t.country].filter(Boolean).join(', ')}`}
+                        </span>
+                      </div>
+                      <div className="live-tourn-header-countdown">
+                        <Countdown date={t.date} compact />
+                      </div>
                       <span className="live-tourney-chevron">{isExpanded ? '▲' : '▼'}</span>
                     </button>
                   </div>

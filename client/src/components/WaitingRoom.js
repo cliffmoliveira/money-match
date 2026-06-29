@@ -92,13 +92,6 @@ const WaitingRoom = ({ tournament, games = [], headerless = false }) => {
           </div>
         </div>
       )}
-      {headerless && (
-        <div className="wr-clock wr-clock-inline">
-          {started
-            ? <div className="wr-standby">Top 8 hasn’t started yet — standing by…</div>
-            : <Countdown date={tournament.date} />}
-        </div>
-      )}
 
       {games.length > 1 && (
         <div className="wr-game-tabs">

@@ -31,6 +31,7 @@
   padding: 4px 12px 4px 4px;
   background: rgba(255,255,255,0.03);
 }
+.live-tourney-pill-header--upcoming { align-items: stretch; }
 .live-tourney-pill-expand {
   flex: 1; display: flex; align-items: center; gap: 10px;
   background: none; border: none; cursor: pointer;
@@ -39,6 +40,19 @@
 .live-tourney-chevron {
   margin-left: auto; font-size: 10px; color: var(--muted); flex-shrink: 0;
 }
+.live-tourn-header-meta {
+  display: flex; flex-direction: column; justify-content: center;
+  min-width: 0; flex: 1;
+}
+.live-tourn-header-sub {
+  font-family: 'Saira', sans-serif; font-size: 11px; font-weight: 500;
+  color: var(--muted); margin-top: 2px;
+}
+.live-tourn-header-countdown {
+  flex-shrink: 0; display: flex; align-items: center; margin-right: 10px;
+}
+.live-tourn-header-countdown .countdown { margin-top: 0; }
+.live-tourn-header-countdown .countdown-live { margin-top: 0; }
 .live-tourn-live-badge {
   display: inline-flex; align-items: center; gap: 4px;
   background: var(--live-tint); color: #fff;
