@@ -353,7 +353,7 @@ const Home = () => {
                     {m.state === 'closed' && m.p1_score != null && (
                       <span className="lh-score">{m.p1_score}</span>
                     )}
-                    <b className="lh-odds">{Number(m.p1_live_odds).toFixed(2)}</b>
+                    {m.state !== 'closed' && <b className="lh-odds">{Number(m.p1_live_odds).toFixed(2)}</b>}
                   </span>
                   <span className="lh-vs">vs</span>
                   <span className="lh-player">
@@ -361,7 +361,7 @@ const Home = () => {
                     {m.state === 'closed' && m.p2_score != null && (
                       <span className="lh-score">{m.p2_score}</span>
                     )}
-                    <b className="lh-odds">{Number(m.p2_live_odds).toFixed(2)}</b>
+                    {m.state !== 'closed' && <b className="lh-odds">{Number(m.p2_live_odds).toFixed(2)}</b>}
                   </span>
                 </div>
               </div>
