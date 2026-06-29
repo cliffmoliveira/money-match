@@ -120,6 +120,7 @@ body { background: var(--bg); color: var(--text); }
   border-color: var(--gold);
   box-shadow: 0 0 0 1.5px var(--gold), 0 0 8px 2px rgba(231,180,88,0.45), 0 0 22px 4px rgba(231,180,88,0.18);
   animation: lhLiveGlow 2s ease-in-out infinite;
+  padding-top: 34px;
 }
 @keyframes lhLiveGlow {
   0%, 100% { box-shadow: 0 0 0 1.5px var(--gold), 0 0 8px 2px rgba(231,180,88,0.45), 0 0 22px 4px rgba(231,180,88,0.18); }
