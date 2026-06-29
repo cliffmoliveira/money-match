@@ -91,6 +91,7 @@
 .live-tab-logo img { height: auto !important; max-height: 52px !important; max-width: 96px !important; object-fit: contain; }
 
 /* Winner name shown below the logo on settled (completed) game tabs */
+.live-tab-winner-star { color: var(--gold); }
 .live-tab-winner {
   font-family: 'Saira', sans-serif; font-size: 9px; font-weight: 700;
   color: #fff; text-align: center;

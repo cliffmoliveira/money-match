@@ -408,7 +408,7 @@ const LiveBetting = () => {
                       <GameLogo name={tab.gameName} height={32} />
                     </div>
                     {tab.isSettled && tab.winner && (
-                      <span className="live-tab-winner">★ {tab.winner}</span>
+                      <span className="live-tab-winner"><span className="live-tab-winner-star">★</span> {tab.winner}</span>
                     )}
                   </button>
                 ))}
