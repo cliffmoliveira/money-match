@@ -98,6 +98,35 @@
   line-height: 1;
 }
 
+/* P&L toggle above the bracket */
+.live-pnl-wrap { margin-bottom: 12px; }
+.live-pnl-toggle {
+  background: none; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px;
+  color: var(--muted); font-family: 'Saira', sans-serif; font-size: 12px; font-weight: 700;
+  letter-spacing: .05em; text-transform: uppercase; padding: 4px 10px;
+  cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+}
+.live-pnl-toggle:hover { border-color: rgba(255,255,255,0.35); color: var(--text); }
+.live-pnl-chevron { font-size: 9px; }
+.live-pnl-bar {
+  display: flex; gap: 16px; flex-wrap: wrap;
+  margin-top: 8px; padding: 10px 14px;
+  background: rgba(255,255,255,0.04); border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.live-pnl-item { display: flex; flex-direction: column; gap: 2px; }
+.live-pnl-label {
+  font-family: 'Saira', sans-serif; font-size: 9px; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+}
+.live-pnl-value {
+  font-family: 'Saira', sans-serif; font-size: 16px; font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.live-pnl-won .live-pnl-value { color: #4caf79; }
+.live-pnl-lost .live-pnl-value { color: #e05c5c; }
+.live-pnl-pending .live-pnl-value { color: var(--gold); }
+
 .live-tourn-header {
   display: flex; align-items: center; gap: 10px;
   margin-bottom: 14px;
