@@ -403,7 +403,7 @@ const LiveBetting = () => {
                       <GameLogo name={tab.gameName} height={32} />
                     </div>
                     {tab.isSettled && tab.winner && (
-                      <span className="live-tab-winner">{tab.winner}</span>
+                      <span className="live-tab-winner">★ {tab.winner}</span>
                     )}
                   </button>
                 ))}
@@ -421,8 +421,8 @@ const LiveBetting = () => {
                   {activeTabData.tournamentName}
                 </h2>
                 {myBets.some((b) => b.game_name === activeTabData.gameName && b.tournament_name === activeTabData.tournamentName) && (
-                  <button className="live-pnl-toggle" type="button" onClick={() => setShowPnl((v) => !v)}>
-                    My bets <span className="live-pnl-chevron">{showPnl ? '▲' : '▼'}</span>
+                  <button className={`live-pnl-toggle${showPnl ? ' active' : ''}`} type="button" onClick={() => setShowPnl((v) => !v)}>
+                    My bets
                   </button>
                 )}
                 <div className="live-game">
