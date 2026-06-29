@@ -35,6 +35,7 @@ const GameLogo = ({ name, height = 30 }) => {
 
 const LiveBetting = () => {
   const [markets, setMarkets] = useState([]);
+  const [pastMarkets, setPastMarkets] = useState([]);
   const [upcoming, setUpcoming] = useState(null);
   const [balanceCents, setBalanceCents] = useState(null);
   const [slip, setSlip] = useState({}); // key: `${marketId}_${playerId}`
@@ -69,18 +70,20 @@ const LiveBetting = () => {
 
   const refresh = useCallback(async () => {
     try {
-      const [mRes, wRes, bRes, uRes, exRes] = await Promise.all([
+      const [mRes, wRes, bRes, uRes, exRes, pmRes] = await Promise.all([
         fetch('/api/live/markets'),
         apiFetch(`/api/wallet?userId=${userId}`),
         apiFetch(`/api/live/bets?userId=${userId}`),
         fetch('/api/live/upcoming'),
         fetch('/api/exhibitions/live'),
+        fetch('/api/live/past-markets'),
       ]);
       if (mRes.ok) setMarkets(await mRes.json());
       if (wRes.ok) setBalanceCents((await wRes.json()).balanceCents);
       if (bRes.ok) setMyBets(await bRes.json());
       if (uRes.ok) setUpcoming(await uRes.json());
       if (exRes.ok) setLiveExhibitions(await exRes.json());
+      if (pmRes.ok) setPastMarkets(await pmRes.json());
       setError(null);
     } catch (err) {
       setError('Failed to load live markets.');
@@ -312,14 +315,94 @@ const LiveBetting = () => {
   if (loading) return <p className="live-loading">Loading live markets…</p>;
 
   // Group markets by tournament -> game, capturing the tournament logo on first encounter
-  const groups = {};
-  for (const m of markets) {
-    const tKey = m.tournament_name;
-    const gKey = m.game_name;
-    if (!groups[tKey]) groups[tKey] = { logoUrl: m.tournament_logo_url || null, games: {} };
-    groups[tKey].games[gKey] = groups[tKey].games[gKey] || [];
-    groups[tKey].games[gKey].push(m);
-  }
+  const renderPills = (grps) => Object.entries(grps).map(([tName, { logoUrl: tLogo, games }]) => {
+    const tTabs = Object.entries(games)
+      .sort(([, a], [, b]) => gamePriority(a) - gamePriority(b))
+      .map(([gName, mkts]) => {
+        const isSettled = mkts.length > 0 && mkts.every((m) => m.state === 'settled' || m.state === 'void');
+        const gfMarket = isSettled ? mkts.find((m) => m.state === 'settled' && /grand.final/i.test(m.round_text || '')) : null;
+        const winner = gfMarket ? shortTag(gfMarket.winner_id === gfMarket.player1_id ? gfMarket.player1_name : gfMarket.player2_name) : null;
+        return { key: `${tName}::${gName}`, gameName: gName, mkts, isLive: mkts.some((m) => m.state === 'closed'), isSettled, winner };
+      });
+    const hasLive = tTabs.some((t) => t.isLive);
+    const isExpanded = expandedTourneys.has(tName);
+    const activeTabKey = (activeTabs[tName] && tTabs.find((t) => t.key === activeTabs[tName]))
+      ? activeTabs[tName] : tTabs[0]?.key ?? null;
+    const activeTabData = tTabs.find((t) => t.key === activeTabKey);
+    const tournBets = myBets.filter((b) => b.tournament_name === tName);
+
+    return (
+      <div key={tName} className={`live-tourney-pill${hasLive ? ' has-live' : ''}`}>
+        <div className="live-tourney-pill-header">
+          <button type="button" className="live-tourney-pill-expand" onClick={() => toggleTourney(tName)} aria-expanded={isExpanded}>
+            {tLogo && <img src={tLogo} alt={tName} className="live-tourn-header-logo" />}
+            <span className="live-tourn-header-name">{tName}</span>
+            {hasLive && (
+              <span className="live-tourn-live-badge">
+                <span className="live-tab-live-dot" aria-hidden="true" />
+                LIVE
+              </span>
+            )}
+            <span className="live-tourney-chevron">{isExpanded ? '▲' : '▼'}</span>
+          </button>
+          {tournBets.length > 0 && (
+            <button className={`live-pnl-toggle${showPnl ? ' active' : ''}`} type="button" onClick={() => setShowPnl((v) => !v)}>
+              My bets
+            </button>
+          )}
+        </div>
+        {isExpanded && (
+          <div className="live-tourney-pill-body">
+            <div className="live-tabs-wrap">
+              <button type="button" className="live-tabs-arrow" aria-label="Scroll left" onClick={() => scrollTabs(tName, -1)}>‹</button>
+              <div className="live-tabs" role="tablist" ref={(el) => { tabsRefs.current[tName] = el; }}>
+                {tTabs.map((tab) => (
+                  <button key={tab.key} type="button" role="tab" aria-selected={tab.key === activeTabKey}
+                    className={`live-tab${tab.key === activeTabKey ? ' active' : ''}${tab.isSettled ? ' settled' : ''}`}
+                    onClick={() => setActiveTabs((prev) => ({ ...prev, [tName]: tab.key }))}>
+                    {tab.isLive && (
+                      <span className="live-tab-live-badge"><span className="live-tab-live-dot" aria-hidden="true" />LIVE</span>
+                    )}
+                    <div className="live-tab-logo"><GameLogo name={tab.gameName} height={32} /></div>
+                    {tab.isSettled && tab.winner && (
+                      <span className="live-tab-winner"><span className="live-tab-winner-star">★</span> {tab.winner}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+              <button type="button" className="live-tabs-arrow" aria-label="Scroll right" onClick={() => scrollTabs(tName, 1)}>›</button>
+            </div>
+            {activeTabData && (
+              <section className="live-tournament" role="tabpanel">
+                <div className="live-game">
+                  <div className="live-game-aside"><GameLogo name={activeTabData.gameName} height={200} /></div>
+                  <Bracket
+                    markets={activeTabData.mkts}
+                    slip={slip}
+                    onPick={togglePick}
+                    demoControls={demo ? renderDemoControls : null}
+                    bets={showPnl ? Object.fromEntries(tournBets.filter((b) => b.game_name === activeTabData.gameName).map((b) => [b.market_id, b])) : {}}
+                  />
+                </div>
+              </section>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  });
+
+  const buildGroups = (mkts) => {
+    const g = {};
+    for (const m of mkts) {
+      if (!g[m.tournament_name]) g[m.tournament_name] = { logoUrl: m.tournament_logo_url || null, games: {} };
+      g[m.tournament_name].games[m.game_name] = g[m.tournament_name].games[m.game_name] || [];
+      g[m.tournament_name].games[m.game_name].push(m);
+    }
+    return g;
+  };
+  const groups = buildGroups(markets);
+  const pastGroups = buildGroups(pastMarkets);
 
   // Sort games: closed (set in progress) first, then open, then pending, then settled
   const STATE_PRIORITY = { closed: 0, open: 1, pending: 2, settled: 3 };
@@ -391,109 +474,22 @@ const LiveBetting = () => {
               <p>Markets open automatically when a tracked tournament reaches Top 8.</p>
             </div>
           )
-        ) : (
+        )}
+        {markets.length === 0 && Object.keys(pastGroups).length > 0 && (
           <>
-            {Object.entries(groups).map(([tName, { logoUrl: tLogo, games }]) => {
-              // Build sorted tab list for this tournament
-              const tTabs = Object.entries(games)
-                .sort(([, a], [, b]) => gamePriority(a) - gamePriority(b))
-                .map(([gName, mkts]) => {
-                  const isSettled = mkts.length > 0 && mkts.every((m) => m.state === 'settled' || m.state === 'void');
-                  const gfMarket = isSettled ? mkts.find((m) => m.state === 'settled' && /grand.final/i.test(m.round_text || '')) : null;
-                  const winner = gfMarket ? shortTag(gfMarket.winner_id === gfMarket.player1_id ? gfMarket.player1_name : gfMarket.player2_name) : null;
-                  return { key: `${tName}::${gName}`, gameName: gName, mkts, isLive: mkts.some((m) => m.state === 'closed'), isSettled, winner };
-                });
-
-              const hasLive = tTabs.some((t) => t.isLive);
-              const isExpanded = expandedTourneys.has(tName);
-              const activeTabKey = (activeTabs[tName] && tTabs.find((t) => t.key === activeTabs[tName]))
-                ? activeTabs[tName] : tTabs[0]?.key ?? null;
-              const activeTabData = tTabs.find((t) => t.key === activeTabKey);
-              const tournBets = myBets.filter((b) => b.tournament_name === tName);
-
-              return (
-                <div key={tName} className={`live-tourney-pill${hasLive ? ' has-live' : ''}`}>
-                  {/* Pill header row */}
-                  <div className="live-tourney-pill-header">
-                    <button
-                      type="button"
-                      className="live-tourney-pill-expand"
-                      onClick={() => toggleTourney(tName)}
-                      aria-expanded={isExpanded}
-                    >
-                      {tLogo && <img src={tLogo} alt={tName} className="live-tourn-header-logo" />}
-                      <span className="live-tourn-header-name">{tName}</span>
-                      {hasLive && (
-                        <span className="live-tourn-live-badge">
-                          <span className="live-tab-live-dot" aria-hidden="true" />
-                          LIVE
-                        </span>
-                      )}
-                      <span className="live-tourney-chevron">{isExpanded ? '▲' : '▼'}</span>
-                    </button>
-                    {tournBets.length > 0 && (
-                      <button className={`live-pnl-toggle${showPnl ? ' active' : ''}`} type="button" onClick={() => setShowPnl((v) => !v)}>
-                        My bets
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Collapsible body */}
-                  {isExpanded && (
-                    <div className="live-tourney-pill-body">
-                      {/* Scrollable game tab strip */}
-                      <div className="live-tabs-wrap">
-                        <button type="button" className="live-tabs-arrow" aria-label="Scroll left" onClick={() => scrollTabs(tName, -1)}>‹</button>
-                        <div className="live-tabs" role="tablist" ref={(el) => { tabsRefs.current[tName] = el; }}>
-                          {tTabs.map((tab) => (
-                            <button
-                              key={tab.key}
-                              type="button"
-                              role="tab"
-                              aria-selected={tab.key === activeTabKey}
-                              className={`live-tab${tab.key === activeTabKey ? ' active' : ''}${tab.isSettled ? ' settled' : ''}`}
-                              onClick={() => setActiveTabs((prev) => ({ ...prev, [tName]: tab.key }))}
-                            >
-                              {tab.isLive && (
-                                <span className="live-tab-live-badge">
-                                  <span className="live-tab-live-dot" aria-hidden="true" />
-                                  LIVE
-                                </span>
-                              )}
-                              <div className="live-tab-logo">
-                                <GameLogo name={tab.gameName} height={32} />
-                              </div>
-                              {tab.isSettled && tab.winner && (
-                                <span className="live-tab-winner"><span className="live-tab-winner-star">★</span> {tab.winner}</span>
-                              )}
-                            </button>
-                          ))}
-                        </div>
-                        <button type="button" className="live-tabs-arrow" aria-label="Scroll right" onClick={() => scrollTabs(tName, 1)}>›</button>
-                      </div>
-
-                      {/* Active bracket */}
-                      {activeTabData && (
-                        <section className="live-tournament" role="tabpanel">
-                          <div className="live-game">
-                            <div className="live-game-aside">
-                              <GameLogo name={activeTabData.gameName} height={200} />
-                            </div>
-                            <Bracket
-                              markets={activeTabData.mkts}
-                              slip={slip}
-                              onPick={togglePick}
-                              demoControls={demo ? renderDemoControls : null}
-                              bets={showPnl ? Object.fromEntries(tournBets.filter((b) => b.game_name === activeTabData.gameName).map((b) => [b.market_id, b])) : {}}
-                            />
-                          </div>
-                        </section>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+            <div className="brackets-past-divider">Past Brackets</div>
+            {renderPills(pastGroups)}
+          </>
+        )}
+        {markets.length > 0 && (
+          <>
+            {renderPills(groups)}
+            {Object.keys(pastGroups).length > 0 && (
+              <>
+                <div className="brackets-past-divider">Past Brackets</div>
+                {renderPills(pastGroups)}
+              </>
+            )}
           </>
         )}
       </div>

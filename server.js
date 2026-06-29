@@ -686,6 +686,15 @@ app.post('/api/account/password', requireAuth, async (req, res) => {
 });
 
 // Live per-set betting
+app.get('/api/live/past-markets', async (req, res) => {
+  try {
+    res.json(await liveMarkets.getMarkets({ pastOnly: true }));
+  } catch (err) {
+    console.error('Error fetching past markets:', err.message);
+    res.status(500).json({ error: 'Failed to fetch past markets' });
+  }
+});
+
 app.get('/api/live/markets', async (req, res) => {
   try {
     const includeAll = req.query.all === '1';
