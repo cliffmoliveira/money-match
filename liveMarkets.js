@@ -498,6 +498,7 @@ async function getUpcoming() {
     `SELECT id, name, date, logo_url AS logoUrl, is_live AS isLive FROM tournaments t
      WHERE startgg_id IS NOT NULL
        AND (is_live = 1 OR date(date) >= date('now','-1 day'))
+       AND date(date) >= date('now','-3 day')
        AND EXISTS (SELECT 1 FROM players_games_tournaments pgt WHERE pgt.tournament_id = t.id)
      ORDER BY is_live DESC, date(date) ASC
      LIMIT 1`
