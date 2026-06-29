@@ -57,7 +57,7 @@ const WaitingRoom = ({ tournament, games = [], headerless = false }) => {
       })
       .catch(() => { if (active) setSeeds([]); });
     return () => { active = false; };
-  }, [activeGame, tournament]);
+  }, [activeGame, tournament?.id]);
 
   // Place the 8 seeds into the standard Top-8 double-elim entry slots: top 4
   // seeds cross-paired in Winners Semis (1v4, 2v3), seeds 5-8 in Losers Round 1
