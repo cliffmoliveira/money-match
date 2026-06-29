@@ -46,10 +46,16 @@ const LiveBetting = () => {
   const [myBets, setMyBets] = useState([]);
   const [slipOpen, setSlipOpen] = useState(false); // desktop bet-slip drawer
   const [liveExhibitions, setLiveExhibitions] = useState([]);
-  const [activeTab, setActiveTab] = useState(null);
+  const [activeTabs, setActiveTabs] = useState({});     // { [tName]: tabKey }
+  const [expandedTourneys, setExpandedTourneys] = useState(new Set());
   const [showPnl, setShowPnl] = useState(false);
-  const tabsRef = useRef(null);
-  const scrollTabs = (dir) => tabsRef.current?.scrollBy({ left: dir * 220, behavior: 'smooth' });
+  const tabsRefs = useRef({});
+  const scrollTabs = (tName, dir) => tabsRefs.current[tName]?.scrollBy({ left: dir * 220, behavior: 'smooth' });
+  const toggleTourney = (tName) => setExpandedTourneys((prev) => {
+    const next = new Set(prev);
+    next.has(tName) ? next.delete(tName) : next.add(tName);
+    return next;
+  });
 
   const userId = localStorage.getItem('userId');
 
@@ -81,6 +87,15 @@ const LiveBetting = () => {
       setLoading(false);
     }
   }, [userId]);
+
+  // Auto-expand on first load: live tournaments first, else all
+  const hasAutoExpanded = useRef(false);
+  useEffect(() => {
+    if (markets.length === 0 || hasAutoExpanded.current) return;
+    hasAutoExpanded.current = true;
+    const liveNames = new Set(markets.filter((m) => m.state === 'closed').map((m) => m.tournament_name));
+    setExpandedTourneys(liveNames.size > 0 ? liveNames : new Set(markets.map((m) => m.tournament_name)));
+  }, [markets]);
 
   useEffect(() => {
     refresh();
@@ -305,33 +320,7 @@ const LiveBetting = () => {
   const gamePriority = (mkts) =>
     Math.min(...mkts.map((m) => STATE_PRIORITY[m.state] ?? 4));
 
-  // Flat sorted tab list: one entry per (tournament, game) pair
   const shortTag = (name) => (name && name.includes('|') ? name.split('|').pop().trim() : name);
-  const tabs = [];
-  for (const [tName, { logoUrl: tLogo, games }] of Object.entries(groups)) {
-    for (const [gName, mkts] of Object.entries(games).sort(([, a], [, b]) => gamePriority(a) - gamePriority(b))) {
-      const isSettled = mkts.length > 0 && mkts.every((m) => m.state === 'settled' || m.state === 'void');
-      const gfMarket = isSettled
-        ? mkts.find((m) => m.state === 'settled' && /grand.final/i.test(m.round_text || ''))
-        : null;
-      const winner = gfMarket
-        ? shortTag(gfMarket.winner_id === gfMarket.player1_id ? gfMarket.player1_name : gfMarket.player2_name)
-        : null;
-      tabs.push({
-        key: `${tName}::${gName}`,
-        tournamentName: tName,
-        gameName: gName,
-        mkts,
-        logoUrl: tLogo,
-        isLive: mkts.some((m) => m.state === 'closed'),
-        isSettled,
-        winner,
-      });
-    }
-  }
-  // Resolve effective tab: keep user selection if still valid, else first tab
-  const effectiveTabKey = tabs.find((t) => t.key === activeTab)?.key ?? tabs[0]?.key ?? null;
-  const activeTabData = tabs.find((t) => t.key === effectiveTabKey);
 
   return (
     <div className="live-layout">
@@ -370,75 +359,107 @@ const LiveBetting = () => {
           )
         ) : (
           <>
-            {/* Tournament identity header */}
-            {activeTabData && (
-              <div className="live-tourn-header">
-                {activeTabData.logoUrl && (
-                  <img src={activeTabData.logoUrl} alt={activeTabData.tournamentName} className="live-tourn-header-logo" />
-                )}
-                <span className="live-tourn-header-name">{activeTabData.tournamentName}</span>
-                {myBets.some((b) => b.game_name === activeTabData.gameName && b.tournament_name === activeTabData.tournamentName) && (
-                  <button className={`live-pnl-toggle${showPnl ? ' active' : ''}`} type="button" onClick={() => setShowPnl((v) => !v)}>
-                    My bets
-                  </button>
-                )}
-              </div>
-            )}
+            {Object.entries(groups).map(([tName, { logoUrl: tLogo, games }]) => {
+              // Build sorted tab list for this tournament
+              const tTabs = Object.entries(games)
+                .sort(([, a], [, b]) => gamePriority(a) - gamePriority(b))
+                .map(([gName, mkts]) => {
+                  const isSettled = mkts.length > 0 && mkts.every((m) => m.state === 'settled' || m.state === 'void');
+                  const gfMarket = isSettled ? mkts.find((m) => m.state === 'settled' && /grand.final/i.test(m.round_text || '')) : null;
+                  const winner = gfMarket ? shortTag(gfMarket.winner_id === gfMarket.player1_id ? gfMarket.player1_name : gfMarket.player2_name) : null;
+                  return { key: `${tName}::${gName}`, gameName: gName, mkts, isLive: mkts.some((m) => m.state === 'closed'), isSettled, winner };
+                });
 
-            {/* Scrollable game tab strip */}
-            <div className="live-tabs-wrap">
-              <button type="button" className="live-tabs-arrow" aria-label="Scroll left" onClick={() => scrollTabs(-1)}>‹</button>
-              <div className="live-tabs" role="tablist" ref={tabsRef}>
-                {tabs.map((tab) => (
-                  <button
-                    key={tab.key}
-                    type="button"
-                    role="tab"
-                    aria-selected={tab.key === effectiveTabKey}
-                    className={`live-tab${tab.key === effectiveTabKey ? ' active' : ''}${tab.isSettled ? ' settled' : ''}`}
-                    onClick={() => setActiveTab(tab.key)}
-                  >
-                    {tab.isLive && (
-                      <span className="live-tab-live-badge">
-                        <span className="live-tab-live-dot" aria-hidden="true" />
-                        LIVE
-                      </span>
-                    )}
-                    <div className="live-tab-logo">
-                      <GameLogo name={tab.gameName} height={32} />
-                    </div>
-                    {tab.isSettled && tab.winner && (
-                      <span className="live-tab-winner"><span className="live-tab-winner-star">★</span> {tab.winner}</span>
-                    )}
-                  </button>
-                ))}
-              </div>
-              <button type="button" className="live-tabs-arrow" aria-label="Scroll right" onClick={() => scrollTabs(1)}>›</button>
-            </div>
+              const hasLive = tTabs.some((t) => t.isLive);
+              const isExpanded = expandedTourneys.has(tName);
+              const activeTabKey = (activeTabs[tName] && tTabs.find((t) => t.key === activeTabs[tName]))
+                ? activeTabs[tName] : tTabs[0]?.key ?? null;
+              const activeTabData = tTabs.find((t) => t.key === activeTabKey);
+              const tournBets = myBets.filter((b) => b.tournament_name === tName);
 
-            {/* Active bracket */}
-            {activeTabData && (
-              <section className="live-tournament" role="tabpanel">
-                <h2>
-                  {activeTabData.logoUrl && (
-                    <img src={activeTabData.logoUrl} alt={activeTabData.tournamentName} className="live-tournament-logo" />
-                  )}
-                  {activeTabData.tournamentName}
-                </h2>
-                <div className="live-game">
-                  <div className="live-game-aside">
-                    <GameLogo name={activeTabData.gameName} height={200} />
+              return (
+                <div key={tName} className={`live-tourney-pill${hasLive ? ' has-live' : ''}`}>
+                  {/* Pill header row */}
+                  <div className="live-tourney-pill-header">
+                    <button
+                      type="button"
+                      className="live-tourney-pill-expand"
+                      onClick={() => toggleTourney(tName)}
+                      aria-expanded={isExpanded}
+                    >
+                      {tLogo && <img src={tLogo} alt={tName} className="live-tourn-header-logo" />}
+                      <span className="live-tourn-header-name">{tName}</span>
+                      {hasLive && (
+                        <span className="live-tourn-live-badge">
+                          <span className="live-tab-live-dot" aria-hidden="true" />
+                          LIVE
+                        </span>
+                      )}
+                      <span className="live-tourney-chevron">{isExpanded ? '▲' : '▼'}</span>
+                    </button>
+                    {tournBets.length > 0 && (
+                      <button className={`live-pnl-toggle${showPnl ? ' active' : ''}`} type="button" onClick={() => setShowPnl((v) => !v)}>
+                        My bets
+                      </button>
+                    )}
                   </div>
-                  <Bracket
-                    markets={activeTabData.mkts}
-                    slip={slip}
-                    onPick={togglePick}
-                    demoControls={demo ? renderDemoControls : null}
-                    bets={showPnl ? Object.fromEntries(myBets.filter((b) => b.game_name === activeTabData.gameName && b.tournament_name === activeTabData.tournamentName).map((b) => [b.market_id, b])) : {}}
-                  />
+
+                  {/* Collapsible body */}
+                  {isExpanded && (
+                    <div className="live-tourney-pill-body">
+                      {/* Scrollable game tab strip */}
+                      <div className="live-tabs-wrap">
+                        <button type="button" className="live-tabs-arrow" aria-label="Scroll left" onClick={() => scrollTabs(tName, -1)}>‹</button>
+                        <div className="live-tabs" role="tablist" ref={(el) => { tabsRefs.current[tName] = el; }}>
+                          {tTabs.map((tab) => (
+                            <button
+                              key={tab.key}
+                              type="button"
+                              role="tab"
+                              aria-selected={tab.key === activeTabKey}
+                              className={`live-tab${tab.key === activeTabKey ? ' active' : ''}${tab.isSettled ? ' settled' : ''}`}
+                              onClick={() => setActiveTabs((prev) => ({ ...prev, [tName]: tab.key }))}
+                            >
+                              {tab.isLive && (
+                                <span className="live-tab-live-badge">
+                                  <span className="live-tab-live-dot" aria-hidden="true" />
+                                  LIVE
+                                </span>
+                              )}
+                              <div className="live-tab-logo">
+                                <GameLogo name={tab.gameName} height={32} />
+                              </div>
+                              {tab.isSettled && tab.winner && (
+                                <span className="live-tab-winner"><span className="live-tab-winner-star">★</span> {tab.winner}</span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                        <button type="button" className="live-tabs-arrow" aria-label="Scroll right" onClick={() => scrollTabs(tName, 1)}>›</button>
+                      </div>
+
+                      {/* Active bracket */}
+                      {activeTabData && (
+                        <section className="live-tournament" role="tabpanel">
+                          <div className="live-game">
+                            <div className="live-game-aside">
+                              <GameLogo name={activeTabData.gameName} height={200} />
+                            </div>
+                            <Bracket
+                              markets={activeTabData.mkts}
+                              slip={slip}
+                              onPick={togglePick}
+                              demoControls={demo ? renderDemoControls : null}
+                              bets={showPnl ? Object.fromEntries(tournBets.filter((b) => b.game_name === activeTabData.gameName).map((b) => [b.market_id, b])) : {}}
+                            />
+                          </div>
+                        </section>
+                      )}
+                    </div>
+                  )}
                 </div>
-              </section>
-            )}
+              );
+            })}
           </>
         )}
       </div>
