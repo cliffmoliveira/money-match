@@ -332,11 +332,17 @@ const Home = () => {
       return (
         <section className="live-hero">
           <div className="live-hero-top">
-            <span className="live-hero-badge"><span className="live-dot" /> LIVE NOW</span>
+            <span className="live-hero-badge"><span className="live-dot" /> Latest Matches</span>
           </div>
           <div className="live-hero-sets">
             {liveNow.slice(0, 3).map((m) => (
-              <div key={m.id} className="live-hero-set">
+              <div key={m.id} className={`live-hero-set${m.state === 'closed' ? ' live' : ''}`}>
+                {m.state === 'closed' && (
+                  <span className="lh-live-badge">
+                    <span className="lh-live-dot" aria-hidden="true" />
+                    LIVE
+                  </span>
+                )}
                 <div className="lh-set-header">
                   <GameLogo name={m.game_name} height={36} />
                   {m.round_text && <span className="live-hero-meta">{m.round_text}</span>}
