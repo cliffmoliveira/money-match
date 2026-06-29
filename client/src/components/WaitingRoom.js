@@ -29,7 +29,7 @@ const GameTabLogo = ({ name, height = 20 }) => {
 
 // Pre-Top-8 view: countdown to the tournament, per-game tabs, and the empty
 // Top 8 bracket skeleton with highlighted waiting slots.
-const WaitingRoom = ({ tournament, games = [] }) => {
+const WaitingRoom = ({ tournament, games = [], headerless = false }) => {
   const [activeGame, setActiveGame] = useState(games[0]?.id ?? null);
   const [seeds, setSeeds] = useState([]);
 
@@ -76,20 +76,29 @@ const WaitingRoom = ({ tournament, games = [] }) => {
 
   return (
     <div className="waiting-room">
-      <div className="wr-header">
-        <div className="wr-brand">
-          <TournamentLogo name={tournament.name} logoUrl={tournament.logoUrl} />
-          <div className="wr-title">
-            <h2>{tournament.name}</h2>
-            <p className="wr-sub">Top 8 bracket — markets open automatically when the bracket begins.</p>
+      {!headerless && (
+        <div className="wr-header">
+          <div className="wr-brand">
+            <TournamentLogo name={tournament.name} logoUrl={tournament.logoUrl} />
+            <div className="wr-title">
+              <h2>{tournament.name}</h2>
+              <p className="wr-sub">Top 8 bracket — markets open automatically when the bracket begins.</p>
+            </div>
+          </div>
+          <div className="wr-clock">
+            {started
+              ? <div className="wr-standby">Top 8 hasn’t started yet — standing by…</div>
+              : <Countdown date={tournament.date} />}
           </div>
         </div>
-        <div className="wr-clock">
+      )}
+      {headerless && (
+        <div className="wr-clock wr-clock-inline">
           {started
             ? <div className="wr-standby">Top 8 hasn’t started yet — standing by…</div>
             : <Countdown date={tournament.date} />}
         </div>
-      </div>
+      )}
 
       {games.length > 1 && (
         <div className="wr-game-tabs">

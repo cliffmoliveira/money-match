@@ -16,6 +16,7 @@
 .wr-sub { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
 .wr-tname-fallback { font-family: 'Saira', sans-serif; font-weight: 800; font-size: 20px; color: var(--text); }
 .wr-clock { flex-shrink: 0; }
+.wr-clock-inline { margin-bottom: 16px; }
 .wr-standby {
   font-family: 'Saira', sans-serif; font-weight: 700; font-size: 14px;
   color: var(--gold); background: var(--gold-tint);

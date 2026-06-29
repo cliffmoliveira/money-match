@@ -88,14 +88,19 @@ const LiveBetting = () => {
     }
   }, [userId]);
 
-  // Auto-expand on first load: live tournaments first, else all
+  // Auto-expand on first load: live tournaments first, else all, else upcoming
   const hasAutoExpanded = useRef(false);
   useEffect(() => {
-    if (markets.length === 0 || hasAutoExpanded.current) return;
-    hasAutoExpanded.current = true;
-    const liveNames = new Set(markets.filter((m) => m.state === 'closed').map((m) => m.tournament_name));
-    setExpandedTourneys(liveNames.size > 0 ? liveNames : new Set(markets.map((m) => m.tournament_name)));
-  }, [markets]);
+    if (hasAutoExpanded.current) return;
+    if (markets.length > 0) {
+      hasAutoExpanded.current = true;
+      const liveNames = new Set(markets.filter((m) => m.state === 'closed').map((m) => m.tournament_name));
+      setExpandedTourneys(liveNames.size > 0 ? liveNames : new Set(markets.map((m) => m.tournament_name)));
+    } else if (upcoming?.tournament) {
+      hasAutoExpanded.current = true;
+      setExpandedTourneys(new Set([upcoming.tournament.name]));
+    }
+  }, [markets, upcoming]);
 
   useEffect(() => {
     refresh();
@@ -349,8 +354,28 @@ const LiveBetting = () => {
         <ExhibitionSection exhibitions={liveExhibitions} title="Exhibition Matches" />
 
         {markets.length === 0 ? (
-          upcoming && upcoming.tournament ? (
-            <WaitingRoom tournament={upcoming.tournament} games={upcoming.games} />
+          upcoming?.tournament ? (
+            (() => {
+              const t = upcoming.tournament;
+              const isExpanded = expandedTourneys.has(t.name);
+              return (
+                <div className="live-tourney-pill">
+                  <div className="live-tourney-pill-header">
+                    <button type="button" className="live-tourney-pill-expand" onClick={() => toggleTourney(t.name)} aria-expanded={isExpanded}>
+                      {t.logoUrl && <img src={t.logoUrl} alt={t.name} className="live-tourn-header-logo" />}
+                      <span className="live-tourn-header-name">{t.name}</span>
+                      <span className="live-tourn-upcoming-badge">UPCOMING</span>
+                      <span className="live-tourney-chevron">{isExpanded ? '▲' : '▼'}</span>
+                    </button>
+                  </div>
+                  {isExpanded && (
+                    <div className="live-tourney-pill-body">
+                      <WaitingRoom tournament={t} games={upcoming.games || []} headerless />
+                    </div>
+                  )}
+                </div>
+              );
+            })()
           ) : (
             <div className="live-empty">
               <h2>No live markets right now</h2>
