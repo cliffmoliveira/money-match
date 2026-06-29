@@ -332,7 +332,7 @@ const Home = () => {
       return (
         <section className="live-hero">
           <div className="live-hero-top">
-            <span className="live-hero-badge"><span className="live-dot" /> Latest Matches</span>
+            <span className="live-hero-badge">Latest Matches</span>
           </div>
           <div className="live-hero-sets">
             {liveNow.slice(0, 3).map((m) => (

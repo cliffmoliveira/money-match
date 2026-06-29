@@ -100,8 +100,8 @@ body { background: var(--bg); color: var(--text); }
 .live-hero-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .live-hero-badge {
   display: inline-flex; align-items: center; gap: 8px;
-  font-family: 'Saira', sans-serif; font-weight: 700; font-size: 13px;
-  letter-spacing: .12em; color: var(--live-text);
+  font-family: 'Saira', sans-serif; font-weight: 700; font-size: 21px;
+  letter-spacing: -0.01em; color: var(--text);
 }
 .live-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--live); animation: mmPulse 1.6s infinite; }
 .live-hero-balance {
