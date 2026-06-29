@@ -129,12 +129,12 @@ body { background: var(--bg); color: var(--text); }
   position: absolute; top: 7px; left: 8px;
   display: inline-flex; align-items: center; gap: 3px;
   background: var(--live-tint); color: #fff;
-  font-family: 'Saira', sans-serif; font-size: 7px; font-weight: 800;
+  font-family: 'Saira', sans-serif; font-size: 10px; font-weight: 800;
   letter-spacing: .06em; text-transform: uppercase; line-height: 1;
-  padding: 2px 4px 2px 3px; border-radius: 4px;
+  padding: 3px 6px 3px 4px; border-radius: 4px;
 }
 .lh-live-dot {
-  width: 5px; height: 5px; border-radius: 50%;
+  width: 7px; height: 7px; border-radius: 50%;
   background: var(--live-text); flex-shrink: 0;
   animation: liveTabPulse 1.8s ease-in-out infinite;
 }
