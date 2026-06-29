@@ -47,6 +47,7 @@ const LiveBetting = () => {
   const [slipOpen, setSlipOpen] = useState(false); // desktop bet-slip drawer
   const [liveExhibitions, setLiveExhibitions] = useState([]);
   const [activeTab, setActiveTab] = useState(null);
+  const [showPnl, setShowPnl] = useState(false);
   const tabsRef = useRef(null);
   const scrollTabs = (dir) => tabsRef.current?.scrollBy({ left: dir * 220, behavior: 'smooth' });
 
@@ -419,6 +420,11 @@ const LiveBetting = () => {
                   )}
                   {activeTabData.tournamentName}
                 </h2>
+                {myBets.some((b) => b.game_name === activeTabData.gameName && b.tournament_name === activeTabData.tournamentName) && (
+                  <button className="live-pnl-toggle" type="button" onClick={() => setShowPnl((v) => !v)}>
+                    My bets <span className="live-pnl-chevron">{showPnl ? '▲' : '▼'}</span>
+                  </button>
+                )}
                 <div className="live-game">
                   <div className="live-game-aside">
                     <GameLogo name={activeTabData.gameName} height={200} />
@@ -428,7 +434,7 @@ const LiveBetting = () => {
                     slip={slip}
                     onPick={togglePick}
                     demoControls={demo ? renderDemoControls : null}
-                    bets={Object.fromEntries(myBets.filter((b) => b.game_name === activeTabData.gameName && b.tournament_name === activeTabData.tournamentName).map((b) => [b.market_id, b]))}
+                    bets={showPnl ? Object.fromEntries(myBets.filter((b) => b.game_name === activeTabData.gameName && b.tournament_name === activeTabData.tournamentName).map((b) => [b.market_id, b])) : {}}
                   />
                 </div>
               </section>

@@ -98,6 +98,16 @@
   line-height: 1;
 }
 
+.live-pnl-toggle {
+  background: none; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px;
+  color: var(--muted); font-family: 'Saira', sans-serif; font-size: 12px; font-weight: 700;
+  letter-spacing: .05em; text-transform: uppercase; padding: 4px 10px;
+  cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+  margin-bottom: 10px;
+}
+.live-pnl-toggle:hover { border-color: rgba(255,255,255,0.35); color: var(--text); }
+.live-pnl-chevron { font-size: 9px; }
+
 .live-tourn-header {
   display: flex; align-items: center; gap: 10px;
   margin-bottom: 14px;
