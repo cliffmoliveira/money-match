@@ -18,8 +18,19 @@ const PersonIcon = () => (
 const IconHome = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9.5 12 3l9 6.5" /><path d="M5 10v10h14V10" /><path d="M9 20v-6h6v6" /></svg>
 );
-const IconLive = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>
+const IconBracket = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="3" y1="6"  x2="7"  y2="6"  />
+    <line x1="3" y1="10" x2="7"  y2="10" />
+    <line x1="7" y1="6"  x2="7"  y2="10" />
+    <line x1="7" y1="8"  x2="12" y2="8"  />
+    <line x1="3" y1="14" x2="7"  y2="14" />
+    <line x1="3" y1="18" x2="7"  y2="18" />
+    <line x1="7" y1="14" x2="7"  y2="18" />
+    <line x1="7" y1="16" x2="12" y2="16" />
+    <line x1="12" y1="8"  x2="12" y2="16" />
+    <line x1="12" y1="12" x2="21" y2="12" />
+  </svg>
 );
 const IconFutures = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4" /><path d="M8 2v4" /><path d="M3 10h18" /></svg>
@@ -38,7 +49,7 @@ const IconPicks = (
 // the desktop link row and the mobile bottom tab bar.
 const NAV = [
   { to: '/', label: 'Home', end: true, icon: IconHome },
-  { to: '/brackets', label: 'Brackets', icon: IconLive, live: true },
+  { to: '/brackets', label: 'Brackets', icon: IconBracket, live: true },
   { to: '/future-tournaments', label: 'Futures', icon: IconFutures },
   { to: '/past-results', label: 'Results', icon: IconResults },
   { to: '/leaderboard', label: 'Ranks', icon: IconRanks },
