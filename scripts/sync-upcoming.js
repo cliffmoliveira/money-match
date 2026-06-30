@@ -20,7 +20,7 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const db = require('../db/db');
 const { startgg } = require('../startggClient');
 const { fieldProbabilities } = require('../liveOdds');
-const { applyFuturesMetaSchema, upsertEntrantCount } = require('../futuresMeta');
+const { applyFuturesMetaSchema, upsertEntrantCount, upsertTournamentGame } = require('../futuresMeta');
 
 const FIELD_PLAYER_NAME = 'The Field';
 // Futures open only within this many days of the event (seeding is finalized
@@ -248,6 +248,16 @@ async function processTournament(slug, args) {
   // Always record the tournament so it appears on the page (with a countdown),
   // even before futures open or entrant counts are reported.
   const tournamentId = args.dryRun ? null : await upsertTournament(t);
+
+  // Register game associations for ALL tracked events up-front, so the Live
+  // page's waiting-room pill can show what games a tournament will feature even
+  // before any entrant seedings exist.
+  if (!args.dryRun && tournamentId) {
+    for (const ev of trackedEvents) {
+      const gameId = await upsertGame(ev.videogame);
+      await upsertTournamentGame(tournamentId, gameId);
+    }
+  }
 
   // Futures only open once an event is genuinely seeded. Far-future majors
   // aren't seeded yet and report provisional/huge seed values, so we gate on

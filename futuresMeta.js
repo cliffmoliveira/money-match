@@ -31,4 +31,14 @@ async function upsertEntrantCount(tournamentId, gameId, numEntrants) {
   );
 }
 
-module.exports = { applyFuturesMetaSchema, upsertEntrantCount };
+// Register that a game will be at a tournament, even before entrant seedings
+// exist. Uses INSERT OR IGNORE so it never overwrites an existing entrant count.
+async function upsertTournamentGame(tournamentId, gameId) {
+  await db.runAsync(
+    `INSERT OR IGNORE INTO tournament_games (tournament_id, game_id)
+     VALUES (?, ?)`,
+    [tournamentId, gameId]
+  );
+}
+
+module.exports = { applyFuturesMetaSchema, upsertEntrantCount, upsertTournamentGame };
