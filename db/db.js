@@ -72,6 +72,48 @@ try {
   if (changes) console.log(`[boot] voided ${changes} stale preview market(s)`);
 } catch (_) { /* table may not exist yet on a fresh DB */ }
 
+// READ-ONLY diagnostic: report set_markets that are stuck open/closed/pending
+// (never settled or voided) for tournaments whose date is well in the past,
+// plus the 'placed' (unsettled) set_bets riding on them. Logged only — no
+// rows are changed here. Surfaced because of stuck "Pending"/"LIVE" picks
+// found on the Home page for a tournament whose bracket already concluded.
+try {
+  const stuck = db.prepare(
+    `SELECT t.id AS tournament_id, t.name AS tournament_name, t.date,
+            sm.id AS market_id, sm.state AS market_state, sm.round_text,
+            p1.name AS p1_name, p2.name AS p2_name,
+            (SELECT COUNT(*) FROM set_bets WHERE market_id = sm.id AND state = 'placed') AS stuck_bets,
+            (SELECT COALESCE(SUM(amount_cents), 0) FROM set_bets WHERE market_id = sm.id AND state = 'placed') AS stuck_cents
+     FROM set_markets sm
+     JOIN tournaments t ON t.id = sm.tournament_id
+     LEFT JOIN players p1 ON p1.id = sm.player1_id
+     LEFT JOIN players p2 ON p2.id = sm.player2_id
+     WHERE sm.state NOT IN ('settled', 'void')
+       AND date(t.date) < date('now', '-3 day')
+     ORDER BY t.date DESC, sm.id`
+  ).all();
+  if (stuck.length) {
+    const byTournament = new Map();
+    for (const row of stuck) {
+      const key = row.tournament_name;
+      if (!byTournament.has(key)) byTournament.set(key, { date: row.date, markets: 0, stuckBets: 0, stuckCents: 0 });
+      const agg = byTournament.get(key);
+      agg.markets += 1;
+      agg.stuckBets += row.stuck_bets;
+      agg.stuckCents += row.stuck_cents;
+    }
+    console.log(`[boot][diagnostic] ${stuck.length} set_markets stuck open/closed/pending past their tournament date:`);
+    for (const [name, agg] of byTournament) {
+      console.log(`[boot][diagnostic]   "${name}" (${agg.date}) — ${agg.markets} stuck market(s), ${agg.stuckBets} unsettled set_bets totaling ${(agg.stuckCents / 100).toFixed(2)} FM`);
+    }
+    for (const row of stuck) {
+      if (row.stuck_bets > 0) {
+        console.log(`[boot][diagnostic]     market ${row.market_id} state=${row.market_state} round="${row.round_text || ''}" ${row.p1_name || '?'} vs ${row.p2_name || '?'} — ${row.stuck_bets} placed bet(s), ${(row.stuck_cents / 100).toFixed(2)} FM`);
+      }
+    }
+  }
+} catch (_) { /* table may not exist yet on a fresh DB */ }
+
 // Cache prepared statements by SQL text. SQLite auto-reprepares on schema
 // changes, so cached statements stay valid across migrations.
 const stmtCache = new Map();
