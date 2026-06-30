@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import './WaitingRoom.css';
 import Bracket from './Bracket';
 import Countdown from './Countdown';
@@ -36,6 +36,8 @@ const WaitingRoom = ({ tournament, games = [], headerless = false }) => {
   const [activeGame, setActiveGame] = useState(games[0]?.id ?? null);
   const [seeds, setSeeds] = useState([]);
   const [seedRows, setSeedRows] = useState([]);
+  const tabsRef = useRef(null);
+  const scrollTabs = (dir) => tabsRef.current?.scrollBy({ left: dir * 220, behavior: 'smooth' });
 
   // Outright (tournament-winner) bet slip — SINGLES ONLY. Keyed by
   // `${projId}_${playerName}` to align with what the Bracket emits/highlights.
@@ -149,19 +151,24 @@ const WaitingRoom = ({ tournament, games = [], headerless = false }) => {
       )}
 
       {games.length > 0 && (
-        <div className="wr-game-tabs">
-          {games.map((g) => (
-            <button
-              key={g.id}
-              type="button"
-              className={`filter-tab ${g.id === activeGame ? 'active' : ''}`}
-              onClick={() => setActiveGame(g.id)}
-              title={g.name}
-              aria-label={g.name}
-            >
-              <GameTabLogo name={g.name} height={28} />
-            </button>
-          ))}
+        <div className="live-tabs-wrap">
+          <button type="button" className="live-tabs-arrow" aria-label="Scroll left" onClick={() => scrollTabs(-1)}>‹</button>
+          <div className="live-tabs" role="tablist" ref={tabsRef}>
+            {games.map((g) => (
+              <button
+                key={g.id}
+                type="button"
+                role="tab"
+                aria-selected={g.id === activeGame}
+                className={`live-tab${g.id === activeGame ? ' active' : ''}`}
+                onClick={() => setActiveGame(g.id)}
+                title={g.name}
+              >
+                <div className="live-tab-logo"><GameTabLogo name={g.name} height={32} /></div>
+              </button>
+            ))}
+          </div>
+          <button type="button" className="live-tabs-arrow" aria-label="Scroll right" onClick={() => scrollTabs(1)}>›</button>
         </div>
       )}
 
