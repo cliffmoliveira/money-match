@@ -502,7 +502,7 @@ async function getUpcoming() {
     `SELECT id, name, date, city, country, logo_url AS logoUrl, is_live AS isLive FROM tournaments t
      WHERE startgg_id IS NOT NULL
        AND (is_live = 1 OR date(date) >= date('now','-1 day'))
-     ORDER BY is_live DESC, date(date) ASC`
+     ORDER BY date(date) DESC`
   );
   return Promise.all(tournaments.map(async (tournament) => {
     const games = await db.allAsync(
