@@ -490,7 +490,7 @@ const LiveBetting = () => {
             years={pastYears} tournaments={pastTournaments} games={pastGames}
             value={pastFilter} onChange={setPastFilter}
             onClear={() => setPastFilter({ year: 'all', tournament: 'all', game: 'all' })}
-            resultsCount={pastEntries.length}
+            resultsCount={pastEntries.length + upcoming.length}
           />
         )}
 
