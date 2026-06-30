@@ -14,22 +14,16 @@
 .live-main { min-width: 0; width: 100%; }
 .live-loading { text-align: center; padding: 40px; color: var(--muted); }
 
-/* Section dividers (static and collapsible toggle) */
-.brackets-past-divider,
-.brackets-section-toggle {
-  font-family: 'Saira', sans-serif; font-size: 11px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .1em; color: var(--muted);
-  display: flex; align-items: center; gap: 10px; margin: 24px 0 12px;
+/* Section header row: left-justified title + Show more/less on the right */
+.brackets-section-head {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 12px; margin: 24px 0 12px;
 }
-.brackets-past-divider::before, .brackets-past-divider::after,
-.brackets-section-toggle::before, .brackets-section-toggle::after {
-  content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.08);
+.brackets-section-head .load-more-row { margin: 0; justify-content: flex-end; }
+.brackets-section-label {
+  font-family: 'Saira', sans-serif; font-size: 15px; font-weight: 800;
+  letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
 }
-.brackets-section-toggle {
-  background: none; border: none; width: 100%; cursor: pointer; padding: 0;
-}
-.brackets-section-toggle:hover { color: var(--text); }
-.brackets-section-chevron { font-size: 9px; }
 
 /* Tournament accordion pill */
 .live-tourney-pill {

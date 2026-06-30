@@ -76,10 +76,12 @@
 .load-more-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
 
 .brackets-next-up-label {
-  font-family: 'Saira', sans-serif; font-size: 11px; font-weight: 800;
-  letter-spacing: .12em; text-transform: uppercase;
-  color: var(--gold); margin-bottom: 8px; padding-left: 2px;
+  font-family: 'Saira', sans-serif; font-size: 18px; font-weight: 800;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--gold); margin: 24px 0 12px; padding-left: 2px;
 }
+
+.brackets-section-head .load-more-row .load-more { margin: 0; }
 
 @media (max-width: 768px) {
   .results-table-container { display: none; }
