@@ -40,10 +40,12 @@ const Exhibitions = () => {
   }
 
   return (
-    <div className="live-main">
-      <h1 className="sr-only">Exhibitions</h1>
-      <ExhibitionSection exhibitions={live} title="Live Exhibitions" />
-      <ExhibitionSection exhibitions={past} title="Exhibition Results" layout="table" />
+    <div className="live-layout">
+      <div className="live-main">
+        <h1 className="sr-only">Exhibitions</h1>
+        <ExhibitionSection exhibitions={live} title="Live Exhibitions" />
+        <ExhibitionSection exhibitions={past} title="Exhibition Results" layout="table" />
+      </div>
     </div>
   );
 };
