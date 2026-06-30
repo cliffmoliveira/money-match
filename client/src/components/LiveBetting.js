@@ -385,7 +385,6 @@ const LiveBetting = () => {
             {activeTabData && (
               <section className="live-tournament" role="tabpanel">
                 <div className="live-game">
-                  <div className="live-game-aside"><GameLogo name={activeTabData.gameName} height={200} /></div>
                   <Bracket
                     markets={activeTabData.mkts}
                     slip={slip}
