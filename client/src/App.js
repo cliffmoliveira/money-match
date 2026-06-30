@@ -30,17 +30,13 @@ function AppShell({ isLoggedIn, setIsLoggedIn }) {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route
-          path="/past-results"
-          element={isLoggedIn ? <PastResults /> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/future-tournaments"
-          element={isLoggedIn ? <FutureTournaments /> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/brackets"
+          path="/tournaments"
           element={isLoggedIn ? <LiveBetting /> : <Navigate to="/login" />}
         />
+        {/* Back-compat redirects — old routes now point at the unified page */}
+        <Route path="/brackets" element={<Navigate to="/tournaments" replace />} />
+        <Route path="/future-tournaments" element={<Navigate to="/tournaments" replace />} />
+        <Route path="/past-results" element={<Navigate to="/tournaments" replace />} />
         <Route path="/leaderboard" element={<Leaderboard />} />
         <Route path="/profile" element={isLoggedIn ? <Profile /> : <Navigate to="/login" />} />
         <Route path="/account" element={isLoggedIn ? <AccountSettings /> : <Navigate to="/login" />} />
