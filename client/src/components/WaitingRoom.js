@@ -37,7 +37,20 @@ const WaitingRoom = ({ tournament, games = [], headerless = false }) => {
   const [seeds, setSeeds] = useState([]);
   const [seedRows, setSeedRows] = useState([]);
   const tabsRef = useRef(null);
+  const [tabsOverflow, setTabsOverflow] = useState(false);
   const scrollTabs = (dir) => tabsRef.current?.scrollBy({ left: dir * 220, behavior: 'smooth' });
+
+  // Only show the scroll arrows when the tab strip is actually wider than its
+  // container — a single tab (or a few) shouldn't render dead arrow buttons.
+  useEffect(() => {
+    const el = tabsRef.current;
+    if (!el) { setTabsOverflow(false); return; }
+    const check = () => setTabsOverflow(el.scrollWidth > el.clientWidth + 1);
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [games]);
 
   // Outright (tournament-winner) bet slip — SINGLES ONLY. Keyed by
   // `${projId}_${playerName}` to align with what the Bracket emits/highlights.
@@ -152,7 +165,9 @@ const WaitingRoom = ({ tournament, games = [], headerless = false }) => {
 
       {games.length > 0 && (
         <div className="live-tabs-wrap">
-          <button type="button" className="live-tabs-arrow" aria-label="Scroll left" onClick={() => scrollTabs(-1)}>‹</button>
+          {tabsOverflow && (
+            <button type="button" className="live-tabs-arrow" aria-label="Scroll left" onClick={() => scrollTabs(-1)}>‹</button>
+          )}
           <div className="live-tabs" role="tablist" ref={tabsRef}>
             {games.map((g) => (
               <button
@@ -168,7 +183,9 @@ const WaitingRoom = ({ tournament, games = [], headerless = false }) => {
               </button>
             ))}
           </div>
-          <button type="button" className="live-tabs-arrow" aria-label="Scroll right" onClick={() => scrollTabs(1)}>›</button>
+          {tabsOverflow && (
+            <button type="button" className="live-tabs-arrow" aria-label="Scroll right" onClick={() => scrollTabs(1)}>›</button>
+          )}
         </div>
       )}
 
