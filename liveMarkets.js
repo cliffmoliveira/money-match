@@ -494,29 +494,28 @@ async function clearDemoMarkets() {
   });
 }
 
-// Read-only: the soonest active/upcoming tracked tournament that has tracked
-// games, plus its games. Powers the Live page's "waiting room" before any Top 8
-// markets exist. Returns { tournament: null, games: [] } when nothing is coming.
+// Read-only: all upcoming tracked tournaments that have seeded players, each
+// with their games list. Powers the Live page's pre-Top-8 "waiting room".
+// Returns an array (empty when nothing is scheduled).
 async function getUpcoming() {
-  const tournament = await db.getAsync(
+  const tournaments = await db.allAsync(
     `SELECT id, name, date, city, country, logo_url AS logoUrl, is_live AS isLive FROM tournaments t
      WHERE startgg_id IS NOT NULL
        AND (is_live = 1 OR date(date) >= date('now','-1 day'))
-       AND date(date) >= date('now','-3 day')
        AND EXISTS (SELECT 1 FROM players_games_tournaments pgt WHERE pgt.tournament_id = t.id)
-     ORDER BY is_live DESC, date(date) ASC
-     LIMIT 1`
+     ORDER BY is_live DESC, date(date) ASC`
   );
-  if (!tournament) return { tournament: null, games: [] };
-  const games = await db.allAsync(
-    `SELECT DISTINCT g.id, g.name
-     FROM players_games_tournaments pgt
-     JOIN games g ON g.id = pgt.game_id
-     WHERE pgt.tournament_id = ?
-     ORDER BY g.name`,
-    [tournament.id]
-  );
-  return { tournament, games };
+  return Promise.all(tournaments.map(async (tournament) => {
+    const games = await db.allAsync(
+      `SELECT DISTINCT g.id, g.name
+       FROM players_games_tournaments pgt
+       JOIN games g ON g.id = pgt.game_id
+       WHERE pgt.tournament_id = ?
+       ORDER BY g.name`,
+      [tournament.id]
+    );
+    return { tournament, games };
+  }));
 }
 
 module.exports = {

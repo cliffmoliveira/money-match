@@ -40,7 +40,7 @@ const LiveBetting = () => {
   const [pastExhibitions, setPastExhibitions] = useState([]);
   const [pastFilter, setPastFilter] = useState({ year: 'all', tournament: 'all', game: 'all' });
   const [pastVisible, setPastVisible] = useState(12);
-  const [upcoming, setUpcoming] = useState(null);
+  const [upcoming, setUpcoming] = useState([]);
   const [balanceCents, setBalanceCents] = useState(null);
   const [slip, setSlip] = useState({}); // key: `${marketId}_${playerId}`
   const [placing, setPlacing] = useState(false);
@@ -86,7 +86,7 @@ const LiveBetting = () => {
       if (mRes.ok) setMarkets(await mRes.json());
       if (wRes.ok) setBalanceCents((await wRes.json()).balanceCents);
       if (bRes.ok) setMyBets(await bRes.json());
-      if (uRes.ok) setUpcoming(await uRes.json());
+      if (uRes.ok) { const u = await uRes.json(); setUpcoming(Array.isArray(u) ? u : []); }
       if (exRes.ok) setLiveExhibitions(await exRes.json());
       if (pmRes.ok) setPastMarkets(await pmRes.json());
       if (perRes.ok) { const data = await perRes.json(); setPastExhibitions(Array.isArray(data) ? data : []); }
@@ -106,9 +106,9 @@ const LiveBetting = () => {
       hasAutoExpanded.current = true;
       const liveNames = new Set(markets.filter((m) => m.state === 'closed').map((m) => m.tournament_name));
       setExpandedTourneys(liveNames.size > 0 ? liveNames : new Set(markets.map((m) => m.tournament_name)));
-    } else if (upcoming?.tournament) {
+    } else if (upcoming.length > 0) {
       hasAutoExpanded.current = true;
-      setExpandedTourneys(new Set([upcoming.tournament.name]));
+      setExpandedTourneys(new Set([upcoming[0].tournament.name]));
     }
   }, [markets, upcoming]);
 
@@ -497,11 +497,10 @@ const LiveBetting = () => {
 
         <ExhibitionSection exhibitions={liveExhibitions} title="Exhibition Matches" />
 
-        {upcoming?.tournament && (() => {
-          const t = upcoming.tournament;
+        {upcoming.map(({ tournament: t, games }) => {
           const isExpanded = expandedTourneys.has(t.name);
           return (
-            <div className="live-tourney-pill">
+            <div key={t.id} className="live-tourney-pill">
               <div className="live-tourney-pill-header live-tourney-pill-header--upcoming">
                 <button type="button" className="live-tourney-pill-expand" onClick={() => toggleTourney(t.name)} aria-expanded={isExpanded}>
                   {t.logoUrl && <img src={t.logoUrl} alt={t.name} className="live-tourn-header-logo" />}
@@ -520,13 +519,13 @@ const LiveBetting = () => {
               </div>
               {isExpanded && (
                 <div className="live-tourney-pill-body">
-                  <WaitingRoom tournament={t} games={upcoming.games || []} headerless />
+                  <WaitingRoom tournament={t} games={games || []} headerless />
                 </div>
               )}
             </div>
           );
-        })()}
-        {markets.length === 0 && !upcoming?.tournament && (
+        })}
+        {markets.length === 0 && upcoming.length === 0 && (
           <div className="live-empty">
             <h2>No live markets right now</h2>
             <p>Markets open automatically when a tracked tournament reaches Top 8.</p>
