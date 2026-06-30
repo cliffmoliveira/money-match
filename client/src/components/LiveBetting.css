@@ -65,8 +65,12 @@
   background: none; border: none; cursor: pointer;
   padding: 10px 8px; text-align: left; min-width: 0;
 }
+.live-tourney-pill-meta-toggle {
+  flex-shrink: 0; display: flex; align-items: center; gap: 8px;
+  background: none; border: none; cursor: pointer; padding: 10px 8px;
+}
 .live-tourney-chevron {
-  margin-left: auto; font-size: 10px; color: var(--muted); flex-shrink: 0;
+  font-size: 10px; color: var(--muted); flex-shrink: 0;
 }
 .live-tourn-header-meta {
   display: flex; flex-direction: column; justify-content: center;

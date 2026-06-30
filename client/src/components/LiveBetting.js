@@ -343,6 +343,13 @@ const LiveBetting = () => {
                 LIVE
               </span>
             )}
+          </button>
+          {tournBets.length > 0 && (
+            <button className={`live-pnl-toggle${showPnl ? ' active' : ''}`} type="button" onClick={() => setShowPnl((v) => !v)}>
+              My bets
+            </button>
+          )}
+          <button type="button" className="live-tourney-pill-meta-toggle" onClick={() => toggleTourney(tName)} aria-expanded={isExpanded}>
             {tDate && (
               <span className="live-tourn-header-meta-right">
                 <span className="live-tourn-header-date">
@@ -355,11 +362,6 @@ const LiveBetting = () => {
             )}
             <span className="live-tourney-chevron">{isExpanded ? '▲' : '▼'}</span>
           </button>
-          {tournBets.length > 0 && (
-            <button className={`live-pnl-toggle${showPnl ? ' active' : ''}`} type="button" onClick={() => setShowPnl((v) => !v)}>
-              My bets
-            </button>
-          )}
         </div>
         {isExpanded && (
           <div className="live-tourney-pill-body">
