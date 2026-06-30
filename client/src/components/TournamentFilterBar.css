@@ -1,0 +1,78 @@
+/* ============================================================
+   Hit Confirmed — TournamentFilterBar.css
+   Self-contained, presentational filter bar. Re-scoped from the
+   PastResults filter styles under `.tournament-filter-bar` so it
+   carries its own visuals and depends on no other stylesheet.
+   Uses the shared dark/gold token vars (--gold, --muted, --text,
+   --border, --border-strong, --surface, etc.).
+   ============================================================ */
+
+.tournament-filter-bar .filter-bar {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 16px 0 18px;
+}
+.tournament-filter-bar .filter-toggle {
+  display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px;
+  background: var(--card); border: 1px solid var(--border-strong); border-radius: 10px;
+  color: var(--text); font-family: 'Saira', sans-serif; font-weight: 600; font-size: 13px;
+  cursor: pointer; transition: border-color 140ms ease;
+}
+.tournament-filter-bar .filter-toggle:hover, .tournament-filter-bar .filter-toggle.has-active { border-color: var(--gold); }
+.tournament-filter-bar .filter-toggle-icon { flex: none; color: var(--muted); }
+.tournament-filter-bar .filter-toggle.has-active .filter-toggle-icon { color: var(--gold); }
+.tournament-filter-bar .filter-count {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px;
+  padding: 0 5px; border-radius: 999px; background: var(--gold-grad); color: var(--on-gold);
+  font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.tournament-filter-bar .filter-toggle-chevron { font-size: 11px; color: var(--muted); transition: transform 160ms ease; }
+.tournament-filter-bar .filter-toggle-chevron.open { transform: rotate(180deg); }
+.tournament-filter-bar .filter-chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 7px 9px 7px 12px;
+  background: var(--gold-tint); border: 1px solid var(--border); border-radius: 999px;
+  color: var(--text); font-family: 'Saira', sans-serif; font-weight: 600; font-size: 12px;
+  cursor: pointer; transition: border-color 140ms ease;
+}
+.tournament-filter-bar .filter-chip:hover { border-color: var(--gold); }
+.tournament-filter-bar .filter-chip .chip-x { color: var(--muted); font-size: 15px; line-height: 1; }
+.tournament-filter-bar .filter-chip:hover .chip-x { color: var(--text); }
+.tournament-filter-bar .filter-bar .results-count { margin-left: auto; color: var(--muted); font-size: 13px; }
+
+.tournament-filter-bar .filter-panel {
+  display: flex; align-items: flex-end; gap: 14px; margin: 0 0 22px; padding: 16px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 14px; flex-wrap: wrap;
+}
+.tournament-filter-bar .filter-group { display: flex; flex-direction: column; align-items: stretch; gap: 6px; flex: 1 1 0; min-width: 180px; }
+.tournament-filter-bar .filter-group label {
+  font-family: 'Saira', sans-serif; font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .07em; color: var(--muted);
+}
+.tournament-filter-bar .filter-select {
+  appearance: none; -webkit-appearance: none; -moz-appearance: none;
+  width: 100%; padding: 10px 36px 10px 13px; text-overflow: ellipsis;
+  border: 1px solid var(--border); border-radius: 10px;
+  background-color: var(--input); color: var(--text);
+  font-size: 14px; font-family: 'Hanken Grotesk', sans-serif; cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238B909C' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 13px center; background-size: 11px;
+  transition: border-color 140ms ease, background-color 140ms ease;
+}
+.tournament-filter-bar .filter-select:hover { border-color: var(--border-strong); }
+.tournament-filter-bar .filter-select:focus { outline: none; border-color: var(--gold); }
+.tournament-filter-bar .clear-filters {
+  padding: 10px 16px; background: transparent; color: var(--muted);
+  border: 1px solid var(--border-strong); border-radius: 10px;
+  font-family: 'Saira', sans-serif; font-weight: 600; font-size: 13px; cursor: pointer;
+  transition: color 140ms ease, border-color 140ms ease;
+}
+.tournament-filter-bar .clear-filters:hover { color: var(--text); border-color: var(--gold); }
+
+/* Mobile: filters stack 2-up so a native <select> can't drag the page sideways. */
+@media (max-width: 760px) {
+  .tournament-filter-bar .filter-group { flex: 1 1 calc(50% - 7px); min-width: 130px; }
+  .tournament-filter-bar .filter-select { width: 100%; }
+}
+
+@media (max-width: 768px) {
+  .tournament-filter-bar .filter-bar { flex-direction: row; flex-wrap: wrap; align-items: stretch; }
+  .tournament-filter-bar .filter-bar .results-count { margin-left: 0; }
+}
