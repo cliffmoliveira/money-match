@@ -497,51 +497,43 @@ const LiveBetting = () => {
 
         <ExhibitionSection exhibitions={liveExhibitions} title="Exhibition Matches" />
 
-        {markets.length === 0 && (
-          upcoming?.tournament ? (
-            (() => {
-              const t = upcoming.tournament;
-              const isExpanded = expandedTourneys.has(t.name);
-              return (
-                <div className="live-tourney-pill">
-                  <div className="live-tourney-pill-header live-tourney-pill-header--upcoming">
-                    <button type="button" className="live-tourney-pill-expand" onClick={() => toggleTourney(t.name)} aria-expanded={isExpanded}>
-                      {t.logoUrl && <img src={t.logoUrl} alt={t.name} className="live-tourn-header-logo" />}
-                      <div className="live-tourn-header-meta">
-                        <span className="live-tourn-header-name">{t.name}</span>
-                        <span className="live-tourn-header-sub">
-                          {new Date(`${t.date}T00:00:00`).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
-                          {(t.city || t.country) && ` · ${[t.city, t.country].filter(Boolean).join(', ')}`}
-                        </span>
-                      </div>
-                      <div className="live-tourn-header-countdown">
-                        <Countdown date={t.date} compact />
-                      </div>
-                      <span className="live-tourney-chevron">{isExpanded ? '▲' : '▼'}</span>
-                    </button>
+        {upcoming?.tournament && (() => {
+          const t = upcoming.tournament;
+          const isExpanded = expandedTourneys.has(t.name);
+          return (
+            <div className="live-tourney-pill">
+              <div className="live-tourney-pill-header live-tourney-pill-header--upcoming">
+                <button type="button" className="live-tourney-pill-expand" onClick={() => toggleTourney(t.name)} aria-expanded={isExpanded}>
+                  {t.logoUrl && <img src={t.logoUrl} alt={t.name} className="live-tourn-header-logo" />}
+                  <div className="live-tourn-header-meta">
+                    <span className="live-tourn-header-name">{t.name}</span>
+                    <span className="live-tourn-header-sub">
+                      {new Date(`${t.date}T00:00:00`).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                      {(t.city || t.country) && ` · ${[t.city, t.country].filter(Boolean).join(', ')}`}
+                    </span>
                   </div>
-                  {isExpanded && (
-                    <div className="live-tourney-pill-body">
-                      <WaitingRoom tournament={t} games={upcoming.games || []} headerless />
-                    </div>
-                  )}
+                  <div className="live-tourn-header-countdown">
+                    <Countdown date={t.date} compact />
+                  </div>
+                  <span className="live-tourney-chevron">{isExpanded ? '▲' : '▼'}</span>
+                </button>
+              </div>
+              {isExpanded && (
+                <div className="live-tourney-pill-body">
+                  <WaitingRoom tournament={t} games={upcoming.games || []} headerless />
                 </div>
-              );
-            })()
-          ) : (
-            <div className="live-empty">
-              <h2>No live markets right now</h2>
-              <p>Markets open automatically when a tracked tournament reaches Top 8.</p>
+              )}
             </div>
-          )
+          );
+        })()}
+        {markets.length === 0 && !upcoming?.tournament && (
+          <div className="live-empty">
+            <h2>No live markets right now</h2>
+            <p>Markets open automatically when a tracked tournament reaches Top 8.</p>
+          </div>
         )}
-        {markets.length === 0 && (pastMarkets.length > 0 || pastExhibitions.length > 0) && renderPastSection()}
-        {markets.length > 0 && (
-          <>
-            {renderPills(groups)}
-            {(pastMarkets.length > 0 || pastExhibitions.length > 0) && renderPastSection()}
-          </>
-        )}
+        {markets.length > 0 && renderPills(groups)}
+        {(pastMarkets.length > 0 || pastExhibitions.length > 0) && renderPastSection()}
       </div>
 
       {/* Bet slip lives in a collapsible drawer so the bracket always gets the
