@@ -59,11 +59,38 @@ const isTop8Round = (t) => { const n = norm(t); return TOP8_ROUNDS.some((re) => 
 const seedOf = (e) => e?.seeds?.[0]?.seedNum ?? null;
 const scoreOf = (slot) => { const v = slot?.standing?.stats?.score?.value; return v != null && v >= 0 ? v : 0; };
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const REQ_DELAY_MS = 800; // proactive pacing — Start.gg caps at ~80 requests/minute
+const MAX_RETRIES = 6;
+
+// Throttled Start.gg call: paces every request and backs off on HTTP 429 so a bulk
+// historical load doesn't trip the rate limiter (which the live poller never hits).
+async function ggRetry(query, vars) {
+  for (let attempt = 0; ; attempt++) {
+    await sleep(REQ_DELAY_MS);
+    try {
+      return await startgg(query, vars);
+    } catch (err) {
+      const status = err?.response?.status;
+      if (status === 429 && attempt < MAX_RETRIES) {
+        const retryAfter = Number(err?.response?.headers?.['retry-after']);
+        const wait = Number.isFinite(retryAfter) && retryAfter > 0
+          ? retryAfter * 1000
+          : Math.min(60000, 5000 * 2 ** attempt);
+        console.log(`    …429 rate-limited; waiting ${Math.round(wait / 1000)}s (retry ${attempt + 1}/${MAX_RETRIES})`);
+        await sleep(wait);
+        continue;
+      }
+      throw err;
+    }
+  }
+}
+
 // Page through a phase's sets (mirrors sync-live.js fetchPhaseSets).
 async function fetchPhaseSets(eventId, phaseId) {
   const all = [];
   for (let page = 1; page <= MAX_SET_PAGES; page++) {
-    const data = await startgg(PHASE_SETS, { eventId, phaseId, page, perPage: SET_PAGE_SIZE });
+    const data = await ggRetry(PHASE_SETS, { eventId, phaseId, page, perPage: SET_PAGE_SIZE });
     const nodes = data?.event?.sets?.nodes || [];
     all.push(...nodes);
     const totalPages = data?.event?.sets?.pageInfo?.totalPages || 1;
@@ -74,7 +101,7 @@ async function fetchPhaseSets(eventId, phaseId) {
 
 // Resolve each event's final phase (highest phaseOrder) and fetch its sets.
 async function fetchEvents(startggId) {
-  const data = await startgg(LIVE_PHASES, { id: startggId });
+  const data = await ggRetry(LIVE_PHASES, { id: startggId });
   const events = data?.tournament?.events || [];
   const out = [];
   for (const ev of events) {
