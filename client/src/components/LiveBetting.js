@@ -8,7 +8,6 @@ import { getGameLogoSources, getGameAlt, getGameLogoStyle } from '../utils/gameL
 // Fight Money formatters (fmt/signed kept as names so call sites are unchanged).
 import { fm as fmt, fmSigned as signed, fmAmount } from '../utils/money';
 import { apiFetch } from '../utils/api';
-import ExhibitionSection from './ExhibitionSection';
 import TournamentFilterBar from './TournamentFilterBar';
 
 const POLL_MS = 6000; // refresh markets/odds/pick'em every 6s while the Live page is open
@@ -37,10 +36,10 @@ const GameLogo = ({ name, height = 30 }) => {
 const LiveBetting = () => {
   const [markets, setMarkets] = useState([]);
   const [pastMarkets, setPastMarkets] = useState([]);
-  const [pastExhibitions, setPastExhibitions] = useState([]);
   const [pastFilter, setPastFilter] = useState({ year: 'all', tournament: 'all', game: 'all' });
   const [pastVisible, setPastVisible] = useState(12);
   const [upcoming, setUpcoming] = useState([]);
+  const [futureVisible, setFutureVisible] = useState(6);
   const [futureSectionOpen, setFutureSectionOpen] = useState(false);
   const [pastSectionOpen, setPastSectionOpen] = useState(false);
   const [balanceCents, setBalanceCents] = useState(null);
@@ -53,7 +52,6 @@ const LiveBetting = () => {
   const [demoEnabled, setDemoEnabled] = useState(false);
   const [myBets, setMyBets] = useState([]);
   const [slipOpen, setSlipOpen] = useState(false); // desktop bet-slip drawer
-  const [liveExhibitions, setLiveExhibitions] = useState([]);
   const [activeTabs, setActiveTabs] = useState({});     // { [tName]: tabKey }
   const [expandedTourneys, setExpandedTourneys] = useState(new Set());
   const [showPnl, setShowPnl] = useState(false);
@@ -76,22 +74,18 @@ const LiveBetting = () => {
 
   const refresh = useCallback(async () => {
     try {
-      const [mRes, wRes, bRes, uRes, exRes, pmRes, perRes] = await Promise.all([
+      const [mRes, wRes, bRes, uRes, pmRes] = await Promise.all([
         fetch('/api/live/markets'),
         apiFetch(`/api/wallet?userId=${userId}`),
         apiFetch(`/api/live/bets?userId=${userId}`),
         fetch('/api/live/upcoming'),
-        fetch('/api/exhibitions/live'),
         fetch('/api/live/past-markets'),
-        fetch('/api/exhibitions/results'),
       ]);
       if (mRes.ok) setMarkets(await mRes.json());
       if (wRes.ok) setBalanceCents((await wRes.json()).balanceCents);
       if (bRes.ok) setMyBets(await bRes.json());
       if (uRes.ok) { const u = await uRes.json(); setUpcoming(Array.isArray(u) ? u : []); }
-      if (exRes.ok) setLiveExhibitions(await exRes.json());
       if (pmRes.ok) setPastMarkets(await pmRes.json());
-      if (perRes.ok) { const data = await perRes.json(); setPastExhibitions(Array.isArray(data) ? data : []); }
       setError(null);
     } catch (err) {
       setError('Failed to load live markets.');
@@ -466,7 +460,6 @@ const LiveBetting = () => {
           {pastEntries.length > pastVisible && (
             <button className="load-more" onClick={() => setPastVisible((n) => n + 12)}>Show more ({pastEntries.length - pastVisible} more)</button>
           )}
-          <ExhibitionSection exhibitions={pastExhibitions} title="Exhibition Results" layout="table" />
         </>
       )}
     </>
@@ -502,8 +495,6 @@ const LiveBetting = () => {
           </div>
         )}
         {error && <p className="error-message">{error}</p>}
-
-        <ExhibitionSection exhibitions={liveExhibitions} title="Exhibition Matches" />
 
         {(() => {
           const nextUp = upcoming.length > 0 ? upcoming[upcoming.length - 1] : null;
@@ -545,7 +536,16 @@ const LiveBetting = () => {
                     Future Tournaments
                     <span className="brackets-section-chevron">{futureSectionOpen ? '▲' : '▼'}</span>
                   </button>
-                  {futureSectionOpen && futureRest.map(renderUpcomingPill)}
+                  {futureSectionOpen && (
+                    <>
+                      {futureRest.slice(0, futureVisible).map(renderUpcomingPill)}
+                      {futureRest.length > futureVisible && (
+                        <button className="load-more" onClick={() => setFutureVisible((n) => n + 6)}>
+                          Show more ({futureRest.length - futureVisible} more)
+                        </button>
+                      )}
+                    </>
+                  )}
                 </>
               )}
               {nextUp && renderUpcomingPill(nextUp)}
@@ -559,7 +559,7 @@ const LiveBetting = () => {
           </div>
         )}
         {markets.length > 0 && renderPills(groups)}
-        {(pastMarkets.length > 0 || pastExhibitions.length > 0) && renderPastSection()}
+        {pastMarkets.length > 0 && renderPastSection()}
       </div>
 
       {/* Bet slip lives in a collapsible drawer so the bracket always gets the

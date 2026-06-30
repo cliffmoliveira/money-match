@@ -38,12 +38,16 @@ const IconRanks = (
 const IconPicks = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 11l3 3L22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>
 );
+const IconExhibition = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+);
 
 // Single source of truth for the primary destinations — rendered both as
 // the desktop link row and the mobile bottom tab bar.
 const NAV = [
   { to: '/', label: 'Home', end: true, icon: IconHome },
   { to: '/tournaments', label: 'Tournaments', icon: IconBracket, live: true },
+  { to: '/exhibitions', label: 'Exhibitions', icon: IconExhibition },
   { to: '/leaderboard', label: 'Ranks', icon: IconRanks },
   { to: '/profile', label: 'Picks', icon: IconPicks },
 ];
