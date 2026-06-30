@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './ExhibitionSection.css';
+import '../styles/results-table.css';
 import { getGameLogoSources, getGameAlt, getGameLogoStyle } from '../utils/gameLogos';
 import { getTournamentLogoSources, getTournamentAlt, getTournamentLogoStyle } from '../utils/tournamentLogos';
 

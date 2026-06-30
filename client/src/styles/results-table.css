@@ -1,0 +1,78 @@
+/* ============================================================
+   Hit Confirmed — results-table.css
+   Shared results-table + result-card classes used by both
+   PastResults and ExhibitionSection. Relocated here (copied
+   verbatim from PastResults.css) so they survive the eventual
+   deletion of PastResults.css. In CRA, CSS is bundled globally;
+   ExhibitionSection imports this file directly to guarantee these
+   classes are present wherever it renders.
+   ============================================================ */
+
+/* Results table */
+.results-table-container {
+  overflow-x: auto; margin-bottom: 30px; border-radius: 16px;
+  border: 1px solid var(--border); box-shadow: none;
+}
+.results-table { width: 100%; border-collapse: collapse; background: var(--card); font-size: 14px; }
+.results-table thead { background: transparent; color: var(--muted); }
+.results-table th {
+  padding: 13px 14px; text-align: left; font-family: 'Saira', sans-serif;
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--muted); border-bottom: 1px solid var(--border);
+}
+.results-table th.game { text-align: center; }
+.results-table td { padding: 15px 14px; border-bottom: 1px solid var(--border-soft); vertical-align: middle; }
+.results-table tbody tr { transition: background-color 0.15s ease; }
+.results-table tbody tr:hover { background: var(--surface); }
+
+.tournament-name { font-family: 'Saira', sans-serif; font-weight: 600; color: #C9CCD3; min-width: 150px; max-width: 200px; overflow-wrap: anywhere; }
+.tournament-name img { max-width: 180px; }
+.location { color: var(--muted); min-width: 80px; max-width: 100px; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.date { color: var(--muted); font-family: 'Saira', sans-serif; font-weight: 500; font-variant-numeric: tabular-nums; min-width: 70px; max-width: 90px; font-size: 12px; white-space: nowrap; }
+.game { color: var(--muted); font-family: 'Saira', sans-serif; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; min-width: 100px; text-align: center; }
+.results-table td.game > div { display: flex; align-items: center; justify-content: center; width: 100%; }
+.winner { font-family: 'Saira', sans-serif; color: var(--text); font-weight: 700; min-width: 100px; max-width: 180px; overflow-wrap: anywhere; }
+.winner::before { content: "★"; color: var(--gold); font-size: 20px; margin-right: 8px; vertical-align: middle; }
+.pr-name-stack { display: inline-flex; flex-direction: column; line-height: 1; gap: 2px; vertical-align: middle; }
+.pr-sponsor { font-size: 12px; font-weight: 700; color: var(--faint); text-transform: uppercase; letter-spacing: .04em; }
+.pr-tag { font-size: 18px; font-weight: 700; font-family: 'Saira', sans-serif; }
+.loser .pr-tag, .rc-loser .pr-tag { font-size: 16px; font-weight: 500; }
+.score { font-family: 'Saira', sans-serif; font-weight: 700; color: var(--win); text-align: center; min-width: 70px; font-variant-numeric: tabular-nums; }
+.loser { color: var(--muted); font-weight: 500; min-width: 100px; max-width: 180px; overflow-wrap: anywhere; }
+
+@media (max-width: 768px) {
+  .results-table { font-size: 12px; }
+  .results-table th, .results-table td { padding: 10px 8px; }
+}
+
+/* Compact result cards — the primary mobile layout (the desktop table is hidden
+   on small screens). Each match is two tight lines: the result, then the meta. */
+.results-cards { display: none; }
+.result-card {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px;
+}
+.result-card > img { flex: none; max-width: 36px; max-height: 30px; width: auto; height: auto; }
+.rc-body { flex: 1; min-width: 0; }
+.rc-result {
+  display: flex; align-items: baseline; gap: 8px;
+  font-family: 'Saira', sans-serif; font-size: 15px; font-weight: 700;
+}
+.rc-winner { color: var(--text); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rc-winner::before { content: "\2605 "; color: var(--gold); }
+.rc-score { color: var(--win); flex: none; font-variant-numeric: tabular-nums; }
+.rc-loser { color: var(--muted); flex: 1; min-width: 0; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rc-meta { margin-top: 3px; font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.load-more {
+  display: block; margin: 6px auto 24px; padding: 11px 28px;
+  background: var(--card); color: var(--gold);
+  border: 1px solid var(--border-strong); border-radius: 10px;
+  font-family: 'Saira', sans-serif; font-weight: 600; font-size: 14px; cursor: pointer;
+  transition: border-color .15s ease, color .15s ease;
+}
+.load-more:hover { border-color: var(--gold); }
+
+@media (max-width: 768px) {
+  .results-table-container { display: none; }
+  .results-cards { display: flex; flex-direction: column; gap: 10px; margin-bottom: 26px; }
+}
