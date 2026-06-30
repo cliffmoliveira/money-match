@@ -33,6 +33,11 @@ export const gameSlugMap = {
   'Vampire Savior: The Lord of Vampire': 'vampire-savior',
   'Vampire Savior': 'vampire-savior', // alias
   'Under Night In-Birth II Sys:Celes': 'under-night-in-birth-2-sysceles', // Evo 2026 name
+  // Names where auto-slugify produces wrong key
+  'Guilty Gear Xrd REV2': 'guilty-gear-xrd-rev-2',
+  "The King of Fighters '98": 'king-of-fighters-98',
+  'Skullgirls: 2nd Encore': 'skull-girls-2nd-encore',
+  'Super Street Fighter II Turbo / X': 'super-street-fighter-ii-x',
   // start.gg all-caps / punctuation variants
   'TEKKEN 8': 'tekken-8',
   'DRAGON BALL FighterZ': 'dragon-ball-fighterz',
@@ -123,6 +128,25 @@ const logoFileBySlug = {
   'vampire-savior': 'vampire-savior.png',
   'virtua-fighter-5-revo': 'virtua-fighter-5-revo.png',
   'samurai-shodown': 'samurai-shodown.png',
+  // New logos added
+  'beyblade-x': 'Beyblade-X.webp',
+  'dengeki-bunko-fighting-climax-ignition': 'Dengeki-Bunko-Fighting-Climax-Ignition.png',
+  'fist-of-the-north-star': 'fist-of-the-north-star.png',
+  'footsies': 'footsies.png',
+  'guilty-gear-xrd-rev-2': 'guilty-gear-xrd-rev-2.webp',
+  'guilty-gear-xx-accent-core-plus-r': 'Guilty-Gear-XX-Accent-Core-Plus-R.webp',
+  'hunter-x-hunter-nen-x-impact': 'hunter-x-hunter-nen-x-impact.png',
+  'killer-instinct': 'Killer_Instinct.png',
+  'king-of-fighters-98': 'king-of-fighters-98.png',
+  'koihime-enbu-ryorairai': 'koihime-enbu-ryorairai.png',
+  'league-of-legends': 'League-of-Legends.webp',
+  'melty-blood-actress-again-current-code': 'melty-blood-actress-again-current-code.png',
+  'melty-blood-type-lumina': 'melty-blood-type-lumina.png',
+  'mobile-suit-gundam-extreme-vs-maxiboost-on': 'mobile-suit-gundam-extreme-vs-maxiboost-on.png',
+  'skull-girls-2nd-encore': 'skull-girls-2nd-encore.png',
+  'super-smash-bros': 'super-smash-bros.webp',
+  'super-street-fighter-ii-x': 'super-street-fighter-ii-x.png',
+  'ultra-street-fighter-iv': 'ultra-street-fighter-iv.png',
 };
 
 export function getGameLogoSources(name) {
