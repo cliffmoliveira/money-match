@@ -41,6 +41,8 @@ const LiveBetting = () => {
   const [pastFilter, setPastFilter] = useState({ year: 'all', tournament: 'all', game: 'all' });
   const [pastVisible, setPastVisible] = useState(12);
   const [upcoming, setUpcoming] = useState([]);
+  const [futureSectionOpen, setFutureSectionOpen] = useState(false);
+  const [pastSectionOpen, setPastSectionOpen] = useState(false);
   const [balanceCents, setBalanceCents] = useState(null);
   const [slip, setSlip] = useState({}); // key: `${marketId}_${playerId}`
   const [placing, setPlacing] = useState(false);
@@ -443,24 +445,30 @@ const LiveBetting = () => {
   });
   const shownPastGroups = Object.fromEntries(pastEntries.slice(0, pastVisible));
 
-  // Single source of truth for the Past Brackets section (rendered in both the
-  // empty-markets and live-markets branches below).
   const renderPastSection = () => (
     <>
-      <div className="brackets-past-divider">Past Brackets</div>
-      {pastMarkets.length > 0 && (
-        <TournamentFilterBar
-          years={pastYears} tournaments={pastTournaments} games={pastGames}
-          value={pastFilter} onChange={setPastFilter}
-          onClear={() => setPastFilter({ year: 'all', tournament: 'all', game: 'all' })}
-          resultsCount={pastEntries.length}
-        />
+      <button type="button" className="brackets-section-toggle" onClick={() => setPastSectionOpen((o) => !o)}>
+        <span className="brackets-section-chevron">{pastSectionOpen ? '▲' : '▼'}</span>
+        Past Brackets
+        <span className="brackets-section-chevron">{pastSectionOpen ? '▲' : '▼'}</span>
+      </button>
+      {pastSectionOpen && (
+        <>
+          {pastMarkets.length > 0 && (
+            <TournamentFilterBar
+              years={pastYears} tournaments={pastTournaments} games={pastGames}
+              value={pastFilter} onChange={setPastFilter}
+              onClear={() => setPastFilter({ year: 'all', tournament: 'all', game: 'all' })}
+              resultsCount={pastEntries.length}
+            />
+          )}
+          {renderPills(shownPastGroups)}
+          {pastEntries.length > pastVisible && (
+            <button className="load-more" onClick={() => setPastVisible((n) => n + 12)}>Show more ({pastEntries.length - pastVisible} more)</button>
+          )}
+          <ExhibitionSection exhibitions={pastExhibitions} title="Exhibition Results" layout="table" />
+        </>
       )}
-      {renderPills(shownPastGroups)}
-      {pastEntries.length > pastVisible && (
-        <button className="load-more" onClick={() => setPastVisible((n) => n + 12)}>Show more ({pastEntries.length - pastVisible} more)</button>
-      )}
-      <ExhibitionSection exhibitions={pastExhibitions} title="Exhibition Results" layout="table" />
     </>
   );
 
@@ -497,34 +505,53 @@ const LiveBetting = () => {
 
         <ExhibitionSection exhibitions={liveExhibitions} title="Exhibition Matches" />
 
-        {upcoming.map(({ tournament: t, games }) => {
-          const isExpanded = expandedTourneys.has(t.name);
-          return (
-            <div key={t.id} className="live-tourney-pill">
-              <div className="live-tourney-pill-header live-tourney-pill-header--upcoming">
-                <button type="button" className="live-tourney-pill-expand" onClick={() => toggleTourney(t.name)} aria-expanded={isExpanded}>
-                  {t.logoUrl && <img src={t.logoUrl} alt={t.name} className="live-tourn-header-logo" />}
-                  <div className="live-tourn-header-meta">
-                    <span className="live-tourn-header-name">{t.name}</span>
-                    <span className="live-tourn-header-sub">
-                      {new Date(`${t.date}T00:00:00`).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
-                      {(t.city || t.country) && ` · ${[t.city, t.country].filter(Boolean).join(', ')}`}
-                    </span>
-                  </div>
-                  <div className="live-tourn-header-countdown">
-                    <Countdown date={t.date} compact />
-                  </div>
-                  <span className="live-tourney-chevron">{isExpanded ? '▲' : '▼'}</span>
-                </button>
-              </div>
-              {isExpanded && (
-                <div className="live-tourney-pill-body">
-                  <WaitingRoom tournament={t} games={games || []} headerless />
+        {(() => {
+          const nextUp = upcoming.length > 0 ? upcoming[upcoming.length - 1] : null;
+          const futureRest = upcoming.slice(0, upcoming.length - 1);
+          const renderUpcomingPill = ({ tournament: t, games }) => {
+            const isExpanded = expandedTourneys.has(t.name);
+            return (
+              <div key={t.id} className="live-tourney-pill">
+                <div className="live-tourney-pill-header live-tourney-pill-header--upcoming">
+                  <button type="button" className="live-tourney-pill-expand" onClick={() => toggleTourney(t.name)} aria-expanded={isExpanded}>
+                    {t.logoUrl && <img src={t.logoUrl} alt={t.name} className="live-tourn-header-logo" />}
+                    <div className="live-tourn-header-meta">
+                      <span className="live-tourn-header-name">{t.name}</span>
+                      <span className="live-tourn-header-sub">
+                        {new Date(`${t.date}T00:00:00`).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                        {(t.city || t.country) && ` · ${[t.city, t.country].filter(Boolean).join(', ')}`}
+                      </span>
+                    </div>
+                    <div className="live-tourn-header-countdown">
+                      <Countdown date={t.date} compact />
+                    </div>
+                    <span className="live-tourney-chevron">{isExpanded ? '▲' : '▼'}</span>
+                  </button>
                 </div>
+                {isExpanded && (
+                  <div className="live-tourney-pill-body">
+                    <WaitingRoom tournament={t} games={games || []} headerless />
+                  </div>
+                )}
+              </div>
+            );
+          };
+          return (
+            <>
+              {futureRest.length > 0 && (
+                <>
+                  <button type="button" className="brackets-section-toggle" onClick={() => setFutureSectionOpen((o) => !o)}>
+                    <span className="brackets-section-chevron">{futureSectionOpen ? '▲' : '▼'}</span>
+                    Future Tournaments
+                    <span className="brackets-section-chevron">{futureSectionOpen ? '▲' : '▼'}</span>
+                  </button>
+                  {futureSectionOpen && futureRest.map(renderUpcomingPill)}
+                </>
               )}
-            </div>
+              {nextUp && renderUpcomingPill(nextUp)}
+            </>
           );
-        })}
+        })()}
         {markets.length === 0 && upcoming.length === 0 && (
           <div className="live-empty">
             <h2>No live markets right now</h2>
