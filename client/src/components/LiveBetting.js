@@ -440,14 +440,6 @@ const LiveBetting = () => {
   const renderPastSection = () => (
     <>
       <div className="brackets-past-divider">Past Brackets</div>
-      {pastMarkets.length > 0 && (
-        <TournamentFilterBar
-          years={pastYears} tournaments={pastTournaments} games={pastGames}
-          value={pastFilter} onChange={setPastFilter}
-          onClear={() => setPastFilter({ year: 'all', tournament: 'all', game: 'all' })}
-          resultsCount={pastEntries.length}
-        />
-      )}
       {renderPills(shownPastGroups)}
       <div className="load-more-row">
         {pastEntries.length > pastVisible && (
@@ -490,6 +482,15 @@ const LiveBetting = () => {
           </div>
         )}
         {error && <p className="error-message">{error}</p>}
+
+        {pastMarkets.length > 0 && (
+          <TournamentFilterBar
+            years={pastYears} tournaments={pastTournaments} games={pastGames}
+            value={pastFilter} onChange={setPastFilter}
+            onClear={() => setPastFilter({ year: 'all', tournament: 'all', game: 'all' })}
+            resultsCount={pastEntries.length}
+          />
+        )}
 
         {(() => {
           const nextUp = upcoming.length > 0 ? upcoming[upcoming.length - 1] : null;
