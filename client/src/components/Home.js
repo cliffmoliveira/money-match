@@ -428,24 +428,26 @@ const Home = () => {
     const next = upcoming?.[0];
     if (next) {
       return (
-        <section className="next-hero">
-          <span className="next-hero-badge">Next up</span>
-          <div className="next-hero-body">
-            <TournamentLogo name={next.name} logoUrl={next.logoUrl} height={52} />
-            <div className="next-hero-info">
-              <h2>{next.name}</h2>
-              <p className="next-hero-meta">
-                {new Date(next.date + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
-                {next.location?.city ? ` · ${next.location.city}, ${next.location.country}` : ''}
-                {next.numEntrants ? ` · ${next.numEntrants.toLocaleString()} entrants` : ''}
-              </p>
+        <>
+          <div className="brackets-next-up-label">Next Up</div>
+          <section className="next-hero">
+            <div className="next-hero-body">
+              <TournamentLogo name={next.name} logoUrl={next.logoUrl} height={52} />
+              <div className="next-hero-info">
+                <h2>{next.name}</h2>
+                <p className="next-hero-meta">
+                  {new Date(next.date + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                  {next.location?.city ? ` · ${next.location.city}, ${next.location.country}` : ''}
+                  {next.numEntrants ? ` · ${next.numEntrants.toLocaleString()} entrants` : ''}
+                </p>
+              </div>
             </div>
-          </div>
-          {next.id === nextMajorId && <Countdown date={next.date} compact />}
-          <div className="hero-actions">
-            <Link to="/tournaments" className="btn primary">See Tournaments →</Link>
-          </div>
-        </section>
+            {next.id === nextMajorId && <Countdown date={next.date} compact />}
+            <div className="hero-actions">
+              <Link to="/tournaments" className="btn primary">See Tournaments →</Link>
+            </div>
+          </section>
+        </>
       );
     }
     // No upcoming majors scheduled (rare) — minimal fallback.
@@ -497,13 +499,6 @@ const Home = () => {
         </button>
       )}
 
-      {userId && (
-        <Link to="/tournaments" className="pickem-nudge">
-          <span className="pn-icon" aria-hidden="true">🎯</span>
-          <span className="pn-text">Predict bracket winners — free picks earn ranked points.</span>
-          <span className="pn-cta">Make picks →</span>
-        </Link>
-      )}
 
       {/* Your Picks — live per-set + futures, unified (above Next Up) */}
       {userId && (

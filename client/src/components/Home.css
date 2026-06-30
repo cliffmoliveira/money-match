@@ -240,19 +240,6 @@ body { background: var(--bg); color: var(--text); }
   color: var(--on-gold); background: var(--gold-grad); padding: 6px 14px; border-radius: 8px;
 }
 
-/* Pick'em nudge */
-.pickem-nudge {
-  display: flex; align-items: center; gap: 12px;
-  margin-bottom: 18px; padding: 11px 16px;
-  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
-  color: var(--text); text-decoration: none; font-size: 14px;
-  transition: border-color 140ms ease;
-}
-.pickem-nudge:hover { border-color: var(--gold); }
-.pn-icon { font-size: 16px; flex: none; }
-.pn-text { flex: 1; color: var(--muted); }
-.pn-cta { flex: none; font-family: 'Saira', sans-serif; font-weight: 700; font-size: 13px; color: var(--gold); white-space: nowrap; }
-
 /* Entrant count on a Next Up card */
 .spotlight-entrants { font-family: 'Saira', sans-serif; font-weight: 600; font-size: 12px; color: var(--muted); margin-top: 2px; }
 
