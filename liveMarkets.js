@@ -340,7 +340,7 @@ async function getMarkets({ includeAll = false, pastOnly = false } = {}) {
   const where = includeAll
     ? `1=1`
     : pastOnly
-    ? `NOT (t.is_live = 1 OR date(t.date) BETWEEN date('now','-1 day') AND date('now','+2 day'))`
+    ? `t.is_live = 0 AND date(t.date) < date('now') AND strftime('%Y', t.date) = '2026' AND m.state = 'settled'`
     : `(t.is_live = 1 OR date(t.date) BETWEEN date('now','-1 day') AND date('now','+2 day'))`;
   // LEFT JOIN the player tables so half-filled (pending) nodes — where one slot
   // is still TBD (player id 0) — are still returned.
