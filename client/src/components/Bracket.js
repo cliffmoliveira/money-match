@@ -115,13 +115,14 @@ const PoolBar = ({ p1 = 0, p2 = 0 }) => {
   );
 };
 
-const Node = ({ market, slip, onPick, demoControls, registerRef, projected, isChampionMatch, bets = {} }) => {
+const Node = ({ market, slip, onPick, demoControls, registerRef, projected, isChampionMatch, bets = {}, projId, onProjectedPick, projectedSlip = {} }) => {
   const setRef = (el) => registerRef(el);
   if (!market) {
     // Pre-tournament: show the seed-projected matchup (view-only — never a market,
     // so no odds, no pool, no pick'em). The real set replaces it the moment the
     // live poller fills the slot, so no pick is ever scored against a projection.
     if (projected && projected.some(Boolean)) {
+      const pickable = typeof onProjectedPick === 'function';
       return (
         <div ref={setRef} className="bnode projected">
           <div className="bnode-head">
@@ -129,12 +130,14 @@ const Node = ({ market, slip, onPick, demoControls, registerRef, projected, isCh
           </div>
           {[0, 1].map((i) => {
             const pl = projected[i];
-            return (
-              <div key={i} className="bnode-row projected">
-                {pl
-                  ? <span className="bnode-name" title={pl.name}><span className="bnode-seed">#{pl.seed}</span>{shortName(pl.name)}</span>
-                  : <span className="bnode-name tbd">TBD</span>}
-              </div>
+            if (!pl) return <div key={i} className="bnode-row projected"><span className="bnode-name tbd">TBD</span></div>;
+            const picked = Boolean(projectedSlip[`${projId}_${pl.name}`]);
+            const inner = <span className="bnode-name" title={pl.name}><span className="bnode-seed">#{pl.seed}</span>{shortName(pl.name)}</span>;
+            return pickable ? (
+              <button key={i} type="button" className={`bnode-row projected pickable ${picked ? 'picked' : ''}`}
+                onClick={() => onProjectedPick(projId, pl)}>{inner}</button>
+            ) : (
+              <div key={i} className="bnode-row projected">{inner}</div>
             );
           })}
         </div>
@@ -224,7 +227,7 @@ const Node = ({ market, slip, onPick, demoControls, registerRef, projected, isCh
   );
 };
 
-const Column = ({ col, markets, slip, onPick, demoControls, registerRef, projected, bets }) => {
+const Column = ({ col, markets, slip, onPick, demoControls, registerRef, projected, bets, onProjectedPick, projectedSlip = {} }) => {
   const nodes = markets.filter((m) => classify(m) === col.key).sort((a, b) => col.sortDesc ? b.id - a.id : a.id - b.id);
   // Render at least `cap` cells (TBD placeholders before markets exist), but more
   // if a column actually holds extra markets — notably the Grand Final + its
@@ -246,6 +249,9 @@ const Column = ({ col, markets, slip, onPick, demoControls, registerRef, project
         onPick={onPick}
         demoControls={demoControls}
         projected={projected ? projected[`${col.key}-${i}`] : null}
+        projId={`proj_${col.key}-${i}`}
+        onProjectedPick={onProjectedPick}
+        projectedSlip={projectedSlip}
         registerRef={(el) => registerRef(`${col.key}-${i}`, el)}
         isChampionMatch={isChampionMatch}
         bets={bets}
@@ -264,7 +270,7 @@ const Column = ({ col, markets, slip, onPick, demoControls, registerRef, project
   );
 };
 
-const Bracket = ({ markets = [], slip = {}, onPick, demoControls, waiting = false, projected = {}, bets = {} }) => {
+const Bracket = ({ markets = [], slip = {}, onPick, demoControls, waiting = false, projected = {}, bets = {}, onProjectedPick, projectedSlip = {} }) => {
   const fitRef = useRef(null);    // available-width container (overflow hidden)
   const innerRef = useRef(null);  // natural-size, scaled to fit
   const nodeRefs = useRef({});
@@ -381,7 +387,7 @@ const Bracket = ({ markets = [], slip = {}, onPick, demoControls, waiting = fals
   const colFor = (key) => COLUMNS.find((c) => c.key === key);
   const winners = ['WSF', 'WF'];
   const losers = ['LR1', 'LR2', 'LSF', 'LF'];
-  const common = { markets, slip, onPick, demoControls, registerRef, projected, bets };
+  const common = { markets, slip, onPick, demoControls, registerRef, projected, bets, onProjectedPick, projectedSlip };
 
   return (
     <div

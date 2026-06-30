@@ -171,6 +171,15 @@
 }
 .bnode-row.projected { cursor: default; }
 .bnode-row.projected:hover { background: transparent; }
+/* Outright pre-event picks: projected rows become tappable buttons (opt-in).
+   Inherit the row's font/padding/border so the button looks identical to the
+   view-only span apart from the hover/pick highlight. */
+.bnode-row.projected.pickable {
+  cursor: pointer; background: none; border: none; width: 100%; text-align: left;
+  font: inherit; color: inherit;
+}
+.bnode-row.projected.pickable:hover { background: rgba(231,180,88,0.08); }
+.bnode-row.projected.picked { background: rgba(231,180,88,0.18); box-shadow: inset 2px 0 0 var(--gold); }
 .bnode-seed {
   display: inline-block; margin-right: 7px;
   font-size: 10px; font-weight: 700; color: var(--faint);
