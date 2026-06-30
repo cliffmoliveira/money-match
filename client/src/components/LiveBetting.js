@@ -446,7 +446,7 @@ const LiveBetting = () => {
             <button className="load-more" onClick={() => setPastVisible((n) => n + 12)}>Show more ({pastEntries.length - pastVisible} more)</button>
           )}
           {pastVisible > 0 && (
-            <button className="load-more load-more--less" onClick={() => setPastVisible(0)}>Show less</button>
+            <button className="load-more load-more--less" onClick={() => setPastVisible((n) => Math.max(0, n - 12))}>Show less</button>
           )}
         </div>
       </div>
@@ -538,7 +538,7 @@ const LiveBetting = () => {
                         </button>
                       )}
                       {futureVisible > 0 && (
-                        <button className="load-more load-more--less" onClick={() => setFutureVisible(0)}>Show less</button>
+                        <button className="load-more load-more--less" onClick={() => setFutureVisible((n) => Math.max(0, n - 5))}>Show less</button>
                       )}
                     </div>
                   </div>
