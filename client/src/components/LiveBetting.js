@@ -39,7 +39,7 @@ const LiveBetting = () => {
   const [pastFilter, setPastFilter] = useState({ year: 'all', tournament: 'all', game: 'all' });
   const [pastVisible, setPastVisible] = useState(12);
   const [upcoming, setUpcoming] = useState([]);
-  const [futureVisible, setFutureVisible] = useState(6);
+  const [futureVisible, setFutureVisible] = useState(5);
   const [futureSectionOpen, setFutureSectionOpen] = useState(false);
   const [pastSectionOpen, setPastSectionOpen] = useState(false);
   const [balanceCents, setBalanceCents] = useState(null);
@@ -538,12 +538,12 @@ const LiveBetting = () => {
                   </button>
                   {futureSectionOpen && (
                     <>
-                      {futureRest.slice(0, futureVisible).map(renderUpcomingPill)}
                       {futureRest.length > futureVisible && (
-                        <button className="load-more" onClick={() => setFutureVisible((n) => n + 6)}>
+                        <button className="load-more" onClick={() => setFutureVisible((n) => n + 5)}>
                           Show more ({futureRest.length - futureVisible} more)
                         </button>
                       )}
+                      {futureRest.slice(Math.max(0, futureRest.length - futureVisible)).map(renderUpcomingPill)}
                     </>
                   )}
                 </>
