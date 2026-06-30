@@ -9,6 +9,7 @@ import { getGameLogoSources, getGameAlt, getGameLogoStyle } from '../utils/gameL
 import { fm as fmt, fmSigned as signed, fmAmount } from '../utils/money';
 import { apiFetch } from '../utils/api';
 import ExhibitionSection from './ExhibitionSection';
+import TournamentFilterBar from './TournamentFilterBar';
 
 const POLL_MS = 6000; // refresh markets/odds/pick'em every 6s while the Live page is open
 
@@ -36,6 +37,9 @@ const GameLogo = ({ name, height = 30 }) => {
 const LiveBetting = () => {
   const [markets, setMarkets] = useState([]);
   const [pastMarkets, setPastMarkets] = useState([]);
+  const [pastExhibitions, setPastExhibitions] = useState([]);
+  const [pastFilter, setPastFilter] = useState({ year: 'all', tournament: 'all', game: 'all' });
+  const [pastVisible, setPastVisible] = useState(12);
   const [upcoming, setUpcoming] = useState(null);
   const [balanceCents, setBalanceCents] = useState(null);
   const [slip, setSlip] = useState({}); // key: `${marketId}_${playerId}`
@@ -70,13 +74,14 @@ const LiveBetting = () => {
 
   const refresh = useCallback(async () => {
     try {
-      const [mRes, wRes, bRes, uRes, exRes, pmRes] = await Promise.all([
+      const [mRes, wRes, bRes, uRes, exRes, pmRes, perRes] = await Promise.all([
         fetch('/api/live/markets'),
         apiFetch(`/api/wallet?userId=${userId}`),
         apiFetch(`/api/live/bets?userId=${userId}`),
         fetch('/api/live/upcoming'),
         fetch('/api/exhibitions/live'),
         fetch('/api/live/past-markets'),
+        fetch('/api/exhibitions/results'),
       ]);
       if (mRes.ok) setMarkets(await mRes.json());
       if (wRes.ok) setBalanceCents((await wRes.json()).balanceCents);
@@ -84,6 +89,7 @@ const LiveBetting = () => {
       if (uRes.ok) setUpcoming(await uRes.json());
       if (exRes.ok) setLiveExhibitions(await exRes.json());
       if (pmRes.ok) setPastMarkets(await pmRes.json());
+      if (perRes.ok) { const data = await perRes.json(); setPastExhibitions(Array.isArray(data) ? data : []); }
       setError(null);
     } catch (err) {
       setError('Failed to load live markets.');
@@ -417,7 +423,41 @@ const LiveBetting = () => {
     return g;
   };
   const groups = buildGroups(markets);
-  const pastGroups = buildGroups(pastMarkets);
+
+  // Past-section filter options (derived from the raw past markets, not groups).
+  const pastYears = [...new Set(pastMarkets.map((m) => (m.tournament_date || '').slice(0, 4)).filter(Boolean))].sort((a, b) => b.localeCompare(a));
+  const pastTournaments = [...new Set(pastMarkets.map((m) => m.tournament_name).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  const pastGames = [...new Set(pastMarkets.map((m) => m.game_name).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+
+  // Apply the active filter before grouping, then paginate over tournaments.
+  const filteredPast = pastMarkets.filter((m) =>
+    (pastFilter.year === 'all' || (m.tournament_date || '').slice(0, 4) === pastFilter.year) &&
+    (pastFilter.tournament === 'all' || m.tournament_name === pastFilter.tournament) &&
+    (pastFilter.game === 'all' || m.game_name === pastFilter.game));
+  const pastGroups = buildGroups(filteredPast);
+  const pastEntries = Object.entries(pastGroups);
+  const shownPastGroups = Object.fromEntries(pastEntries.slice(0, pastVisible));
+
+  // Single source of truth for the Past Brackets section (rendered in both the
+  // empty-markets and live-markets branches below).
+  const renderPastSection = () => (
+    <>
+      <div className="brackets-past-divider">Past Brackets</div>
+      {pastMarkets.length > 0 && (
+        <TournamentFilterBar
+          years={pastYears} tournaments={pastTournaments} games={pastGames}
+          value={pastFilter} onChange={setPastFilter}
+          onClear={() => setPastFilter({ year: 'all', tournament: 'all', game: 'all' })}
+          resultsCount={pastEntries.length}
+        />
+      )}
+      {renderPills(shownPastGroups)}
+      {pastEntries.length > pastVisible && (
+        <button className="load-more" onClick={() => setPastVisible((n) => n + 12)}>Show more ({pastEntries.length - pastVisible} more)</button>
+      )}
+      <ExhibitionSection exhibitions={pastExhibitions} title="Exhibition Results" layout="table" />
+    </>
+  );
 
   // Sort games: closed (set in progress) first, then open, then pending, then settled
   const STATE_PRIORITY = { closed: 0, open: 1, pending: 2, settled: 3 };
@@ -490,21 +530,11 @@ const LiveBetting = () => {
             </div>
           )
         )}
-        {markets.length === 0 && Object.keys(pastGroups).length > 0 && (
-          <>
-            <div className="brackets-past-divider">Past Brackets</div>
-            {renderPills(pastGroups)}
-          </>
-        )}
+        {markets.length === 0 && (pastMarkets.length > 0 || pastExhibitions.length > 0) && renderPastSection()}
         {markets.length > 0 && (
           <>
             {renderPills(groups)}
-            {Object.keys(pastGroups).length > 0 && (
-              <>
-                <div className="brackets-past-divider">Past Brackets</div>
-                {renderPills(pastGroups)}
-              </>
-            )}
+            {(pastMarkets.length > 0 || pastExhibitions.length > 0) && renderPastSection()}
           </>
         )}
       </div>
