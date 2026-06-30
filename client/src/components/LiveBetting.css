@@ -189,7 +189,10 @@
 .live-tourn-header-name {
   font-family: 'Saira', sans-serif; font-weight: 700; font-size: 19px;
   color: var(--text); letter-spacing: -0.01em;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
 }
+/* Regular pill: name is a direct flex child and must stretch to push date right */
+.live-tourney-pill-expand > .live-tourn-header-name { flex: 1; }
 .live-tourn-header-meta-right {
   display: flex; flex-direction: column; align-items: flex-end;
   gap: 2px; margin-left: auto; flex-shrink: 0;
@@ -369,6 +372,32 @@
 .live-mybets-status.refunded { background: var(--surface); color: var(--muted); }
 .live-mybets-amount { font-family: 'Saira', sans-serif; font-size: 14px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
 
+
+@media (max-width: 600px) {
+  /* Upcoming pill header: switch to CSS grid so the countdown drops to its own row
+     instead of crushing the tournament name into a sliver. */
+  .live-tourney-pill-header--upcoming .live-tourney-pill-expand {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas:
+      "logo meta chevron"
+      ".    countdown .";
+    align-items: center;
+    gap: 4px 8px;
+  }
+  .live-tourney-pill-header--upcoming .live-tourn-header-logo  { grid-area: logo;      align-self: center; }
+  .live-tourney-pill-header--upcoming .live-tourn-header-meta  { grid-area: meta;      min-width: 0; }
+  .live-tourney-pill-header--upcoming .live-tourney-chevron    { grid-area: chevron;   align-self: center; }
+  .live-tourney-pill-header--upcoming .live-tourn-header-countdown { grid-area: countdown; margin-right: 0; }
+
+  /* Truncate sub-text (date · city) in the upcoming pill on narrow screens */
+  .live-tourn-header-sub {
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  /* Reduce name font-size so "BR Kumite - World Warrior 2026 - Brazil 3" fits */
+  .live-tourn-header-name { font-size: 14px; }
+}
 
 @media (max-width: 980px) {
   /* On mobile, keep the drawer pattern but slide it up from the bottom as a sheet,
