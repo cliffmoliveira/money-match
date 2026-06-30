@@ -499,10 +499,10 @@ const LiveBetting = () => {
         {(() => {
           const nextUp = upcoming.length > 0 ? upcoming[upcoming.length - 1] : null;
           const futureRest = upcoming.slice(0, upcoming.length - 1);
-          const renderUpcomingPill = ({ tournament: t, games }) => {
+          const renderUpcomingPill = ({ tournament: t, games }, isNextUp = false) => {
             const isExpanded = expandedTourneys.has(t.name);
             return (
-              <div key={t.id} className="live-tourney-pill">
+              <div key={t.id} className={`live-tourney-pill${isNextUp ? ' live-tourney-pill--next-up' : ''}`}>
                 <div className="live-tourney-pill-header live-tourney-pill-header--upcoming">
                   <button type="button" className="live-tourney-pill-expand" onClick={() => toggleTourney(t.name)} aria-expanded={isExpanded}>
                     {t.logoUrl && <img src={t.logoUrl} alt={t.name} className="live-tourn-header-logo" />}
@@ -516,6 +516,7 @@ const LiveBetting = () => {
                     <div className="live-tourn-header-countdown">
                       <Countdown date={t.date} compact />
                     </div>
+                    {isNextUp && <span className="live-tourn-next-up-badge">Next Up</span>}
                     <span className="live-tourney-chevron">{isExpanded ? '▲' : '▼'}</span>
                   </button>
                 </div>
@@ -548,7 +549,7 @@ const LiveBetting = () => {
                   )}
                 </>
               )}
-              {nextUp && renderUpcomingPill(nextUp)}
+              {nextUp && renderUpcomingPill(nextUp, true)}
             </>
           );
         })()}

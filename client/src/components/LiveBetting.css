@@ -43,6 +43,18 @@
   border-color: var(--gold);
   box-shadow: 0 0 0 1px var(--gold), 0 0 14px 2px rgba(231,180,88,0.15);
 }
+.live-tourney-pill--next-up {
+  border-color: var(--gold);
+  background: rgba(231,180,88,0.05);
+  box-shadow: 0 0 0 1px var(--gold), 0 0 20px 4px rgba(231,180,88,0.10);
+}
+.live-tourn-next-up-badge {
+  display: inline-flex; align-items: center;
+  background: var(--gold); color: var(--on-gold);
+  font-family: 'Saira', sans-serif; font-size: 9px; font-weight: 800;
+  letter-spacing: .08em; text-transform: uppercase;
+  padding: 2px 7px; border-radius: 4px; flex-shrink: 0;
+}
 .live-tourney-pill-header {
   display: flex; align-items: center; gap: 8px;
   padding: 4px 12px 4px 4px;
