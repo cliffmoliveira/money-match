@@ -440,7 +440,7 @@ const LiveBetting = () => {
   const renderPastSection = () => (
     <>
       <div className="brackets-section-head">
-        <div className="brackets-section-label">Past Brackets</div>
+        <div className={`brackets-section-label${pastVisible > 0 ? ' brackets-section-label--active' : ''}`}>Past Brackets</div>
         <div className="load-more-row">
           {pastEntries.length > pastVisible && (
             <button className="load-more" onClick={() => setPastVisible((n) => n + 12)}>Show more ({pastEntries.length - pastVisible} more)</button>
@@ -530,7 +530,7 @@ const LiveBetting = () => {
               {futureRest.length > 0 && (
                 <>
                   <div className="brackets-section-head">
-                    <div className="brackets-section-label">Future Tournaments</div>
+                    <div className={`brackets-section-label${futureVisible > 0 ? ' brackets-section-label--active' : ''}`}>Future Tournaments</div>
                     <div className="load-more-row">
                       {futureRest.length > futureVisible && (
                         <button className="load-more" onClick={() => setFutureVisible((n) => n + 5)}>

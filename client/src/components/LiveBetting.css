@@ -21,9 +21,11 @@
 }
 .brackets-section-head .load-more-row { margin: 0; justify-content: flex-end; }
 .brackets-section-label {
-  font-family: 'Saira', sans-serif; font-size: 15px; font-weight: 800;
+  font-family: 'Saira', sans-serif; font-size: 18px; font-weight: 800;
   letter-spacing: .06em; text-transform: uppercase; color: var(--muted);
+  transition: color .15s ease;
 }
+.brackets-section-label--active { color: var(--gold); }
 
 /* Tournament accordion pill */
 .live-tourney-pill {
