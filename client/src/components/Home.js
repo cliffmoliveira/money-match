@@ -376,7 +376,7 @@ const Home = () => {
               </div>
             ))}
           </div>
-          <Link to="/brackets" className="btn live-hero-cta">Watch &amp; bet →</Link>
+          <Link to="/tournaments" className="btn live-hero-cta">Watch &amp; bet →</Link>
         </section>
       );
     }
@@ -398,8 +398,8 @@ const Home = () => {
             </div>
           </div>
           <div className="hero-actions">
-            <Link to="/brackets" className="btn primary">Watch &amp; bet →</Link>
-            <Link to="/future-tournaments" className="btn">Browse futures</Link>
+            <Link to="/tournaments" className="btn primary">Watch &amp; bet →</Link>
+            <Link to="/tournaments" className="btn">Browse futures</Link>
           </div>
         </section>
       );
@@ -420,7 +420,7 @@ const Home = () => {
             </div>
           </div>
           <div className="hero-actions">
-            <Link to="/brackets" className="btn primary">Watch bracket →</Link>
+            <Link to="/tournaments" className="btn primary">Watch bracket →</Link>
           </div>
         </section>
       );
@@ -444,8 +444,8 @@ const Home = () => {
           </div>
           {next.id === nextMajorId && <Countdown date={next.date} compact />}
           <div className="hero-actions">
-            <Link to="/future-tournaments" className="btn primary">Browse futures</Link>
-            <Link to="/brackets" className="btn">Brackets</Link>
+            <Link to="/tournaments" className="btn primary">Browse futures</Link>
+            <Link to="/tournaments" className="btn">Brackets</Link>
           </div>
         </section>
       );
@@ -457,8 +457,8 @@ const Home = () => {
           <h1>Welcome back.</h1>
           <p>No upcoming majors scheduled yet — check back soon.</p>
           <div className="hero-actions">
-            <Link to="/brackets" className="btn primary">Brackets</Link>
-            <Link to="/future-tournaments" className="btn">Browse futures</Link>
+            <Link to="/tournaments" className="btn primary">Brackets</Link>
+            <Link to="/tournaments" className="btn">Browse futures</Link>
           </div>
         </div>
       </section>
@@ -501,7 +501,7 @@ const Home = () => {
       )}
 
       {userId && (
-        <Link to="/brackets" className="pickem-nudge">
+        <Link to="/tournaments" className="pickem-nudge">
           <span className="pn-icon" aria-hidden="true">🎯</span>
           <span className="pn-text">Predict bracket winners — free picks earn ranked points.</span>
           <span className="pn-cta">Make picks →</span>
@@ -513,7 +513,7 @@ const Home = () => {
         <section className="bets">
           <div className="section-header">
             <h2>Your Bets</h2>
-            <Link to="/brackets" className="link">Place bets</Link>
+            <Link to="/tournaments" className="link">Place bets</Link>
           </div>
           {betsLoading ? (
             <div className="skeleton">Loading bets…</div>
@@ -569,7 +569,7 @@ const Home = () => {
         <section className="spotlight">
           <div className="section-header">
             <h2>{heroShowsNext ? 'More upcoming' : 'Next Up'}</h2>
-            <Link to="/future-tournaments" className="link">See all</Link>
+            <Link to="/tournaments" className="link">See all</Link>
           </div>
           <div className="spotlight-grid">
             {spotlight.map(t => (
@@ -612,7 +612,7 @@ const Home = () => {
       <section className="champions">
         <div className="section-header">
           <h2>Recent Champions</h2>
-          <Link to="/past-results" className="link">See all</Link>
+          <Link to="/tournaments" className="link">See all</Link>
         </div>
         <div className="champion-grid">
           {recentChampions.map((c, i) => (
