@@ -40,8 +40,6 @@ const LiveBetting = () => {
   const [pastVisible, setPastVisible] = useState(12);
   const [upcoming, setUpcoming] = useState([]);
   const [futureVisible, setFutureVisible] = useState(5);
-  const [futureSectionOpen, setFutureSectionOpen] = useState(false);
-  const [pastSectionOpen, setPastSectionOpen] = useState(false);
   const [balanceCents, setBalanceCents] = useState(null);
   const [slip, setSlip] = useState({}); // key: `${marketId}_${playerId}`
   const [placing, setPlacing] = useState(false);
@@ -441,32 +439,24 @@ const LiveBetting = () => {
 
   const renderPastSection = () => (
     <>
-      <button type="button" className="brackets-section-toggle" onClick={() => setPastSectionOpen((o) => !o)}>
-        <span className="brackets-section-chevron">{pastSectionOpen ? '▲' : '▼'}</span>
-        Past Brackets
-        <span className="brackets-section-chevron">{pastSectionOpen ? '▲' : '▼'}</span>
-      </button>
-      {pastSectionOpen && (
-        <>
-          {pastMarkets.length > 0 && (
-            <TournamentFilterBar
-              years={pastYears} tournaments={pastTournaments} games={pastGames}
-              value={pastFilter} onChange={setPastFilter}
-              onClear={() => setPastFilter({ year: 'all', tournament: 'all', game: 'all' })}
-              resultsCount={pastEntries.length}
-            />
-          )}
-          {renderPills(shownPastGroups)}
-          <div className="load-more-row">
-            {pastEntries.length > pastVisible && (
-              <button className="load-more" onClick={() => setPastVisible((n) => n + 12)}>Show more ({pastEntries.length - pastVisible} more)</button>
-            )}
-            {pastEntries.length > 12 && (
-              <button className="load-more load-more--less" onClick={() => setPastVisible(12)}>Show less</button>
-            )}
-          </div>
-        </>
+      <div className="brackets-past-divider">Past Brackets</div>
+      {pastMarkets.length > 0 && (
+        <TournamentFilterBar
+          years={pastYears} tournaments={pastTournaments} games={pastGames}
+          value={pastFilter} onChange={setPastFilter}
+          onClear={() => setPastFilter({ year: 'all', tournament: 'all', game: 'all' })}
+          resultsCount={pastEntries.length}
+        />
       )}
+      {renderPills(shownPastGroups)}
+      <div className="load-more-row">
+        {pastEntries.length > pastVisible && (
+          <button className="load-more" onClick={() => setPastVisible((n) => n + 12)}>Show more ({pastEntries.length - pastVisible} more)</button>
+        )}
+        {pastEntries.length > 12 && (
+          <button className="load-more load-more--less" onClick={() => setPastVisible(12)}>Show less</button>
+        )}
+      </div>
     </>
   );
 
@@ -536,26 +526,17 @@ const LiveBetting = () => {
             <>
               {futureRest.length > 0 && (
                 <>
-                  <button type="button" className="brackets-section-toggle" onClick={() => setFutureSectionOpen((o) => !o)}>
-                    <span className="brackets-section-chevron">{futureSectionOpen ? '▲' : '▼'}</span>
-                    Future Tournaments
-                    <span className="brackets-section-chevron">{futureSectionOpen ? '▲' : '▼'}</span>
-                  </button>
-                  {futureSectionOpen && (
-                    <>
-                      {futureRest.slice(Math.max(0, futureRest.length - futureVisible)).map((item) => renderUpcomingPill(item))}
-                      <div className="load-more-row">
-                        {futureRest.length > futureVisible && (
-                          <button className="load-more" onClick={() => setFutureVisible((n) => n + 5)}>
-                            Show more ({futureRest.length - futureVisible} more)
-                          </button>
-                        )}
-                        {futureRest.length > 5 && (
-                          <button className="load-more load-more--less" onClick={() => setFutureVisible(5)}>Show less</button>
-                        )}
-                      </div>
-                    </>
-                  )}
+                  {futureRest.slice(Math.max(0, futureRest.length - futureVisible)).map((item) => renderUpcomingPill(item))}
+                  <div className="load-more-row">
+                    {futureRest.length > futureVisible && (
+                      <button className="load-more" onClick={() => setFutureVisible((n) => n + 5)}>
+                        Show more ({futureRest.length - futureVisible} more)
+                      </button>
+                    )}
+                    {futureRest.length > 5 && (
+                      <button className="load-more load-more--less" onClick={() => setFutureVisible(5)}>Show less</button>
+                    )}
+                  </div>
                 </>
               )}
               {nextUp && (
