@@ -148,7 +148,7 @@ const WaitingRoom = ({ tournament, games = [], headerless = false }) => {
         </div>
       )}
 
-      {games.length > 1 && (
+      {games.length > 0 && (
         <div className="wr-game-tabs">
           {games.map((g) => (
             <button
