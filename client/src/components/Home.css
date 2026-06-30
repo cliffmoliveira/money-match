@@ -203,7 +203,10 @@ body { background: var(--bg); color: var(--text); }
 
 /* ---------- Section headers ---------- */
 .section-header { display: flex; justify-content: space-between; align-items: center; margin: 34px 0 16px; }
-.section-header h2 { margin: 0; font-family: 'Saira', sans-serif; font-weight: 700; font-size: 21px; letter-spacing: -0.01em; }
+.section-header h2 {
+  margin: 0; font-family: 'Saira', sans-serif; font-weight: 800; font-size: 18px;
+  letter-spacing: .06em; text-transform: uppercase; color: var(--gold);
+}
 .section-header .link { color: var(--gold); text-decoration: none; font-weight: 600; font-size: 14px; }
 .section-header .link:hover { text-decoration: underline; }
 

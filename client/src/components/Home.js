@@ -398,8 +398,7 @@ const Home = () => {
             </div>
           </div>
           <div className="hero-actions">
-            <Link to="/tournaments" className="btn primary">Watch &amp; pick →</Link>
-            <Link to="/tournaments" className="btn">Browse futures</Link>
+            <Link to="/tournaments" className="btn primary">See Tournaments →</Link>
           </div>
         </section>
       );
@@ -444,8 +443,7 @@ const Home = () => {
           </div>
           {next.id === nextMajorId && <Countdown date={next.date} compact />}
           <div className="hero-actions">
-            <Link to="/tournaments" className="btn primary">Browse futures</Link>
-            <Link to="/tournaments" className="btn">Brackets</Link>
+            <Link to="/tournaments" className="btn primary">See Tournaments →</Link>
           </div>
         </section>
       );
@@ -457,8 +455,7 @@ const Home = () => {
           <h1>Welcome back.</h1>
           <p>No upcoming majors scheduled yet — check back soon.</p>
           <div className="hero-actions">
-            <Link to="/tournaments" className="btn primary">Brackets</Link>
-            <Link to="/tournaments" className="btn">Browse futures</Link>
+            <Link to="/tournaments" className="btn primary">See Tournaments →</Link>
           </div>
         </div>
       </section>
