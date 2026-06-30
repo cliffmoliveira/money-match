@@ -73,6 +73,7 @@
 .load-more:hover { border-color: var(--gold); }
 .load-more--less { color: var(--muted); border-color: var(--border); }
 .load-more--less:hover { border-color: var(--muted); color: var(--fg); }
+.load-more-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
 
 .brackets-next-up-label {
   font-family: 'Saira', sans-serif; font-size: 11px; font-weight: 800;

@@ -457,12 +457,14 @@ const LiveBetting = () => {
             />
           )}
           {renderPills(shownPastGroups)}
-          {pastEntries.length > pastVisible && (
-            <button className="load-more" onClick={() => setPastVisible((n) => n + 12)}>Show more ({pastEntries.length - pastVisible} more)</button>
-          )}
-          {pastVisible > 12 && (
-            <button className="load-more load-more--less" onClick={() => setPastVisible(12)}>Show less</button>
-          )}
+          <div className="load-more-row">
+            {pastEntries.length > pastVisible && (
+              <button className="load-more" onClick={() => setPastVisible((n) => n + 12)}>Show more ({pastEntries.length - pastVisible} more)</button>
+            )}
+            {pastVisible > 12 && (
+              <button className="load-more load-more--less" onClick={() => setPastVisible(12)}>Show less</button>
+            )}
+          </div>
         </>
       )}
     </>
@@ -519,7 +521,6 @@ const LiveBetting = () => {
                     <div className="live-tourn-header-countdown">
                       <Countdown date={t.date} compact />
                     </div>
-                    {isNextUp && <span className="live-tourn-next-up-badge">Next Up</span>}
                     <span className="live-tourney-chevron">{isExpanded ? '▲' : '▼'}</span>
                   </button>
                 </div>
@@ -542,15 +543,17 @@ const LiveBetting = () => {
                   </button>
                   {futureSectionOpen && (
                     <>
-                      {futureRest.length > futureVisible && (
-                        <button className="load-more" onClick={() => setFutureVisible((n) => n + 5)}>
-                          Show more ({futureRest.length - futureVisible} more)
-                        </button>
-                      )}
                       {futureRest.slice(Math.max(0, futureRest.length - futureVisible)).map((item) => renderUpcomingPill(item))}
-                      {futureVisible > 5 && (
-                        <button className="load-more load-more--less" onClick={() => setFutureVisible(5)}>Show less</button>
-                      )}
+                      <div className="load-more-row">
+                        {futureRest.length > futureVisible && (
+                          <button className="load-more" onClick={() => setFutureVisible((n) => n + 5)}>
+                            Show more ({futureRest.length - futureVisible} more)
+                          </button>
+                        )}
+                        {futureVisible > 5 && (
+                          <button className="load-more load-more--less" onClick={() => setFutureVisible(5)}>Show less</button>
+                        )}
+                      </div>
                     </>
                   )}
                 </>
