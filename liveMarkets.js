@@ -345,7 +345,9 @@ async function getMarkets({ includeAll = false, pastOnly = false } = {}) {
   // LEFT JOIN the player tables so half-filled (pending) nodes — where one slot
   // is still TBD (player id 0) — are still returned.
   return db.allAsync(
-    `SELECT m.*, t.name AS tournament_name, t.logo_url AS tournament_logo_url, g.name AS game_name,
+    `SELECT m.*, t.name AS tournament_name, t.logo_url AS tournament_logo_url,
+            t.date AS tournament_date, t.city AS tournament_city, t.country AS tournament_country,
+            g.name AS game_name,
             p1.name AS player1_name, p2.name AS player2_name
      FROM set_markets m
      JOIN tournaments t ON t.id = m.tournament_id

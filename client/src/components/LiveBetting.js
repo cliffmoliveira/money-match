@@ -315,7 +315,7 @@ const LiveBetting = () => {
   if (loading) return <p className="live-loading">Loading live markets…</p>;
 
   // Group markets by tournament -> game, capturing the tournament logo on first encounter
-  const renderPills = (grps) => Object.entries(grps).map(([tName, { logoUrl: tLogo, games }]) => {
+  const renderPills = (grps) => Object.entries(grps).map(([tName, { logoUrl: tLogo, date: tDate, city: tCity, country: tCountry, games }]) => {
     const tTabs = Object.entries(games)
       .sort(([, a], [, b]) => gamePriority(a) - gamePriority(b))
       .map(([gName, mkts]) => {
@@ -341,6 +341,16 @@ const LiveBetting = () => {
               <span className="live-tourn-live-badge">
                 <span className="live-tab-live-dot" aria-hidden="true" />
                 LIVE
+              </span>
+            )}
+            {tDate && (
+              <span className="live-tourn-header-meta-right">
+                <span className="live-tourn-header-date">
+                  {new Date(`${tDate}T00:00:00`).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                </span>
+                {(tCity || tCountry) && (
+                  <span className="live-tourn-header-location">{[tCity, tCountry].filter(Boolean).join(', ')}</span>
+                )}
               </span>
             )}
             <span className="live-tourney-chevron">{isExpanded ? '▲' : '▼'}</span>
@@ -395,7 +405,13 @@ const LiveBetting = () => {
   const buildGroups = (mkts) => {
     const g = {};
     for (const m of mkts) {
-      if (!g[m.tournament_name]) g[m.tournament_name] = { logoUrl: m.tournament_logo_url || null, games: {} };
+      if (!g[m.tournament_name]) g[m.tournament_name] = {
+        logoUrl: m.tournament_logo_url || null,
+        date: m.tournament_date || null,
+        city: m.tournament_city || null,
+        country: m.tournament_country || null,
+        games: {},
+      };
       g[m.tournament_name].games[m.game_name] = g[m.tournament_name].games[m.game_name] || [];
       g[m.tournament_name].games[m.game_name].push(m);
     }

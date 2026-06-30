@@ -190,6 +190,18 @@
   font-family: 'Saira', sans-serif; font-weight: 700; font-size: 19px;
   color: var(--text); letter-spacing: -0.01em;
 }
+.live-tourn-header-meta-right {
+  display: flex; flex-direction: column; align-items: flex-end;
+  gap: 2px; margin-left: auto; flex-shrink: 0;
+}
+.live-tourn-header-date {
+  font-family: 'Saira', sans-serif; font-size: 13px; font-weight: 600;
+  color: var(--text); white-space: nowrap;
+}
+.live-tourn-header-location {
+  font-family: 'Saira', sans-serif; font-size: 12px; font-weight: 400;
+  color: var(--muted); white-space: nowrap;
+}
 
 .live-tournament { margin-bottom: 30px; }
 .live-tournament > h2 { display: none; }
