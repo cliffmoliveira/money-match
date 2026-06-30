@@ -398,6 +398,9 @@
 
   /* Reduce name font-size so "BR Kumite - World Warrior 2026 - Brazil 3" fits */
   .live-tourn-header-name { font-size: 14px; }
+
+  /* Hide scroll arrows on mobile — touch swipe handles tab navigation */
+  .live-tabs-arrow { display: none; }
 }
 
 @media (max-width: 980px) {
