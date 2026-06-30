@@ -111,6 +111,37 @@ try {
         console.log(`[boot][diagnostic]     market ${row.market_id} state=${row.market_state} round="${row.round_text || ''}" ${row.p1_name || '?'} vs ${row.p2_name || '?'} — ${row.stuck_bets} placed bet(s), ${(row.stuck_cents / 100).toFixed(2)} FM`);
       }
     }
+  } else {
+    console.log('[boot][diagnostic] no set_markets stuck open/closed/pending past their tournament date');
+  }
+} catch (_) { /* table may not exist yet on a fresh DB */ }
+
+// READ-ONLY diagnostic, round 2: the opposite anomaly — set_bets still
+// 'placed' whose market HAS already resolved ('settled' or 'void'). This is
+// the pattern actually found on Home (the market is already settled, but
+// these specific bet rows never got updated/paid by settleMarket/voidMarket).
+try {
+  const orphaned = db.prepare(
+    `SELECT sb.id AS bet_id, sb.user_id, sb.amount_cents, sb.picked_player_id, sb.created_at,
+            sm.id AS market_id, sm.state AS market_state, sm.winner_id, sm.round_text, sm.settled_at,
+            t.id AS tournament_id, t.name AS tournament_name, t.date,
+            p1.name AS p1_name, p2.name AS p2_name
+     FROM set_bets sb
+     JOIN set_markets sm ON sm.id = sb.market_id
+     JOIN tournaments t ON t.id = sm.tournament_id
+     LEFT JOIN players p1 ON p1.id = sm.player1_id
+     LEFT JOIN players p2 ON p2.id = sm.player2_id
+     WHERE sb.state = 'placed' AND sm.state IN ('settled', 'void')
+     ORDER BY t.date DESC, sb.id`
+  ).all();
+  if (orphaned.length) {
+    const totalCents = orphaned.reduce((s, r) => s + r.amount_cents, 0);
+    console.log(`[boot][diagnostic] ${orphaned.length} set_bets still 'placed' on an already-resolved market, totaling ${(totalCents / 100).toFixed(2)} FM:`);
+    for (const row of orphaned) {
+      console.log(`[boot][diagnostic]     bet ${row.bet_id} user=${row.user_id} amount=${(row.amount_cents / 100).toFixed(2)}FM picked_player=${row.picked_player_id} created_at=${row.created_at} | market ${row.market_id} state=${row.market_state} winner_id=${row.winner_id} settled_at=${row.settled_at || ''} round="${row.round_text || ''}" ${row.p1_name || '?'} vs ${row.p2_name || '?'} | tournament ${row.tournament_id} "${row.tournament_name}" (${row.date})`);
+    }
+  } else {
+    console.log("[boot][diagnostic] no orphaned set_bets ('placed' on an already-resolved market)");
   }
 } catch (_) { /* table may not exist yet on a fresh DB */ }
 
