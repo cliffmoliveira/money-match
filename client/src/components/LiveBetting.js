@@ -37,7 +37,7 @@ const LiveBetting = () => {
   const [markets, setMarkets] = useState([]);
   const [pastMarkets, setPastMarkets] = useState([]);
   const [pastFilter, setPastFilter] = useState({ year: 'all', tournament: 'all', game: 'all' });
-  const [pastVisible, setPastVisible] = useState(12);
+  const [pastVisible, setPastVisible] = useState(5);
   const [upcoming, setUpcoming] = useState([]);
   const [futureVisible, setFutureVisible] = useState(0);
   const [balanceCents, setBalanceCents] = useState(null);
