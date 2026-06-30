@@ -435,7 +435,12 @@ const LiveBetting = () => {
     (pastFilter.tournament === 'all' || m.tournament_name === pastFilter.tournament) &&
     (pastFilter.game === 'all' || m.game_name === pastFilter.game));
   const pastGroups = buildGroups(filteredPast);
-  const pastEntries = Object.entries(pastGroups);
+  const pastEntries = Object.entries(pastGroups).sort(([, a], [, b]) => {
+    if (!a.date && !b.date) return 0;
+    if (!a.date) return 1;
+    if (!b.date) return -1;
+    return b.date.localeCompare(a.date);
+  });
   const shownPastGroups = Object.fromEntries(pastEntries.slice(0, pastVisible));
 
   // Single source of truth for the Past Brackets section (rendered in both the
