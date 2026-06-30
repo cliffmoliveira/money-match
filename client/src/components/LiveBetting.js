@@ -39,7 +39,7 @@ const LiveBetting = () => {
   const [pastFilter, setPastFilter] = useState({ year: 'all', tournament: 'all', game: 'all' });
   const [pastVisible, setPastVisible] = useState(12);
   const [upcoming, setUpcoming] = useState([]);
-  const [futureVisible, setFutureVisible] = useState(5);
+  const [futureVisible, setFutureVisible] = useState(0);
   const [balanceCents, setBalanceCents] = useState(null);
   const [slip, setSlip] = useState({}); // key: `${marketId}_${playerId}`
   const [placing, setPlacing] = useState(false);
