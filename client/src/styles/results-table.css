@@ -71,6 +71,14 @@
   transition: border-color .15s ease, color .15s ease;
 }
 .load-more:hover { border-color: var(--gold); }
+.load-more--less { color: var(--muted); border-color: var(--border); }
+.load-more--less:hover { border-color: var(--muted); color: var(--fg); }
+
+.brackets-next-up-label {
+  font-family: 'Saira', sans-serif; font-size: 11px; font-weight: 800;
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--gold); margin-bottom: 8px; padding-left: 2px;
+}
 
 @media (max-width: 768px) {
   .results-table-container { display: none; }

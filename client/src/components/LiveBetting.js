@@ -460,6 +460,9 @@ const LiveBetting = () => {
           {pastEntries.length > pastVisible && (
             <button className="load-more" onClick={() => setPastVisible((n) => n + 12)}>Show more ({pastEntries.length - pastVisible} more)</button>
           )}
+          {pastVisible > 12 && (
+            <button className="load-more load-more--less" onClick={() => setPastVisible(12)}>Show less</button>
+          )}
         </>
       )}
     </>
@@ -544,12 +547,20 @@ const LiveBetting = () => {
                           Show more ({futureRest.length - futureVisible} more)
                         </button>
                       )}
-                      {futureRest.slice(Math.max(0, futureRest.length - futureVisible)).map(renderUpcomingPill)}
+                      {futureRest.slice(Math.max(0, futureRest.length - futureVisible)).map((item) => renderUpcomingPill(item))}
+                      {futureVisible > 5 && (
+                        <button className="load-more load-more--less" onClick={() => setFutureVisible(5)}>Show less</button>
+                      )}
                     </>
                   )}
                 </>
               )}
-              {nextUp && renderUpcomingPill(nextUp, true)}
+              {nextUp && (
+                <>
+                  <div className="brackets-next-up-label">Next Up</div>
+                  {renderUpcomingPill(nextUp, true)}
+                </>
+              )}
             </>
           );
         })()}
