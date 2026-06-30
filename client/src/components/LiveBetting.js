@@ -437,7 +437,7 @@ const LiveBetting = () => {
 
         <ExhibitionSection exhibitions={liveExhibitions} title="Exhibition Matches" />
 
-        {markets.length === 0 ? (
+        {markets.length === 0 && (
           upcoming?.tournament ? (
             (() => {
               const t = upcoming.tournament;
