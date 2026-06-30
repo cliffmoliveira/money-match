@@ -443,10 +443,10 @@ const LiveBetting = () => {
         <div className={`brackets-section-label${pastVisible > 0 ? ' brackets-section-label--active' : ''}`}>Past Brackets</div>
         <div className="load-more-row">
           {pastEntries.length > pastVisible && (
-            <button className="load-more" onClick={() => setPastVisible((n) => n + 12)}>Show more ({pastEntries.length - pastVisible} more)</button>
+            <button className="load-more" onClick={() => setPastVisible((n) => n + 5)}>Show more ({pastEntries.length - pastVisible} more)</button>
           )}
           {pastVisible > 0 && (
-            <button className="load-more load-more--less" onClick={() => setPastVisible((n) => Math.max(0, n - 12))}>Show less ({pastVisible} left)</button>
+            <button className="load-more load-more--less" onClick={() => setPastVisible((n) => Math.max(0, n - 5))}>Show less ({pastVisible} left)</button>
           )}
         </div>
       </div>
