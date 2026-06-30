@@ -171,7 +171,7 @@ const Node = ({ market, slip, onPick, demoControls, registerRef, projected, isCh
         : closed
         ? <span className="bnode-score live">{score ?? 0}</span>
         : open
-        ? <span className="bnode-odds-stack" title={`${Number(odds).toFixed(2)}× odds — bet 10 FM to win ${(10 * odds).toFixed(1)} FM back. Shifts as bets come in, locks when the set starts.`}>
+        ? <span className="bnode-odds-stack" title={`${Number(odds).toFixed(2)}× odds — pick 10 FM to win ${(10 * odds).toFixed(1)} FM back. Shifts as picks come in, locks when the set starts.`}>
             <span className="bnode-odds-label">Odds</span>
             <span className="bnode-odds">{Number(odds).toFixed(2)}</span>
           </span>
@@ -193,7 +193,7 @@ const Node = ({ market, slip, onPick, demoControls, registerRef, projected, isCh
       {row(market.player1_id, market.player1_name, market.p1_live_odds, market.p1_score, p1Win, p2Win)}
       {row(market.player2_id, market.player2_name, market.p2_live_odds, market.p2_score, p2Win, p1Win)}
       {open && !picked(market.player1_id) && !picked(market.player2_id) && (
-        <div className="bnode-bethint">Tap a player to bet FM</div>
+        <div className="bnode-bethint">Tap a player to place a pick</div>
       )}
       {demoControls && demoControls(market)}
       {market && (() => {

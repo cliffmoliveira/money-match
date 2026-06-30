@@ -55,7 +55,7 @@ const Profile = () => {
     (async () => {
       try {
         const bRes = await apiFetch(`/api/live/bets?userId=${userId}`);
-        if (!bRes.ok) throw new Error('Failed to load bets.');
+        if (!bRes.ok) throw new Error('Failed to load picks.');
         if (active) setLiveBets(await bRes.json());
       } catch (e) {
         if (active) setError(e.message);
@@ -105,7 +105,7 @@ const Profile = () => {
     { label: 'Losses', value: lossCount, red: lossCount > 0 },
     { label: 'Accuracy', value: `${Math.round(accuracy * 100)}%` },
     { label: 'Best streak', value: bestStreak },
-    { label: 'Total bets', value: liveBets.length },
+    { label: 'Total picks', value: liveBets.length },
   ];
 
   return (
@@ -120,9 +120,9 @@ const Profile = () => {
       </div>
 
       {/* Live bet history — full list */}
-      <h2 className="pf-recent-title">Bet history</h2>
+      <h2 className="pf-recent-title">Pick history</h2>
       {liveBets.length === 0 ? (
-        <p className="pf-muted">No bets yet — head to <Link to="/brackets">Brackets</Link> to place one.</p>
+        <p className="pf-muted">No picks yet — head to <Link to="/brackets">Brackets</Link> to place one.</p>
       ) : (
         <div className="pf-picks">
           {liveBets.map((b) => {

@@ -44,8 +44,8 @@ test('dailyBonusForStreak: ramps Day 1..7 then holds', () => {
 });
 
 test('assertBetWithinLimits: enforces min and cap', () => {
-  assert.throws(() => economy.assertBetWithinLimits(50, 100000), /Minimum bet/);
-  assert.throws(() => economy.assertBetWithinLimits(20000, 100000), /Max bet/); // > 10% of 1000 FM
+  assert.throws(() => economy.assertBetWithinLimits(50, 100000), /Minimum pick/);
+  assert.throws(() => economy.assertBetWithinLimits(20000, 100000), /Max pick/); // > 10% of 1000 FM
   assert.doesNotThrow(() => economy.assertBetWithinLimits(100, 100000));
   assert.doesNotThrow(() => economy.assertBetWithinLimits(10000, 100000));
 });

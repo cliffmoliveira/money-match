@@ -80,7 +80,7 @@ const RewardPopover = ({ dailyBonus, claiming, onClaim, onReward, adReward }) =>
     <div className="reward-popover" role="dialog" aria-label="Daily reward">
       <div className="reward-pop-title">🎁 Daily Reward</div>
       <p className="reward-pop-blurb">
-        <strong>Fight Money</strong> is your virtual-currency bankroll for betting.
+        <strong>Fight Money</strong> is your virtual-currency bankroll for picks.
       </p>
 
       {available ? (
@@ -119,7 +119,7 @@ const RewardPopover = ({ dailyBonus, claiming, onClaim, onReward, adReward }) =>
 
       <RewardedAdButton placement="reward-popover" onReward={onReward} cooldownMs={adReward?.retryInMs || 0} />
 
-      <div className="reward-earn">Earn more: win bets · log in daily</div>
+      <div className="reward-earn">Earn more: win picks · log in daily</div>
     </div>
   );
 };

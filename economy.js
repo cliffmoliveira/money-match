@@ -37,13 +37,13 @@ function dailyBonusForStreak(streak) {
 // 400 by the route) so the message reaches the user verbatim.
 function assertBetWithinLimits(amountCents, balanceCents) {
   if (amountCents < MIN_BET_CENTS) {
-    const e = new Error(`Minimum bet is ${MIN_BET_CENTS / 100} FM.`);
+    const e = new Error(`Minimum pick is ${MIN_BET_CENTS / 100} FM.`);
     e.code = 'BELOW_MIN';
     throw e;
   }
   const cap = maxBetCents(balanceCents);
   if (amountCents > cap) {
-    const e = new Error(`Max bet is ${cap / 100} FM (10% of your Fight Money).`);
+    const e = new Error(`Max pick is ${cap / 100} FM (10% of your Fight Money).`);
     e.code = 'ABOVE_CAP';
     throw e;
   }

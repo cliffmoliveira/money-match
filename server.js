@@ -401,7 +401,7 @@ app.get('/api/bets', requireAuth, async (req, res) => {
     res.status(200).json(bets);
   } catch (err) {
     console.error('Error fetching bets:', err.message);
-    res.status(500).json({ error: 'Failed to fetch bets' });
+    res.status(500).json({ error: 'Failed to fetch picks' });
   }
 });
 
@@ -432,7 +432,7 @@ app.post('/api/bets', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Tournament not found.' });
     }
     if (lock.locked) {
-      return res.status(409).json({ error: 'Futures betting is closed — this tournament has started.' });
+      return res.status(409).json({ error: 'Futures picks are closed — this tournament has started.' });
     }
 
     // Fetch current live odds
@@ -486,10 +486,10 @@ app.post('/api/bets', requireAuth, async (req, res) => {
     // Futures odds are fixed seed-based lines (set by the sync), so they no
     // longer move with the pool — each bet just locks the current odds.
 
-    res.status(200).json({ message: 'Bet saved successfully' });
+    res.status(200).json({ message: 'Pick saved successfully' });
   } catch (err) {
     console.error('Error saving bet:', err.message);
-    res.status(500).json({ error: 'Failed to save bet', details: err.message });
+    res.status(500).json({ error: 'Failed to save pick', details: err.message });
   }
 });
 
@@ -541,10 +541,10 @@ app.delete('/api/bets', requireAuth, async (req, res) => {
       [userId, tournamentId, gameId]
     );
 
-    res.status(200).json({ message: 'Bet deleted successfully' });
+    res.status(200).json({ message: 'Pick deleted successfully' });
   } catch (err) {
     console.error('Error deleting bet:', err.message);
-    res.status(500).json({ error: 'Failed to delete bet' });
+    res.status(500).json({ error: 'Failed to delete pick' });
   }
 });
 
@@ -570,10 +570,10 @@ app.post('/api/bets/outcome', requireAuth, async (req, res) => {
       [isWinner, userId, tournamentId, gameId, playerId]
     );
 
-    res.status(200).json({ message: 'Bet outcome updated successfully' });
+    res.status(200).json({ message: 'Pick outcome updated successfully' });
   } catch (err) {
     console.error('Error updating bet outcome:', err.message);
-    res.status(500).json({ error: 'Failed to update bet outcome', details: err.message });
+    res.status(500).json({ error: 'Failed to update pick outcome', details: err.message });
   }
 });
 
@@ -713,7 +713,7 @@ app.get('/api/live/bets', requireAuth, async (req, res) => {
     res.json(bets);
   } catch (err) {
     console.error('Error fetching live bets:', err.message);
-    res.status(500).json({ error: 'Failed to fetch live bets' });
+    res.status(500).json({ error: 'Failed to fetch live picks' });
   }
 });
 
@@ -816,15 +816,15 @@ app.post('/api/live/bets', requireAuth, async (req, res) => {
   } catch (err) {
     const map = {
       INSUFFICIENT_FUNDS: [402, 'Insufficient Fight Money'],
-      MARKET_CLOSED: [409, 'Market is no longer open for betting'],
+      MARKET_CLOSED: [409, 'Market is no longer open for picks'],
       NOT_FOUND: [404, 'Market not found'],
       BAD_PLAYER: [400, 'Player is not in this market'],
-      BAD_AMOUNT: [400, 'Invalid bet amount'],
-      // min-bet / cap violations carry a user-ready message — surface it verbatim.
+      BAD_AMOUNT: [400, 'Invalid pick amount'],
+      // min-pick / cap violations carry a user-ready message — surface it verbatim.
       BELOW_MIN: [400, err.message],
       ABOVE_CAP: [400, err.message],
     };
-    const [code, msg] = map[err.code] || [500, 'Failed to place bet'];
+    const [code, msg] = map[err.code] || [500, 'Failed to place pick'];
     if (code === 500) console.error('Error placing live bet:', err.message);
     res.status(code).json({ error: msg });
   }

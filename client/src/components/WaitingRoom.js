@@ -207,7 +207,7 @@ const WaitingRoom = ({ tournament, games = [], headerless = false }) => {
 
       {slipEntries.length > 0 && (
         <div className="wr-outright-slip">
-          <div className="wr-slip-title">Outright bets</div>
+          <div className="wr-slip-title">Outright picks</div>
           <div className="wr-slip-rows">
             {slipEntries.map(([key, e]) => {
               const payout = Math.round((Number(e.stake) || 0) * e.odds * 100);

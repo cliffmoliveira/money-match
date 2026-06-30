@@ -317,8 +317,8 @@ const Home = () => {
       return (
         <section className="hero">
           <div className="hero-content">
-            <h1>Bet on the FGC.</h1>
-            <p>Live, per-set betting on Evo, CEO and every major — plus futures on who takes it all. Virtual currency, real bragging rights.</p>
+            <h1>Pick winners in the FGC.</h1>
+            <p>Live, per-set picks on Evo, CEO and every major — plus futures on who takes it all. Virtual currency, real bragging rights.</p>
             <div className="hero-actions">
               <Link to="/signup" className="btn primary">Sign up free</Link>
               <Link to="/login" className="btn">Log in</Link>
@@ -376,7 +376,7 @@ const Home = () => {
               </div>
             ))}
           </div>
-          <Link to="/tournaments" className="btn live-hero-cta">Watch &amp; bet →</Link>
+          <Link to="/tournaments" className="btn live-hero-cta">Watch &amp; pick →</Link>
         </section>
       );
     }
@@ -398,7 +398,7 @@ const Home = () => {
             </div>
           </div>
           <div className="hero-actions">
-            <Link to="/tournaments" className="btn primary">Watch &amp; bet →</Link>
+            <Link to="/tournaments" className="btn primary">Watch &amp; pick →</Link>
             <Link to="/tournaments" className="btn">Browse futures</Link>
           </div>
         </section>
@@ -480,7 +480,7 @@ const Home = () => {
             <div className="value">{profile?.points != null ? profile.points.toLocaleString() : '—'}</div>
           </Link>
           <div className="stat-card">
-            <div className="label">Open bets</div>
+            <div className="label">Open picks</div>
             <div className="value">{openBets}</div>
           </div>
           <div className="stat-card">
@@ -508,17 +508,17 @@ const Home = () => {
         </Link>
       )}
 
-      {/* Your Bets — live per-set + futures, unified (above Next Up) */}
+      {/* Your Picks — live per-set + futures, unified (above Next Up) */}
       {userId && (
         <section className="bets">
           <div className="section-header">
-            <h2>Your Bets</h2>
-            <Link to="/tournaments" className="link">Place bets</Link>
+            <h2>Your Picks</h2>
+            <Link to="/tournaments" className="link">Place picks</Link>
           </div>
           {betsLoading ? (
-            <div className="skeleton">Loading bets…</div>
+            <div className="skeleton">Loading picks…</div>
           ) : yourBets.length === 0 ? (
-            <p className="muted">No bets yet.</p>
+            <p className="muted">No picks yet.</p>
           ) : (
             <div className="bets-grid">
               {yourBets.slice(0, 6).map((b) => (
@@ -534,7 +534,7 @@ const Home = () => {
                       {b.result != null && <span className="bet-result">{b.result >= 0 ? ' +' : ' −'}{fmAmount(Math.round(Math.abs(b.result) * 100))} FM</span>}
                     </div>
                     {b.adjustable && (
-                      <button type="button" className="bet-adjust" aria-label="Adjust bet" title="Adjust bet" onClick={() => setAdjustingBet(b)}>
+                      <button type="button" className="bet-adjust" aria-label="Adjust pick" title="Adjust pick" onClick={() => setAdjustingBet(b)}>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                           <path d="M12 20h9" />
                           <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />

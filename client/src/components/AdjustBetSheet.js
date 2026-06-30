@@ -76,7 +76,7 @@ const AdjustBetSheet = ({ bet, onClose, onSaved }) => {
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
-        throw new Error(d.error || 'Could not cancel the bet.');
+        throw new Error(d.error || 'Could not cancel the pick.');
       }
       onSaved();
     } catch (e) {
@@ -89,9 +89,9 @@ const AdjustBetSheet = ({ bet, onClose, onSaved }) => {
 
   return (
     <div className="adjust-backdrop" onClick={() => !busy && onClose()}>
-      <div className="adjust-sheet" role="dialog" aria-modal="true" aria-label="Adjust bet" onClick={(e) => e.stopPropagation()}>
+      <div className="adjust-sheet" role="dialog" aria-modal="true" aria-label="Adjust pick" onClick={(e) => e.stopPropagation()}>
         <div className="adjust-header">
-          <span>Adjust bet</span>
+          <span>Adjust pick</span>
           <button type="button" className="adjust-close" aria-label="Close" onClick={onClose} disabled={busy}>×</button>
         </div>
 
@@ -102,7 +102,7 @@ const AdjustBetSheet = ({ bet, onClose, onSaved }) => {
           </div>
 
           <label className="adjust-stake-label">Stake (FM)</label>
-          <StakeStepper value={stake} onChange={setStake} ariaLabel="Bet stake" />
+          <StakeStepper value={stake} onChange={setStake} ariaLabel="Pick stake" />
 
           <div className="adjust-payout">
             <span>Payout</span>
@@ -115,13 +115,13 @@ const AdjustBetSheet = ({ bet, onClose, onSaved }) => {
         <div className="adjust-actions">
           {confirmingCancel ? (
             <>
-              <span className="adjust-confirm-text">Remove this bet?</span>
+              <span className="adjust-confirm-text">Remove this pick?</span>
               <button type="button" className="adjust-btn ghost" onClick={() => setConfirmingCancel(false)} disabled={busy}>Keep</button>
-              <button type="button" className="adjust-btn danger" onClick={cancelBet} disabled={busy}>Cancel bet</button>
+              <button type="button" className="adjust-btn danger" onClick={cancelBet} disabled={busy}>Cancel pick</button>
             </>
           ) : (
             <>
-              <button type="button" className="adjust-btn ghost" onClick={() => setConfirmingCancel(true)} disabled={busy}>Cancel bet</button>
+              <button type="button" className="adjust-btn ghost" onClick={() => setConfirmingCancel(true)} disabled={busy}>Cancel pick</button>
               <button type="button" className="adjust-btn primary" onClick={save} disabled={!canSave}>Save changes</button>
             </>
           )}

@@ -174,10 +174,10 @@ const LiveBetting = () => {
         }
       }
       setSlip({});
-      setPlaceMsg(`Placed ${entries.length} bet${entries.length > 1 ? 's' : ''}.`);
+      setPlaceMsg(`Placed ${entries.length} pick${entries.length > 1 ? 's' : ''}.`);
       await refresh();
     } catch (err) {
-      setPlaceMsg(`Could not place bets: ${err.message}`);
+      setPlaceMsg(`Could not place picks: ${err.message}`);
     } finally {
       setPlacing(false);
     }
@@ -248,10 +248,10 @@ const LiveBetting = () => {
               <div><span>Total payout</span><strong>{fmAmount(Math.round(totalPayout * 100))} FM</strong></div>
             </div>
             <p className="live-slip-explainer">
-              <strong>Parimutuel odds.</strong> The line moves as bets come in, so this
+              <strong>Parimutuel odds.</strong> The line moves as picks come in, so this
               payout is a projection at the current odds — your actual payout is finalized
               from the pool when the set starts. Winners are always paid at least their
-              share of the pool, and every payout is fully covered, so your bet is always honored.
+              share of the pool, and every payout is fully covered, so your pick is always honored.
             </p>
             {overBalance && <p className="live-slip-warn">Stake exceeds your balance.</p>}
             <button
@@ -260,7 +260,7 @@ const LiveBetting = () => {
               disabled={placing || totalStake <= 0 || overBalance}
               onClick={placeBets}
             >
-              {placing ? 'Placing…' : 'Place Bets'}
+              {placing ? 'Placing…' : 'Place Picks'}
             </button>
           </>
         )}
@@ -281,7 +281,7 @@ const LiveBetting = () => {
     if (!myBets.length) return null;
     return (
       <aside className="live-mybets">
-        <div className="live-mybets-header">My Bets ({myBets.length})</div>
+        <div className="live-mybets-header">My Picks ({myBets.length})</div>
         <ul className="live-mybets-list">
           {myBets.map((b) => {
             const st = STATUS[b.state] || STATUS.placed;
@@ -346,7 +346,7 @@ const LiveBetting = () => {
           </button>
           {tournBets.length > 0 && (
             <button className={`live-pnl-toggle${showPnl ? ' active' : ''}`} type="button" onClick={() => setShowPnl((v) => !v)}>
-              My bets
+              My picks
             </button>
           )}
           <button type="button" className="live-tourney-pill-meta-toggle" onClick={() => toggleTourney(tName)} aria-expanded={isExpanded}>
@@ -576,7 +576,7 @@ const LiveBetting = () => {
               type="button"
               className="live-drawer-tab"
               onClick={() => setSlipOpen(true)}
-              aria-label="Open bet slip"
+              aria-label="Open pick slip"
             >
               Slip ({Object.keys(slip).length})
             </button>
@@ -587,7 +587,7 @@ const LiveBetting = () => {
               type="button"
               className="live-drawer-close"
               onClick={closeSlip}
-              aria-label="Close bet slip"
+              aria-label="Close pick slip"
             >
               ‹ Close
             </button>
