@@ -39,13 +39,17 @@ db.pragma('synchronous = NORMAL');
 // Ensure "KOF XV & SAMSHO at EVO 2026 BYOC" (Start.gg id 881081) exists so the
 // live poller picks it up. Idempotent — no-op if already present.
 try {
+  const EVO_2026_LOGO = 'https://images.start.gg/images/tournament/846933/image-bd9b974eaa96aa7802426a122072b4d9.jpg';
   const existing = db.prepare('SELECT id FROM tournaments WHERE startgg_id = 881081').get();
   if (!existing) {
     db.prepare(
-      `INSERT INTO tournaments (name, date, city, country, startgg_id, is_live)
-       VALUES ('KOF XV & SAMSHO at EVO 2026 BYOC', '2026-06-26', 'Las Vegas', 'US', 881081, 1)`
-    ).run();
+      `INSERT INTO tournaments (name, date, city, country, startgg_id, is_live, logo_url)
+       VALUES ('KOF XV & SAMSHO at EVO 2026 BYOC', '2026-06-26', 'Las Vegas', 'US', 881081, 1, ?)`
+    ).run(EVO_2026_LOGO);
     console.log('[boot] inserted KOF XV & SAMSHO at EVO 2026 BYOC tournament');
+  } else if (!existing.logo_url) {
+    db.prepare('UPDATE tournaments SET logo_url = ? WHERE startgg_id = 881081').run(EVO_2026_LOGO);
+    console.log('[boot] backfilled Evo logo for KOF XV & SAMSHO at EVO 2026 BYOC');
   }
   for (const [name, startggId] of [['SAMURAI SHODOWN', 3568], ['The King of Fighters XV', 36963]]) {
     const g = db.prepare('SELECT id FROM games WHERE startgg_id = ? OR name = ?').get(startggId, name);
