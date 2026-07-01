@@ -63,11 +63,11 @@ router.get('/leaderboard', async (req, res) => {
     const limit = Math.min(100, Number(req.query.limit) || 25);
     const rows = await db.allAsync(
       `SELECT l.user_id, COALESCE(u.display_name, u.username) AS username,
-              l.points, l.correct_count, l.total_picks,
+              u.balance_cents, l.correct_count, l.total_picks,
               l.current_streak, l.best_streak, u.coin_balance, u.avatar
        FROM leaderboard_entries l JOIN users u ON u.id = l.user_id
        WHERE l.scope = ? AND l.scope_ref = ?
-       ORDER BY l.points DESC, l.correct_count DESC, l.total_picks ASC
+       ORDER BY u.balance_cents DESC, l.correct_count DESC, l.total_picks ASC
        LIMIT ?`,
       [scope, ref, limit]
     );
@@ -86,11 +86,13 @@ router.get('/profile', async (req, res) => {
     const userId = Number(req.query.userId);
     if (!userId) return res.status(400).json({ error: 'userId is required' });
     const g = await engine.getLeaderboardEntry(userId, 'global', '');
-    // Global rank = how many entries sit strictly above this user's points, + 1.
-    const myPoints = g ? g.points : 0;
+    // Global rank = how many entries sit strictly above this user's FM balance, + 1.
+    const me = await db.getAsync('SELECT balance_cents FROM users WHERE id = ?', [userId]);
+    const myBalance = me ? me.balance_cents : 0;
     const rankRow = await db.getAsync(
-      `SELECT COUNT(*) + 1 AS rank FROM leaderboard_entries
-       WHERE scope = 'global' AND scope_ref = '' AND points > ?`, [myPoints]
+      `SELECT COUNT(*) + 1 AS rank FROM leaderboard_entries l
+       JOIN users u ON u.id = l.user_id
+       WHERE l.scope = 'global' AND l.scope_ref = '' AND u.balance_cents > ?`, [myBalance]
     );
     const recent = await db.allAsync(
       `SELECT pp.market_id, pp.picked_player_id, pp.result, pp.points_awarded, pp.coins_awarded, pp.created_at,

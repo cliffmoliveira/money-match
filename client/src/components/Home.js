@@ -474,10 +474,6 @@ const Home = () => {
             <div className="label">Rank</div>
             <div className="value">{profile?.rank ? `#${profile.rank.toLocaleString()}` : '—'}</div>
           </Link>
-          <Link to="/leaderboard" className="stat-card stat-card-link">
-            <div className="label">Points</div>
-            <div className="value">{profile?.points != null ? profile.points.toLocaleString() : '—'}</div>
-          </Link>
           <div className="stat-card">
             <div className="label">Open picks</div>
             <div className="value">{openBets}</div>

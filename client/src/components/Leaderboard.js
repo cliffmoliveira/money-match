@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import './Leaderboard.css';
+import { fmAmount } from '../utils/money';
 
 // Deterministic hue from a gamertag so each fallback avatar gets a stable,
 // distinct color across reloads.
@@ -65,7 +66,7 @@ const Leaderboard = () => {
           <div className="lb-row lb-colhead" role="row">
             <span className="lb-rank">#</span>
             <span className="lb-user"><span className="lb-avatar-spacer" aria-hidden="true" /><span className="lb-name">Gamertag</span></span>
-            <span className="lb-num">Points</span>
+            <span className="lb-num">FM</span>
             <span className="lb-num">Acc</span>
             <span className="lb-num">Streak</span>
           </div>
@@ -76,7 +77,7 @@ const Leaderboard = () => {
                 <RankAvatar src={r.avatar} name={r.username} />
                 <span className="lb-name">{r.username}</span>
               </span>
-              <span className="lb-num lb-points">{r.points.toLocaleString()}</span>
+              <span className="lb-num lb-points">{fmAmount(r.balance_cents)} FM</span>
               <span className="lb-num">{Math.round((r.accuracy || 0) * 100)}%</span>
               <span className="lb-num">{r.best_streak}</span>
             </div>

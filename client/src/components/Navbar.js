@@ -128,7 +128,6 @@ const Navbar = ({ isLoggedIn }) => {
   const [userName, setUserName] = useState('');
   const [avatar, setAvatar] = useState(null);
   const [balanceCents, setBalanceCents] = useState(null);
-  const [points, setPoints] = useState(null);
   const [dailyBonus, setDailyBonus] = useState(null);
   const [adReward, setAdReward] = useState(null);
   const [claiming, setClaiming] = useState(false);
@@ -160,7 +159,7 @@ const Navbar = ({ isLoggedIn }) => {
 
   // Keep the wallet badge fresh while logged in.
   useEffect(() => {
-    if (!isLoggedIn) { setBalanceCents(null); setPoints(null); return; }
+    if (!isLoggedIn) { setBalanceCents(null); return; }
     const userId = localStorage.getItem('userId');
     if (!userId) return;
     let active = true;
@@ -178,13 +177,6 @@ const Navbar = ({ isLoggedIn }) => {
             setDailyBonus(data.dailyBonus || null);
             setAdReward(data.adReward || null);
           }
-        }
-      } catch { /* ignore transient errors */ }
-      try {
-        const pr = await apiFetch(`/api/pickem/profile?userId=${userId}`);
-        if (pr.ok && active) {
-          const p = await pr.json();
-          setPoints(typeof p.points === 'number' ? p.points : 0);
         }
       } catch { /* ignore transient errors */ }
     };
@@ -304,11 +296,6 @@ const Navbar = ({ isLoggedIn }) => {
               <>
                 {balanceCents !== null && (
                   <span className="navbar-balance" title="Fight Money — virtual currency">{fm(balanceCents)}</span>
-                )}
-                {points !== null && (
-                  <span className="navbar-points" title="Ranked points — your Picks score">
-                    {points.toLocaleString()} <span className="navbar-points-label">pts</span>
-                  </span>
                 )}
                 {dailyBonus && (
                   <div className="navbar-reward" ref={rewardRef}>

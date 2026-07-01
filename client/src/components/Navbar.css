@@ -133,20 +133,6 @@
   white-space: nowrap;
 }
 
-/* Ranked points pill — distinct from the gold FM pill: neutral fill, gold number. */
-.navbar-username .navbar-points {
-  display: inline-flex; align-items: baseline; gap: 5px;
-  font-family: 'Saira', sans-serif; font-weight: 700; font-size: 15px;
-  color: var(--gold);
-  background: var(--surface); border: 1px solid var(--border);
-  padding: 7px 12px; border-radius: 10px;
-  font-variant-numeric: tabular-nums; white-space: nowrap;
-}
-.navbar-username .navbar-points-label {
-  font-size: 11px; font-weight: 600; color: var(--muted);
-  text-transform: uppercase; letter-spacing: 0.04em;
-}
-
 /* Deposit button (gold gradient) — add a .navbar-deposit button in Navbar.js */
 .navbar-deposit {
   font-family: 'Saira', sans-serif;
@@ -372,7 +358,7 @@
 
   /* Compact the right-side group so it can't overflow on narrow screens */
   .navbar-username { gap: 8px; }
-  .navbar-balance, .navbar-points { font-size: 13px; padding: 6px 10px; }
+  .navbar-balance { font-size: 13px; padding: 6px 10px; }
   .navbar-reward-label { display: none; }            /* gift icon only on the slim header */
   .navbar-reward-trigger { padding: 6px 9px; }
   .navbar-deposit { font-size: 13px; padding: 8px 12px; }
@@ -437,11 +423,10 @@
   body { padding-bottom: calc(58px + env(safe-area-inset-bottom, 0px)); }
 }
 
-/* Narrow phones: the wide "HIT CONFIRMED" wordmark + the full balance / points /
+/* Narrow phones: the wide "HIT CONFIRMED" wordmark + the full balance /
    reward cluster won't both fit, which overflows the header and (via page
    horizontal scroll) shoves the fixed bottom tab bar off-screen. Cap the logo
-   and drop the secondary points pill so the header fits ~360px. */
+   so the header fits ~360px. */
 @media (max-width: 480px) {
   .navbar-logo img { max-width: 140px; }
-  .navbar-username .navbar-points { display: none; }
 }
