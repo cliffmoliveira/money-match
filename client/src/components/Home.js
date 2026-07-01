@@ -269,8 +269,7 @@ const Home = () => {
   const nextMajorId = (upcoming || []).find((t) => !isQualifierEvent(t.name))?.id ?? null;
 
   // One unified bet list: live per-set bets + futures, normalized to a common
-  // shape, with unresolved (pending) bets surfaced first.
-  const betStatusRank = { pending: 0, win: 1, loss: 2, refunded: 3 };
+  // shape, most recently placed first (matches Pick History's ordering).
   const todayStr = new Date().toISOString().slice(0, 10);
   const yourBets = [
     ...(liveBets || []).map((b) => ({
@@ -283,6 +282,7 @@ const Home = () => {
       // 'closed' — 'open' means accepting bets but not started yet.
       isLiveNow: b.market_state === 'closed',
       adjustable: false, // live bets settle per-set; not editable once placed
+      createdAt: b.created_at || '',
     })),
     ...(bets || []).map((b, i) => {
       const status = b.is_winner === 1 ? 'win' : b.is_winner === 0 ? 'loss' : 'pending';
@@ -300,9 +300,10 @@ const Home = () => {
         lockedOdds: Number(b.locked_odds || 0),
         currentOdds: Number(b.current_odds || b.locked_odds || 0),
         adjustable: status === 'pending' && !!date && date > todayStr,
+        createdAt: b.created_at || b.updated_at || '',
       };
     }),
-  ].sort((a, b) => betStatusRank[a.status] - betStatusRank[b.status]);
+  ].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
   // Stat-strip metrics (logged-in): open bets + 7-day realized P&L from live bets.
   const WEEK_MS = 7 * 24 * 3600 * 1000;
