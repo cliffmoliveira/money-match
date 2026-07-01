@@ -279,6 +279,9 @@ const Home = () => {
       stake: (b.amount_cents || 0) / 100,
       status: b.state === 'won' ? 'win' : b.state === 'lost' ? 'loss' : b.state === 'refunded' ? 'refunded' : 'pending',
       result: b.state === 'won' ? (b.payout_cents - b.amount_cents) / 100 : b.state === 'lost' ? -(b.amount_cents / 100) : null,
+      // The set is only actually "live" (in progress) while its market is
+      // 'closed' — 'open' means accepting bets but not started yet.
+      isLiveNow: b.market_state === 'closed',
       adjustable: false, // live bets settle per-set; not editable once placed
     })),
     ...(bets || []).map((b, i) => {
@@ -516,7 +519,9 @@ const Home = () => {
                       <TournamentLogo name={b.tournament} height={20} />
                       <span className="bet-tournament-name">{b.tournament}</span>
                     </div>
-                    <span className={`bet-kind ${b.kind === 'Live' ? (b.status === 'pending' ? 'live' : 'live-resolved') : ''}`}>{b.kind}</span>
+                    {b.kind === 'Live'
+                      ? (b.isLiveNow && <span className="bet-kind live">Live</span>)
+                      : <span className="bet-kind">{b.kind}</span>}
                     <div className={`bet-outcome ${b.status === 'win' ? 'win' : b.status === 'loss' ? 'loss' : 'pending'}`}>
                       {b.status === 'win' ? 'Won' : b.status === 'loss' ? 'Lost' : b.status === 'refunded' ? 'Refunded' : 'Pending'}
                       {b.result != null && <span className="bet-result">{b.result >= 0 ? ' +' : ' −'}{fmAmount(Math.round(Math.abs(b.result) * 100))} FM</span>}
