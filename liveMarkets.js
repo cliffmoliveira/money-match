@@ -103,6 +103,13 @@ async function fillBracketSlot({
   slot, playerId, seed = null,
 }) {
   if (!playerId) return;
+  // Everything below reads and writes set_markets/set_bets across several
+  // statements (void a preview, maybe reopen a void market, fill a slot, maybe
+  // open it) — running it as one withWriteTx transaction serializes it against
+  // placeBet/settleMarket/voidMarket on the same global mutex, so a bet can
+  // never land in the gap between two of these steps (the gap that let a stray
+  // 'placed' bet survive a market being reused — see refundOrphanedVoidBets).
+  return withWriteTx(async () => {
 
   // Void any lingering preview_* projection for this player in this tournament
   // now that their real set is known. Projected markets have synthetic set IDs;
@@ -146,8 +153,17 @@ async function fillBracketSlot({
   if (existing.state === 'settled') return;
   if (existing.state === 'void') {
     // Void markets can be re-used when a bracket re-seeds or an opponent was
-    // entered late. Reset to blank-pending so the slot updates below re-fill it
-    // and the market opens normally once both players are known.
+    // entered late. Refund any bet still 'placed' from the market's PRIOR
+    // occupancy first — reusing the row must never carry a stray bet into the
+    // new matchup, where it would be graded against an unrelated winner.
+    const stray = await db.allAsync(`SELECT * FROM set_bets WHERE market_id = ? AND state = 'placed'`, [existing.id]);
+    for (const bet of stray) {
+      await wallet.applyCredit(bet.user_id, bet.amount_cents, 'refund', { type: 'set_bet', id: bet.id });
+      await db.runAsync(`UPDATE set_bets SET state='refunded', payout_cents=? WHERE id=?`, [bet.amount_cents, bet.id]);
+    }
+    if (stray.length) invalidateBankrollCache();
+    // Reset to blank-pending so the slot updates below re-fill it and the
+    // market opens normally once both players are known.
     await db.runAsync(
       `UPDATE set_markets SET state='pending', player1_id=0, player2_id=0,
        p1_seed=NULL, p2_seed=NULL, winner_id=NULL, settled_at=NULL,
@@ -175,10 +191,12 @@ async function fillBracketSlot({
       [p1, p2, p1Odds, p2Odds, existing.id]
     );
   }
+  });
 }
 
 /** Set in progress -> stop taking bets. Optionally write mid-match scores (updates on every poll). */
 async function closeMarket(marketId, p1Score = null, p2Score = null) {
+  return withWriteTx(async () => {
   if (p1Score != null && p2Score != null) {
     // Update scores on both open→closed transitions AND re-polls of already-closed markets.
     // COALESCE preserves the original closed_at timestamp on subsequent polls.
@@ -195,10 +213,17 @@ async function closeMarket(marketId, p1Score = null, p2Score = null) {
       [marketId]
     );
   }
+  });
 }
 
 /**
- * Settle a completed set. Idempotent: a market already settled is skipped.
+ * Settle a completed set. Idempotent AND self-healing: a market already
+ * settled skips re-writing its own state (winner/scores/settled_at stay as
+ * first recorded), but still sweeps and grades any bet somehow still
+ * 'placed' on it, using the market's own persisted winner_id rather than the
+ * caller's argument — so a stray re-call can never re-grade with a different
+ * winner. In the common case (nothing stray) this sweep finds zero rows and
+ * is a cheap no-op, same as before.
  *
  * Payouts are parimutuel and priced by sideRates(): the winning side is paid
  * from the final pool at the same (scaled-subsidy, bankroll-capped) line the
@@ -216,18 +241,22 @@ async function settleMarket(marketId, winnerId, p1Score = null, p2Score = null) 
   // settlement win — one durable write instead of one fsync per winner.
   return withWriteTx(async () => {
     const market = await db.getAsync('SELECT * FROM set_markets WHERE id = ?', [marketId]);
-    if (!market || market.state === 'settled' || market.state === 'void') return;
+    if (!market || market.state === 'void') return; // a void market has no winner; never settle it after the fact
+    const alreadySettled = market.state === 'settled';
+    // Authoritative once settled: ignore the caller's argument so a stray
+    // re-call can't re-grade the market against a different winner.
+    const effectiveWinnerId = alreadySettled ? market.winner_id : winnerId;
 
     // Bankroll excludes this market's own bets (still 'placed') — a market can't
     // fund its own subsidy.
     const bankroll = await houseBankrollCents();
     const rates = sideRates(market, bankroll);
-    const winnerRate = winnerId === market.player1_id ? rates.p1
-      : winnerId === market.player2_id ? rates.p2 : null;
+    const winnerRate = effectiveWinnerId === market.player1_id ? rates.p1
+      : effectiveWinnerId === market.player2_id ? rates.p2 : null;
 
     const bets = await db.allAsync(`SELECT * FROM set_bets WHERE market_id = ? AND state = 'placed'`, [marketId]);
     for (const bet of bets) {
-      if (winnerRate != null && bet.picked_player_id === winnerId) {
+      if (winnerRate != null && bet.picked_player_id === effectiveWinnerId) {
         const payout = Math.round(bet.amount_cents * winnerRate);
         await db.runAsync(`UPDATE set_bets SET state='won', payout_cents=? WHERE id=?`, [payout, bet.id]);
         await wallet.applyCredit(bet.user_id, payout, 'bet_payout', { type: 'set_bet', id: bet.id });
@@ -235,43 +264,52 @@ async function settleMarket(marketId, winnerId, p1Score = null, p2Score = null) 
         await db.runAsync(`UPDATE set_bets SET state='lost', payout_cents=0 WHERE id=?`, [bet.id]);
       }
     }
-    await db.runAsync(
-      `UPDATE set_markets
-       SET state='settled', winner_id=?, p1_score=COALESCE(?, p1_score), p2_score=COALESCE(?, p2_score),
-           settled_at=datetime('now')
-       WHERE id=?`,
-      [winnerId, p1Score, p2Score, marketId]
-    );
-    invalidateBankrollCache(); // won/lost set changed
+    if (!alreadySettled) {
+      await db.runAsync(
+        `UPDATE set_markets
+         SET state='settled', winner_id=?, p1_score=COALESCE(?, p1_score), p2_score=COALESCE(?, p2_score),
+             settled_at=datetime('now')
+         WHERE id=?`,
+        [winnerId, p1Score, p2Score, marketId]
+      );
+    }
+    if (bets.length) invalidateBankrollCache(); // won/lost set changed
     return { settled: bets.length };
   });
 }
 
-/** Cancel a market and refund every placed stake. One atomic transaction. */
+/**
+ * Cancel a market and refund every placed stake. Idempotent AND self-healing:
+ * a market already void skips re-writing its own state, but still sweeps and
+ * refunds any bet somehow still 'placed' on it (see fillBracketSlot's void-
+ * reuse path and refundOrphanedVoidBets for how that can happen). In the
+ * common case this sweep finds zero rows and is a cheap no-op, same as before.
+ */
 async function voidMarket(marketId) {
   return withWriteTx(async () => {
     const market = await db.getAsync('SELECT * FROM set_markets WHERE id = ?', [marketId]);
-    if (!market || market.state === 'settled' || market.state === 'void') return;
+    if (!market || market.state === 'settled') return; // a settled market has a real winner; never void it after the fact
     const bets = await db.allAsync(`SELECT * FROM set_bets WHERE market_id = ? AND state = 'placed'`, [marketId]);
     for (const bet of bets) {
       await wallet.applyCredit(bet.user_id, bet.amount_cents, 'refund', { type: 'set_bet', id: bet.id });
       await db.runAsync(`UPDATE set_bets SET state='refunded', payout_cents=? WHERE id=?`, [bet.amount_cents, bet.id]);
     }
-    await db.runAsync(`UPDATE set_markets SET state='void', settled_at=datetime('now') WHERE id=?`, [marketId]);
-    invalidateBankrollCache(); // defensive: bet states changed
+    if (market.state !== 'void') {
+      await db.runAsync(`UPDATE set_markets SET state='void', settled_at=datetime('now') WHERE id=?`, [marketId]);
+    }
+    if (bets.length) invalidateBankrollCache(); // defensive: bet states changed
   });
 }
 
 /**
- * One-time repair: refund any set_bets stuck 'placed' on a market that's
- * already 'void'. This happens if voidMarket() ran once (refunding whatever
- * bets existed then, correctly), and a bet later landed on that same market
- * id anyway — a second voidMarket() call on an already-void market returns
- * early (by design, so it can never double-refund) and silently leaves that
- * bet stranded. Scoped strictly to state='void' markets: a 'settled' market
+ * Boot-time safety net: refund any set_bets stuck 'placed' on a market
+ * that's already 'void', in case one ever slips past voidMarket()'s own
+ * self-healing sweep (e.g. a market that's voided once and never touched by
+ * voidMarket()/fillBracketSlot() again, so the bet has no future trigger to
+ * catch it). Scoped strictly to state='void' markets: a 'settled' market
  * with a real winner needs win/loss grading, not a blanket refund, so this
- * intentionally does not touch that case. Idempotent — re-running finds
- * nothing once the stuck bets are cleared.
+ * intentionally does not touch that case. Idempotent — finds nothing once
+ * the DB is clean, cheap to run on every boot.
  */
 async function refundOrphanedVoidBets() {
   return withWriteTx(async () => {
