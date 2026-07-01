@@ -6,6 +6,14 @@
 // otherwise "/" is two players on a 2v2 team (e.g. 2XKO) and should stay intact.
 const hasJapanese = (s) => /[぀-ヿ一-鿿＀-￯]/.test(s);
 
+// "日本語名/RomanTag" -> "RomanTag"; anything else passes through unchanged.
+// Used once a sponsor label already occupies the secondary-text slot, so a
+// tag never ends up showing two scripts stacked together.
+const romanize = (s) => {
+  const si = s.indexOf('/');
+  return si !== -1 && hasJapanese(s.slice(0, si)) ? s.slice(si + 1).trim() : s;
+};
+
 export const splitPlayerName = (name) => {
   if (!name) return { sponsor: '', tag: name };
   const pi = name.indexOf('|');
@@ -15,7 +23,7 @@ export const splitPlayerName = (name) => {
     // Nested prefixes: take only the segment after the last pipe as the gamerTag
     const lastPipe = rest.lastIndexOf('|');
     const tag = lastPipe !== -1 ? rest.slice(lastPipe + 1).trim() : rest;
-    return { sponsor, tag };
+    return { sponsor, tag: romanize(tag) };
   }
   const si = name.indexOf('/');
   if (si !== -1 && hasJapanese(name.slice(0, si))) {

@@ -528,7 +528,7 @@ const Home = () => {
             <p className="muted">No picks yet.</p>
           ) : (
             <div className="bets-grid">
-              {yourBets.slice(0, 6).map((b) => (
+              {yourBets.slice(0, 4).map((b) => (
                 <div key={b.key} className="bet-card">
                   <div className="bet-row bet-row-top">
                     <div className="bet-tournament">
@@ -557,7 +557,7 @@ const Home = () => {
                     </div>
                     <div className="bet-player"><BetPlayerName name={b.pick} /></div>
                     <div className="bet-amount">
-                      <span className="bet-amount-label">Original pick</span>
+                      <span className="bet-amount-label">Original wager</span>
                       <span className="bet-amount-value">{fmAmount(Math.round(b.stake * 100))} FM</span>
                     </div>
                   </div>
