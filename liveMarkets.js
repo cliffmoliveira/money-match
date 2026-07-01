@@ -262,6 +262,33 @@ async function voidMarket(marketId) {
   });
 }
 
+/**
+ * One-time repair: refund any set_bets stuck 'placed' on a market that's
+ * already 'void'. This happens if voidMarket() ran once (refunding whatever
+ * bets existed then, correctly), and a bet later landed on that same market
+ * id anyway — a second voidMarket() call on an already-void market returns
+ * early (by design, so it can never double-refund) and silently leaves that
+ * bet stranded. Scoped strictly to state='void' markets: a 'settled' market
+ * with a real winner needs win/loss grading, not a blanket refund, so this
+ * intentionally does not touch that case. Idempotent — re-running finds
+ * nothing once the stuck bets are cleared.
+ */
+async function refundOrphanedVoidBets() {
+  return withWriteTx(async () => {
+    const orphaned = await db.allAsync(
+      `SELECT sb.* FROM set_bets sb
+       JOIN set_markets sm ON sm.id = sb.market_id
+       WHERE sb.state = 'placed' AND sm.state = 'void'`
+    );
+    for (const bet of orphaned) {
+      await wallet.applyCredit(bet.user_id, bet.amount_cents, 'refund', { type: 'set_bet', id: bet.id });
+      await db.runAsync(`UPDATE set_bets SET state='refunded', payout_cents=? WHERE id=?`, [bet.amount_cents, bet.id]);
+    }
+    if (orphaned.length) invalidateBankrollCache();
+    return { refunded: orphaned.length, totalCents: orphaned.reduce((s, b) => s + b.amount_cents, 0) };
+  });
+}
+
 // ---- Bet placement ----
 
 function sideOdds(market, playerId) {
@@ -524,6 +551,7 @@ async function getUpcoming() {
 
 module.exports = {
   ensureOpenMarket, fillBracketSlot, closeMarket, settleMarket, voidMarket,
+  refundOrphanedVoidBets,
   placeBet, recomputeOdds, getMarkets, getUserBets, houseBankrollCents, sideRates,
   seedDemoMarkets, advanceDemoBracket, clearDemoMarkets, getUpcoming,
   invalidateBankrollCache,

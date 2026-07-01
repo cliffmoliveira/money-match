@@ -1005,7 +1005,16 @@ economy.applyEconomySchema()
   .then(() => require('./parlay/schema').applyParlaySchema(db))
   .then(() => exhibitions.applyExhibitionsSchema())
   .catch((err) => console.error('Schema init failed:', err.message))
-  .finally(() => {
+  .finally(async () => {
+    // One-time repair: refund any set_bets stranded 'placed' on an
+    // already-void market (see liveMarkets.refundOrphanedVoidBets). Runs
+    // through the same wallet ledger + write-mutex path as every other money
+    // operation, so it's safe to run on every boot — idempotent once clean.
+    try {
+      const { refunded, totalCents } = await liveMarkets.refundOrphanedVoidBets();
+      if (refunded) console.log(`[boot] refunded ${refunded} orphaned void-market bet(s), ${(totalCents / 100).toFixed(2)} FM total`);
+    } catch (err) { console.error('[boot] refundOrphanedVoidBets failed:', err.message); }
+
     const server = app.listen(PORT, () => {
       console.log(`Server running on http://localhost:${PORT}`);
     });
