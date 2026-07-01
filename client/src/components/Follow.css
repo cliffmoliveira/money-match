@@ -1,0 +1,114 @@
+.follow-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 34px 28px 90px;
+  font-family: 'Hanken Grotesk', sans-serif;
+  color: var(--text);
+}
+.follow-title {
+  font-family: 'Saira', sans-serif;
+  font-weight: 800;
+  font-size: 28px;
+  margin: 0 0 4px;
+}
+.follow-sub { color: var(--muted); font-size: 15px; margin: 0 0 22px; }
+.follow-muted { color: var(--muted); text-align: center; padding: 20px 0; }
+
+.follow-search { position: relative; margin-bottom: 24px; }
+.follow-search-input {
+  width: 100%;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 14px;
+  font-size: 14px;
+  color: var(--text);
+  font-family: 'Hanken Grotesk', sans-serif;
+}
+.follow-search-input:focus { outline: none; border-color: var(--gold); }
+.follow-search-results {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0; right: 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 6px;
+  z-index: 5;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.follow-search-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 9px 10px; border-radius: 8px; font-size: 14px;
+}
+.follow-search-row:hover { background: var(--surface); }
+.follow-search-name { font-weight: 600; }
+.follow-already { color: var(--muted); font-size: 12px; font-weight: 600; }
+.follow-btn, .follow-unfollow-btn {
+  font-family: 'Saira', sans-serif; font-weight: 700; font-size: 12px;
+  border-radius: 8px; padding: 6px 12px; border: 1px solid var(--gold);
+  background: var(--gold-tint); color: var(--gold); cursor: pointer;
+}
+.follow-btn:hover { background: var(--gold); color: var(--on-gold); }
+.follow-unfollow-btn {
+  border-color: var(--border); background: var(--surface); color: var(--muted);
+}
+.follow-unfollow-btn:hover { color: var(--live-text); border-color: var(--live-text); }
+
+.follow-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.follow-list { display: flex; flex-direction: column; gap: 10px; }
+.follow-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 16px;
+  cursor: pointer;
+}
+.follow-card.active { border-color: var(--gold); }
+.follow-card-main { display: flex; align-items: center; justify-content: space-between; }
+.follow-card-name { font-weight: 700; }
+.follow-card-record { font-family: 'Saira', sans-serif; font-weight: 700; font-variant-numeric: tabular-nums; }
+.follow-card-sub {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 8px; font-size: 12px; color: var(--muted);
+}
+
+.follow-detail {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px 22px;
+  min-height: 200px;
+}
+.follow-detail-name { font-family: 'Saira', sans-serif; font-weight: 800; font-size: 22px; margin: 0 0 6px; }
+.follow-detail-record { font-family: 'Saira', sans-serif; font-weight: 700; font-size: 16px; margin-bottom: 18px; }
+.follow-detail-heading {
+  font-family: 'Saira', sans-serif; font-weight: 700; font-size: 14px;
+  margin: 18px 0 10px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted);
+}
+.follow-detail-rows { display: flex; flex-direction: column; gap: 8px; }
+.follow-detail-row {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 9px 12px; font-size: 13px;
+}
+.follow-row-name { font-weight: 700; }
+.follow-row-game { color: var(--muted); }
+.follow-row-seed { color: var(--muted); font-size: 12px; }
+.follow-row-winner {
+  font-family: 'Saira', sans-serif; font-weight: 700; font-size: 11px;
+  color: var(--gold); background: var(--gold-tint); border-radius: 6px; padding: 2px 6px;
+}
+.follow-row-date { margin-left: auto; color: var(--muted); font-size: 12px; white-space: nowrap; }
+
+@media (max-width: 720px) {
+  .follow-page { padding: 22px 14px 90px; }
+  .follow-layout { grid-template-columns: 1fr; }
+}

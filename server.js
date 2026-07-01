@@ -18,6 +18,7 @@ const futuresMeta = require('./futuresMeta');
 const futures = require('./futures');
 const { syncLive } = require('./scripts/sync-live');
 const exhibitions = require('./exhibitions');
+const follows = require('./follows');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -725,6 +726,64 @@ app.get('/api/live/upcoming', async (req, res) => {
   } catch (err) {
     console.error('Error fetching upcoming tournament:', err.message);
     res.status(500).json({ error: 'Failed to fetch upcoming tournament' });
+  }
+});
+
+// ---- Follow a competitor ----
+// Scoped to players already present from start.gg entrant/set ingestion —
+// no arbitrary-name follow flow.
+
+app.get('/api/players/search', requireAuth, async (req, res) => {
+  try {
+    res.json(await follows.searchPlayers(req.query.q));
+  } catch (err) {
+    console.error('Error searching players:', err.message);
+    res.status(500).json({ error: 'Failed to search players' });
+  }
+});
+
+app.get('/api/players/:id/profile', requireAuth, async (req, res) => {
+  try {
+    res.json(await follows.getPlayerProfile(Number(req.params.id)));
+  } catch (err) {
+    if (err.code === 'NOT_FOUND') return res.status(404).json({ error: 'Player not found' });
+    console.error('Error fetching player profile:', err.message);
+    res.status(500).json({ error: 'Failed to fetch player profile' });
+  }
+});
+
+app.get('/api/follows', requireAuth, async (req, res) => {
+  const userId = req.userId;
+  try {
+    res.json(await follows.getFollowedWithStats(userId));
+  } catch (err) {
+    console.error('Error fetching follows:', err.message);
+    res.status(500).json({ error: 'Failed to fetch followed competitors' });
+  }
+});
+
+app.post('/api/follows', requireAuth, async (req, res) => {
+  const userId = req.userId;
+  const { playerId } = req.body || {};
+  if (!playerId) return res.status(400).json({ error: 'playerId is required' });
+  try {
+    await follows.followPlayer(userId, Number(playerId));
+    res.status(201).json({ ok: true });
+  } catch (err) {
+    if (err.code === 'NOT_FOUND') return res.status(404).json({ error: 'Player not found' });
+    console.error('Error following player:', err.message);
+    res.status(500).json({ error: 'Failed to follow player' });
+  }
+});
+
+app.delete('/api/follows/:playerId', requireAuth, async (req, res) => {
+  const userId = req.userId;
+  try {
+    await follows.unfollowPlayer(userId, Number(req.params.playerId));
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Error unfollowing player:', err.message);
+    res.status(500).json({ error: 'Failed to unfollow player' });
   }
 });
 

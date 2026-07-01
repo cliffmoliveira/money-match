@@ -36,6 +36,27 @@ db.pragma('journal_mode = WAL');
 db.pragma('busy_timeout = 5000');
 db.pragma('synchronous = NORMAL');
 
+// Follow-a-competitor: lets a user track players who already appear in the
+// ingested start.gg entrant/set data. Created here (not a one-off
+// migrate-*.js script) so it's live on Render immediately after this deploy.
+// No FOREIGN KEY declarations: better-sqlite3 defaults PRAGMA foreign_keys=ON,
+// which makes SQLite resolve a referenced table at DML-compile time for ANY
+// cascading delete against it — even unrelated ones, like `DELETE FROM users`
+// in a test harness that only creates a partial schema. Referential integrity
+// is instead enforced at the application layer (followPlayer() checks the
+// player exists before inserting), matching how set_markets/set_bets do it.
+try {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS follows (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      player_id INTEGER NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE (user_id, player_id)
+    )
+  `);
+} catch (e) { console.error('[boot] follows table setup failed:', e.message); }
+
 // Ensure "KOF XV & SAMSHO at EVO 2026 BYOC" (Start.gg id 881081) exists so the
 // live poller picks it up. Idempotent — no-op if already present.
 try {
