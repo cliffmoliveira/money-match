@@ -639,12 +639,12 @@ const Home = () => {
                 <TournamentLogo name={c.tournament} logoUrl={c.logoUrl} height={40} />
                 <GameLogo name={c.game} height={28} />
               </div>
-              <div className="champion-winner">{c.winner}</div>
+              <div className="champion-winner"><BetPlayerName name={c.winner} /></div>
               <div className="champion-meta">
                 <span className="champion-tournament">{c.tournament}</span>
                 <span className="champion-date">{new Date(c.date + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
               </div>
-              <div className="champion-score"><b>{c.score}</b> def. {c.loser}</div>
+              <div className="champion-score"><b>{c.score}</b> def. <BetPlayerName name={c.loser} /></div>
             </div>
           ))}
         </div>

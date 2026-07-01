@@ -289,6 +289,16 @@ body { background: var(--bg); color: var(--text); }
 .champion-score { background: var(--surface); color: #C9CCD3; border: 1px solid var(--border-soft); border-radius: 8px; padding: 5px 11px; font-size: 12px; font-weight: 500; text-align: left; font-variant-numeric: tabular-nums; align-self: flex-start; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .champion-score b, .champion-score .score { font-family: 'Saira', sans-serif; color: var(--win); }
 
+/* Winner/loser sponsor tags — same stacking component as Your Picks, laid
+   out inline (sponsor immediately before the tag) to fit these single-line
+   card rows instead of the vertical stack used in the picks cards. */
+.champion-winner .bet-player-name-stack,
+.champion-score .bet-player-name-stack {
+  display: inline-flex; flex-direction: row; align-items: baseline; gap: 4px; vertical-align: baseline;
+}
+.champion-winner .bet-player-sponsor { font-size: 11px; }
+.champion-score .bet-player-sponsor { font-size: 10px; }
+
 /* ---------- Your Bets ---------- */
 /* 2-up only when a cell is wide enough for the whole bet row; otherwise the
    grid drops to a single full-width column so nothing squeezes or overflows. */
@@ -375,8 +385,10 @@ body { background: var(--bg); color: var(--text); }
   .champion-logos { gap: 8px; margin-bottom: 10px; }
   .champion-logos img { max-height: 28px !important; }
   .champion-winner { font-size: 16px; margin-bottom: 2px; }
+  .champion-winner .bet-player-sponsor { font-size: 9px; }
   .champion-meta { font-size: 12px; margin-bottom: 8px; }
   .champion-score { padding: 4px 9px; font-size: 11px; }
+  .champion-score .bet-player-sponsor { font-size: 8px; }
   /* Slimmer game-tag pills on the upcoming-event cards */
   .spotlight-games .pill { padding: 3px 8px; font-size: 10px; }
 
