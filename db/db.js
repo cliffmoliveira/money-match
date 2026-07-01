@@ -72,6 +72,40 @@ try {
   if (changes) console.log(`[boot] voided ${changes} stale preview market(s)`);
 } catch (_) { /* table may not exist yet on a fresh DB */ }
 
+// Remove duplicate historical set_markets rows. scripts/backfill-top8-2026.js
+// writes each set under startgg_set_id = 'hist-<realSetId>' so it never
+// collides with the live poller's own row (startgg_set_id = '<realSetId>')
+// for a tournament that was ALSO tracked live during the event -- but that
+// means a set covered by both ends up as two rows with the identical result,
+// showing e.g. "Grand Final" and "Grand Final Reset" twice on the bracket.
+// Only removes the 'hist-' duplicate when a live-tracked sibling row already
+// exists for the same real set, and only when it has zero set_bets attached
+// (backfill rows are inserted pre-settled and never accept bets, but this is
+// a hard safety check, not an assumption) -- anything with bets is left
+// alone and logged for manual review instead of silently dropped.
+try {
+  const dupes = db.prepare(
+    `SELECT hist.id AS hist_id, hist.startgg_set_id AS hist_set_id
+     FROM set_markets hist
+     JOIN set_markets live
+       ON live.tournament_id = hist.tournament_id
+      AND live.game_id = hist.game_id
+      AND live.startgg_set_id = SUBSTR(hist.startgg_set_id, 6)
+     WHERE hist.startgg_set_id LIKE 'hist-%'`
+  ).all();
+  let removed = 0;
+  for (const d of dupes) {
+    const { c: betCount } = db.prepare('SELECT COUNT(*) AS c FROM set_bets WHERE market_id = ?').get(d.hist_id);
+    if (betCount > 0) {
+      console.warn(`[boot] skipping duplicate historical market ${d.hist_id} (${d.hist_set_id}) — has ${betCount} bet(s) attached, needs manual review`);
+      continue;
+    }
+    db.prepare('DELETE FROM set_markets WHERE id = ?').run(d.hist_id);
+    removed++;
+  }
+  if (removed) console.log(`[boot] removed ${removed} duplicate historical set_markets row(s) (backfill duplicated a live-tracked set)`);
+} catch (_) { /* table may not exist yet on a fresh DB */ }
+
 // READ-ONLY diagnostic: report set_markets that are stuck open/closed/pending
 // (never settled or voided) for tournaments whose date is well in the past,
 // plus the 'placed' (unsettled) set_bets riding on them. Logged only — no
