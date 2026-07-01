@@ -516,7 +516,7 @@ const Home = () => {
                       <TournamentLogo name={b.tournament} height={20} />
                       <span className="bet-tournament-name">{b.tournament}</span>
                     </div>
-                    <span className={`bet-kind ${b.kind === 'Live' && b.status === 'pending' ? 'live' : ''}`}>{b.kind}</span>
+                    <span className={`bet-kind ${b.kind === 'Live' ? (b.status === 'pending' ? 'live' : 'live-resolved') : ''}`}>{b.kind}</span>
                     <div className={`bet-outcome ${b.status === 'win' ? 'win' : b.status === 'loss' ? 'loss' : 'pending'}`}>
                       {b.status === 'win' ? 'Won' : b.status === 'loss' ? 'Lost' : b.status === 'refunded' ? 'Refunded' : 'Pending'}
                       {b.result != null && <span className="bet-result">{b.result >= 0 ? ' +' : ' −'}{fmAmount(Math.round(Math.abs(b.result) * 100))} FM</span>}

@@ -316,6 +316,9 @@ body { background: var(--bg); color: var(--text); }
 .bet-amount { flex: none; text-align: right; font-family: 'Saira', sans-serif; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .bet-kind { font-family: 'Saira', sans-serif; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 1px 6px; border-radius: 5px; background: transparent; border: 1px solid var(--futures); color: var(--futures); flex: none; }
 .bet-kind.live { background: transparent; border-color: var(--live-text); color: var(--live-text); }
+/* A resolved live-market pick isn't "live" anymore, but it's still not a
+   Futures pick either -- neutral styling avoids implying either. */
+.bet-kind.live-resolved { background: transparent; border-color: var(--border-strong); color: var(--muted); }
 .bet-result { font-family: 'Saira', sans-serif; font-weight: 700; margin-left: 2px; }
 .bet-adjust {
   flex: none; display: inline-flex; align-items: center; justify-content: center;
