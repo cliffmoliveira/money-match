@@ -428,7 +428,8 @@ async function getUserBets(userId) {
   return db.allAsync(
     `SELECT b.*, m.round_text, m.state AS market_state, m.winner_id,
             t.name AS tournament_name, g.name AS game_name,
-            pp.name AS picked_name, p1.name AS player1_name, p2.name AS player2_name
+            pp.name AS picked_name, p1.name AS player1_name, p2.name AS player2_name,
+            CASE WHEN b.picked_player_id = m.player1_id THEN p2.name ELSE p1.name END AS opp_name
      FROM set_bets b
      JOIN set_markets m ON m.id = b.market_id
      JOIN tournaments t ON t.id = m.tournament_id

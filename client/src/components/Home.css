@@ -308,12 +308,26 @@ body { background: var(--bg); color: var(--text); }
 .bet-tournament { font-family: 'Saira', sans-serif; font-weight: 600; display: flex; align-items: center; gap: 8px; min-width: 0; flex: 0 1 auto; }
 .bet-tournament img { flex: none; }
 .bet-tournament-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.bet-outcome { font-family: 'Saira', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: .06em; padding: 3px 10px; border-radius: 20px; margin-left: auto; flex: none; border: 1px solid transparent; }
+.bet-outcome { font-family: 'Saira', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 3px 10px; border-radius: 20px; margin-left: auto; flex: none; border: 1px solid transparent; }
 .bet-outcome.win { background: var(--win-tint); color: var(--win); border-color: var(--win); }
 .bet-outcome.loss { background: var(--live-tint); color: var(--live-text); border-color: var(--live-text); }
 .bet-outcome.pending { background: var(--gold-tint); color: var(--gold); border-color: var(--gold); }
 .bet-player { flex: 1; min-width: 0; text-align: left; font-family: 'Saira', sans-serif; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.bet-amount { flex: none; text-align: right; font-family: 'Saira', sans-serif; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bet-amount { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 1px; font-family: 'Saira', sans-serif; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bet-amount-label { font-size: 9px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.bet-amount-value { font-weight: 700; }
+
+/* Sponsor/gamerTag stack for picked/opponent names — same treatment as the
+   Tournaments page bracket nodes (Bracket.js's .bnode-sponsor/.bnode-tag). */
+.bet-player-name-stack { display: inline-flex; flex-direction: column; min-width: 0; vertical-align: middle; }
+.bet-player-sponsor { font-size: 9px; font-weight: 700; color: var(--faint); text-transform: uppercase; letter-spacing: .04em; line-height: 1.15; }
+.bet-player-tag { overflow: hidden; text-overflow: ellipsis; line-height: 1.2; }
+
+.bet-row-meta { font-size: 12px; color: var(--muted); gap: 6px; }
+.bet-round { font-family: 'Saira', sans-serif; font-weight: 700; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); flex: none; }
+.bet-vs { display: inline-flex; align-items: center; gap: 4px; min-width: 0; overflow: hidden; }
+.bet-vs .bet-player-name-stack { flex-direction: row; align-items: baseline; gap: 4px; }
+.bet-vs .bet-player-sponsor { font-size: 9px; }
 .bet-kind { font-family: 'Saira', sans-serif; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 1px 6px; border-radius: 5px; background: transparent; border: 1px solid var(--futures); color: var(--futures); flex: none; }
 .bet-kind.live { background: transparent; border-color: var(--live-text); color: var(--live-text); }
 .bet-result { font-family: 'Saira', sans-serif; font-weight: 700; margin-left: 2px; }

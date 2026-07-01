@@ -8,6 +8,7 @@ import { fmAmount } from '../utils/money';
 import AdjustBetSheet from './AdjustBetSheet';
 import { apiFetch } from '../utils/api';
 import ExhibitionSection from './ExhibitionSection';
+import { splitPlayerName } from '../utils/playerName';
 
 // Hoisted to module scope so their component identity is stable across Home
 // re-renders — defining them inside the parent recreates the type every render,
@@ -59,6 +60,19 @@ const LivePlayerName = ({ name }) => {
     <span className="lh-name-stack">
       {sponsor && <span className="lh-sponsor">{sponsor}</span>}
       <span className="lh-tag">{tag}</span>
+    </span>
+  );
+};
+
+// Same sponsor/gamerTag stacking as the Tournaments page bracket nodes
+// (Bracket.js's PlayerName), reused here for Your Picks cards.
+const BetPlayerName = ({ name }) => {
+  if (!name) return <span className="bet-player-tag">TBD</span>;
+  const { sponsor, tag } = splitPlayerName(name);
+  return (
+    <span className="bet-player-name-stack">
+      {sponsor && <span className="bet-player-sponsor">{sponsor}</span>}
+      <span className="bet-player-tag">{tag}</span>
     </span>
   );
 };
@@ -275,6 +289,7 @@ const Home = () => {
     ...(liveBets || []).map((b) => ({
       key: `live-${b.id}`, kind: 'Live',
       tournament: b.tournament_name, game: b.game_name, pick: b.picked_name,
+      opponent: b.opp_name || null, roundText: b.round_text || null,
       stake: (b.amount_cents || 0) / 100,
       status: b.state === 'won' ? 'win' : b.state === 'lost' ? 'loss' : b.state === 'refunded' ? 'refunded' : 'pending',
       result: b.state === 'won' ? (b.payout_cents - b.amount_cents) / 100 : b.state === 'lost' ? -(b.amount_cents / 100) : null,
@@ -538,11 +553,20 @@ const Home = () => {
                   </div>
                   <div className="bet-row bet-row-bottom">
                     <div className="bet-game">
-                      <GameLogo name={b.game} height={24} />
+                      <GameLogo name={b.game} height={36} />
                     </div>
-                    <div className="bet-player">{b.pick}</div>
-                    <div className="bet-amount">{fmAmount(Math.round(b.stake * 100))} FM</div>
+                    <div className="bet-player"><BetPlayerName name={b.pick} /></div>
+                    <div className="bet-amount">
+                      <span className="bet-amount-label">Original pick</span>
+                      <span className="bet-amount-value">{fmAmount(Math.round(b.stake * 100))} FM</span>
+                    </div>
                   </div>
+                  {(b.opponent || b.roundText) && (
+                    <div className="bet-row bet-row-meta">
+                      {b.roundText && <span className="bet-round">{b.roundText}</span>}
+                      {b.opponent && <span className="bet-vs">vs <BetPlayerName name={b.opponent} /></span>}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
