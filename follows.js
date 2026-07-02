@@ -69,10 +69,13 @@ const depthOf = (roundText) => {
   return i === -1 ? ROUND_DEPTH.length : i;
 };
 
-// "How far they made it" in one tournament/game, from Top 8 bracket sets only
-// (scripts/sync-standings.js's pulled `placement` is the fallback for
-// everyone else — see getTournamentHistory). Returns null when no Top 8 set
-// data exists for them here, so the caller can fall through to that.
+// "How far they made it" in one tournament/game, derived from Top 8 bracket
+// sets. Used ONLY as a fallback when scripts/sync-standings.js hasn't pulled
+// an exact placement for this tournament yet (see getTournamentHistory) —
+// once it has, the numeric placement is authoritative AND reads consistently
+// ("9th place") instead of a round name, so it always wins when present.
+// Returns null when no Top 8 set data exists for them here either (nothing
+// to fall back to).
 async function getTournamentResult(playerId, tournamentId, gameId) {
   const sets = await db.allAsync(
     `SELECT round_text, state, winner_id FROM set_markets
@@ -113,11 +116,16 @@ async function getTournamentHistory(playerId) {
     [playerId]
   );
   return Promise.all(rows.map(async (r) => {
-    // Top 8 bracket result takes priority — it's more descriptive than a bare
-    // ordinal ("Eliminated — Losers Semi-Final" beats "4th"). Placement (from
-    // sync-standings.js) covers everyone who didn't reach Top 8.
-    const result = (await getTournamentResult(playerId, r.tournamentId, r.gameId))
-      || (r.placement != null ? `${ordinal(r.placement)} place` : 'No result recorded');
+    // Exact placement wins whenever we have it — every entry then reads the
+    // same way ("Champion" / "9th place") instead of mixing in round names.
+    // Falls back to the Top 8 round-based result only for tournaments
+    // sync-standings.js hasn't processed yet (or an in-progress bracket).
+    let result;
+    if (r.placement != null) {
+      result = r.placement === 1 ? 'Champion' : `${ordinal(r.placement)} place`;
+    } else {
+      result = (await getTournamentResult(playerId, r.tournamentId, r.gameId)) || 'No result recorded';
+    }
     return { ...r, result };
   }));
 }
