@@ -69,11 +69,10 @@ const depthOf = (roundText) => {
   return i === -1 ? ROUND_DEPTH.length : i;
 };
 
-// "How far they made it" in one tournament/game: the deepest settled set they
-// played, described as a win (champion / advanced past that round) or a loss
-// (eliminated there). Falls back to an in-progress open/closed set, or an
-// explicit "no result" string if nothing was ever recorded for them here
-// (e.g. seeded pre-tournament but didn't make Top 8 in this specific game).
+// "How far they made it" in one tournament/game, from Top 8 bracket sets only
+// (scripts/sync-standings.js's pulled `placement` is the fallback for
+// everyone else — see getTournamentHistory). Returns null when no Top 8 set
+// data exists for them here, so the caller can fall through to that.
 async function getTournamentResult(playerId, tournamentId, gameId) {
   const sets = await db.allAsync(
     `SELECT round_text, state, winner_id FROM set_markets
@@ -81,7 +80,7 @@ async function getTournamentResult(playerId, tournamentId, gameId) {
        AND round_text IS NOT NULL`,
     [tournamentId, gameId, playerId, playerId]
   );
-  if (!sets.length) return 'No Top 8 result recorded';
+  if (!sets.length) return null;
 
   const byDepth = (a, b) => depthOf(a.round_text) - depthOf(b.round_text);
   const deepestSettled = sets.filter((s) => s.state === 'settled').sort(byDepth)[0];
@@ -92,18 +91,20 @@ async function getTournamentResult(playerId, tournamentId, gameId) {
     return won ? `Won ${deepestSettled.round_text}` : `Eliminated — ${deepestSettled.round_text}`;
   }
   const inProgress = sets.filter((s) => s.state === 'open' || s.state === 'closed').sort(byDepth)[0];
-  // Seeded into this tournament/game (e.g. a pre-event top-seed projection)
-  // but no Top 8 bracket set was ever recorded for them here — most likely
-  // they didn't make Top 8 in this specific game. Distinct from a genuine
-  // loading/error state, so the UI can say so explicitly instead of showing
-  // a blank row.
-  return inProgress ? `Currently in ${inProgress.round_text}` : 'No Top 8 result recorded';
+  return inProgress ? `Currently in ${inProgress.round_text}` : null;
+}
+
+// 1 -> "1st", 9 -> "9th", 33 -> "33rd", etc.
+function ordinal(n) {
+  const suffixes = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return `${n}${suffixes[(v - 20) % 10] || suffixes[v] || suffixes[0]}`;
 }
 
 async function getTournamentHistory(playerId) {
   const rows = await db.allAsync(
     `SELECT t.id AS tournamentId, t.name AS tournamentName, t.date, t.logo_url AS logoUrl,
-            g.id AS gameId, g.name AS gameName
+            g.id AS gameId, g.name AS gameName, pgt.placement AS placement
      FROM players_games_tournaments pgt
      JOIN tournaments t ON t.id = pgt.tournament_id
      JOIN games g ON g.id = pgt.game_id
@@ -111,10 +112,14 @@ async function getTournamentHistory(playerId) {
      ORDER BY date(t.date) DESC`,
     [playerId]
   );
-  return Promise.all(rows.map(async (r) => ({
-    ...r,
-    result: await getTournamentResult(playerId, r.tournamentId, r.gameId),
-  })));
+  return Promise.all(rows.map(async (r) => {
+    // Top 8 bracket result takes priority — it's more descriptive than a bare
+    // ordinal ("Eliminated — Losers Semi-Final" beats "4th"). Placement (from
+    // sync-standings.js) covers everyone who didn't reach Top 8.
+    const result = (await getTournamentResult(playerId, r.tournamentId, r.gameId))
+      || (r.placement != null ? `${ordinal(r.placement)} place` : 'No result recorded');
+    return { ...r, result };
+  }));
 }
 
 async function getPlayerProfile(playerId) {

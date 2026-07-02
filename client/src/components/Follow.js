@@ -212,7 +212,7 @@ const Follow = () => {
                             <span className="follow-row-game">{t.gameName}</span>
                             <span className={`follow-row-result${
                               t.result === 'Champion' ? ' champion'
-                                : t.result === 'No Top 8 result recorded' ? ' none' : ''
+                                : t.result === 'No result recorded' ? ' none' : ''
                             }`}>
                               {t.result}
                             </span>

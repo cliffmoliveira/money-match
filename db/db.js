@@ -70,6 +70,18 @@ try {
   }
 } catch (e) { console.error('[boot] players.photo_url setup failed:', e.message); }
 
+// players_games_tournaments.placement: final tournament standing (1 = 1st,
+// 9 = 9th, etc.), pulled post-event by scripts/sync-standings.js for entrants
+// who placed outside the live-tracked Top 8. Same guarded-ALTER pattern as
+// players.photo_url above.
+try {
+  const cols = db.prepare("PRAGMA table_info(players_games_tournaments)").all();
+  if (cols.length && !cols.some((c) => c.name === 'placement')) {
+    db.exec('ALTER TABLE players_games_tournaments ADD COLUMN placement INTEGER');
+    console.log('[boot] players_games_tournaments.placement added');
+  }
+} catch (e) { console.error('[boot] players_games_tournaments.placement setup failed:', e.message); }
+
 // Ensure "KOF XV & SAMSHO at EVO 2026 BYOC" (Start.gg id 881081) exists so the
 // live poller picks it up. Idempotent — no-op if already present.
 try {
