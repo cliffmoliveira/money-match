@@ -98,8 +98,6 @@ const Home = () => {
   const [liveBets, setLiveBets] = useState([]);
   const [liveActiveTournament, setLiveActiveTournament] = useState(null);
   const [profile, setProfile] = useState(null);      // pick'em rank/points
-  const [dailyBonus, setDailyBonus] = useState(null); // login-streak FM bonus
-  const [claiming, setClaiming] = useState(false);
 
   const userId = localStorage.getItem('userId');
   const [reloadKey, setReloadKey] = useState(0);
@@ -183,18 +181,16 @@ const Home = () => {
   }, [reloadKey]);
 
   useEffect(() => {
-    if (!userId) { setProfile(null); setDailyBonus(null); return; }
+    if (!userId) { setProfile(null); return; }
     setBetsLoading(true);
     const load = async () => {
       try {
-        const [fRes, lRes, wRes] = await Promise.all([
+        const [fRes, lRes] = await Promise.all([
           apiFetch(`/api/bets?userId=${userId}`),
           apiFetch(`/api/live/bets?userId=${userId}`),
-          apiFetch(`/api/wallet?userId=${userId}`),
         ]);
         if (fRes.ok) setBets(await fRes.json());
         if (lRes.ok) setLiveBets(await lRes.json());
-        if (wRes.ok) setDailyBonus((await wRes.json()).dailyBonus || null);
       } catch (err) {
         console.error('Bets load error:', err.message);
       } finally {
@@ -238,17 +234,6 @@ const Home = () => {
   const getPlayerName = (id) => players.find(p => p.id === id)?.name || id;
   const getTournamentName = (id) => allTournaments.find(t => t.id === id)?.name || id;
   const getTournamentDate = (id) => allTournaments.find(t => t.id === id)?.date || null;
-
-  const claimDaily = async () => {
-    if (claiming) return;
-    setClaiming(true);
-    try {
-      const res = await apiFetch('/api/wallet/daily-bonus', { method: 'POST' });
-      if (res.ok) setDailyBonus((b) => (b ? { ...b, available: false } : b));
-    } catch { /* ignore */ } finally {
-      setClaiming(false);
-    }
-  };
 
   if (loading) {
     return <div className="home-container"><div className="skeleton">Loading…</div></div>;
@@ -505,15 +490,6 @@ const Home = () => {
           </div>
         </div>
       )}
-
-      {userId && dailyBonus && dailyBonus.available && (
-        <button type="button" className="daily-bonus" onClick={claimDaily} disabled={claiming}>
-          <span className="db-gift" aria-hidden="true">🎁</span>
-          <span className="db-text"><strong>Day {dailyBonus.day} login streak</strong> — claim your free {fmAmount(dailyBonus.amountCents)} FM</span>
-          <span className="db-cta">{claiming ? 'Claiming…' : 'Claim'}</span>
-        </button>
-      )}
-
 
       {/* Your Picks — live per-set + futures, unified (above Next Up) */}
       {userId && (
