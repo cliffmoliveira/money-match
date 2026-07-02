@@ -50,23 +50,54 @@ async function getPlayerRecord(playerId) {
   return { wins: row.wins || 0, losses: row.losses || 0 };
 }
 
-async function getChampionships(playerId) {
-  return db.allAsync(
-    `SELECT t.id AS tournamentId, t.name AS tournamentName, t.date, t.logo_url AS logoUrl,
-            g.name AS gameName
-     FROM players_games_tournaments pgt
-     JOIN tournaments t ON t.id = pgt.tournament_id
-     JOIN games g ON g.id = pgt.game_id
-     WHERE pgt.player_id = ? AND pgt.is_winner = 1
-     ORDER BY date(t.date) DESC`,
-    [playerId]
+// Deepest-first Top 8 (and adjacent) round names, used to pick a player's
+// most-advanced recorded set within ONE tournament/game. Text-based rather
+// than start.gg's numeric `round` field, which is only relative within a
+// single bracket — the same round name can carry a different round_int in
+// every tournament depending on how many earlier rounds fed into it.
+const ROUND_DEPTH = [
+  'grand final reset', 'grand final',
+  'losers final',
+  'winners final', 'losers semi-final',
+  'losers quarter-final',
+  'winners semi-final', 'losers round 2',
+  'winners quarter-final', 'losers round 1',
+  'winners round 1',
+];
+const depthOf = (roundText) => {
+  const i = ROUND_DEPTH.indexOf((roundText || '').toLowerCase().trim());
+  return i === -1 ? ROUND_DEPTH.length : i;
+};
+
+// "How far they made it" in one tournament/game: the deepest settled set they
+// played, described as a win (champion / advanced past that round) or a loss
+// (eliminated there). Falls back to an in-progress open/closed set, or null
+// if nothing's been played yet (e.g. seeded but bracket hasn't started).
+async function getTournamentResult(playerId, tournamentId, gameId) {
+  const sets = await db.allAsync(
+    `SELECT round_text, state, winner_id FROM set_markets
+     WHERE tournament_id = ? AND game_id = ? AND (player1_id = ? OR player2_id = ?)
+       AND round_text IS NOT NULL`,
+    [tournamentId, gameId, playerId, playerId]
   );
+  if (!sets.length) return null;
+
+  const byDepth = (a, b) => depthOf(a.round_text) - depthOf(b.round_text);
+  const deepestSettled = sets.filter((s) => s.state === 'settled').sort(byDepth)[0];
+  if (deepestSettled) {
+    const won = deepestSettled.winner_id === playerId;
+    const isGrandFinal = /grand final/.test((deepestSettled.round_text || '').toLowerCase());
+    if (won && isGrandFinal) return 'Champion';
+    return won ? `Won ${deepestSettled.round_text}` : `Eliminated — ${deepestSettled.round_text}`;
+  }
+  const inProgress = sets.filter((s) => s.state === 'open' || s.state === 'closed').sort(byDepth)[0];
+  return inProgress ? `Currently in ${inProgress.round_text}` : null;
 }
 
 async function getTournamentHistory(playerId) {
-  return db.allAsync(
+  const rows = await db.allAsync(
     `SELECT t.id AS tournamentId, t.name AS tournamentName, t.date, t.logo_url AS logoUrl,
-            g.name AS gameName, pgt.seed_num AS seedNum, pgt.is_winner AS isWinner
+            g.id AS gameId, g.name AS gameName, pgt.seed_num AS seedNum
      FROM players_games_tournaments pgt
      JOIN tournaments t ON t.id = pgt.tournament_id
      JOIN games g ON g.id = pgt.game_id
@@ -74,17 +105,20 @@ async function getTournamentHistory(playerId) {
      ORDER BY date(t.date) DESC`,
     [playerId]
   );
+  return Promise.all(rows.map(async (r) => ({
+    ...r,
+    result: await getTournamentResult(playerId, r.tournamentId, r.gameId),
+  })));
 }
 
 async function getPlayerProfile(playerId) {
   const player = await db.getAsync('SELECT id, name, country, photo_url AS photoUrl FROM players WHERE id = ?', [playerId]);
   if (!player) { const e = new Error('Player not found'); e.code = 'NOT_FOUND'; throw e; }
-  const [record, championships, tournaments] = await Promise.all([
+  const [record, tournaments] = await Promise.all([
     getPlayerRecord(playerId),
-    getChampionships(playerId),
     getTournamentHistory(playerId),
   ]);
-  return { player, record, championships, tournaments };
+  return { player, record, tournaments };
 }
 
 async function followPlayer(userId, playerId) {
@@ -105,11 +139,11 @@ async function getFollowedWithStats(userId) {
     [userId]
   );
   return Promise.all(players.map(async (p) => {
-    const [record, championships] = await Promise.all([
+    const [record, { c: tournamentCount }] = await Promise.all([
       getPlayerRecord(p.id),
-      getChampionships(p.id),
+      db.getAsync('SELECT COUNT(*) AS c FROM players_games_tournaments WHERE player_id = ?', [p.id]),
     ]);
-    return { ...p, record, championshipCount: championships.length };
+    return { ...p, record, tournamentCount };
   }));
 }
 

@@ -133,7 +133,7 @@ const Follow = () => {
   return (
     <div className="follow-page">
       <h1 className="follow-title">Follow</h1>
-      <p className="follow-sub">Track competitors and see their record, tournaments, and championships.</p>
+      <p className="follow-sub">Track competitors and see their record and how far they made it in each tournament.</p>
 
       <div className="follow-search">
         <input
@@ -187,7 +187,7 @@ const Follow = () => {
                   <span className="follow-card-chevron" aria-hidden="true" />
                 </div>
                 <div className="follow-card-sub">
-                  <span>{p.championshipCount} championship{p.championshipCount === 1 ? '' : 's'}</span>
+                  <span>{p.tournamentCount} tournament{p.tournamentCount === 1 ? '' : 's'} tracked</span>
                   <button
                     className="follow-unfollow-btn"
                     onClick={(e) => { e.stopPropagation(); unfollow(p.id); }}
@@ -201,41 +201,26 @@ const Follow = () => {
                 <div className="follow-card-detail">
                   {profileLoading && <p className="follow-muted">Loading…</p>}
                   {!profileLoading && profile && (
-                    <>
-                      <h3 className="follow-detail-heading">Championships ({profile.championships.length})</h3>
-                      {profile.championships.length === 0 ? (
-                        <p className="follow-muted">No championships on record yet.</p>
-                      ) : (
-                        <div className="follow-detail-rows">
-                          {profile.championships.map((c) => (
-                            <div key={`${c.tournamentId}-${c.gameName}`} className="follow-detail-row">
-                              <TournamentLogo name={c.tournamentName} />
-                              <span className="follow-row-name">{c.tournamentName}</span>
-                              <span className="follow-row-game">{c.gameName}</span>
-                              <span className="follow-row-date">{c.date}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      <h3 className="follow-detail-heading">Tournament history ({profile.tournaments.length})</h3>
-                      {profile.tournaments.length === 0 ? (
-                        <p className="follow-muted">No tracked tournaments yet.</p>
-                      ) : (
-                        <div className="follow-detail-rows">
-                          {profile.tournaments.map((t) => (
-                            <div key={`${t.tournamentId}-${t.gameName}`} className="follow-detail-row">
-                              <TournamentLogo name={t.tournamentName} />
-                              <span className="follow-row-name">{t.tournamentName}</span>
-                              <span className="follow-row-game">{t.gameName}</span>
-                              {t.seedNum != null && <span className="follow-row-seed">Seed {t.seedNum}</span>}
-                              {!!t.isWinner && <span className="follow-row-winner">Champion</span>}
-                              <span className="follow-row-date">{t.date}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </>
+                    profile.tournaments.length === 0 ? (
+                      <p className="follow-muted">No tracked tournaments yet.</p>
+                    ) : (
+                      <div className="follow-detail-rows">
+                        {profile.tournaments.map((t) => (
+                          <div key={`${t.tournamentId}-${t.gameName}`} className="follow-detail-row">
+                            <TournamentLogo name={t.tournamentName} />
+                            <span className="follow-row-name">{t.tournamentName}</span>
+                            <span className="follow-row-game">{t.gameName}</span>
+                            {t.seedNum != null && <span className="follow-row-seed">Seed {t.seedNum}</span>}
+                            {t.result && (
+                              <span className={`follow-row-result${t.result === 'Champion' ? ' champion' : ''}`}>
+                                {t.result}
+                              </span>
+                            )}
+                            <span className="follow-row-date">{t.date}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )
                   )}
                 </div>
               )}
