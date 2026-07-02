@@ -7,13 +7,31 @@
  */
 const db = require('./db/db');
 
+// The game + tournament a player most recently appeared in, so search results
+// for near-duplicate names (sponsor-tag changes, doubles-team entrants) can be
+// told apart without following each one to check. Null when nothing is tracked.
+async function getLatestActivity(playerId) {
+  const row = await db.getAsync(
+    `SELECT t.name AS tournamentName, g.name AS gameName
+     FROM players_games_tournaments pgt
+     JOIN tournaments t ON t.id = pgt.tournament_id
+     JOIN games g ON g.id = pgt.game_id
+     WHERE pgt.player_id = ?
+     ORDER BY date(t.date) DESC
+     LIMIT 1`,
+    [playerId]
+  );
+  return row ? `${row.gameName} · ${row.tournamentName}` : null;
+}
+
 async function searchPlayers(query, limit = 20) {
   const q = (query || '').trim();
   if (!q) return [];
-  return db.allAsync(
+  const rows = await db.allAsync(
     `SELECT id, name, country, photo_url AS photoUrl FROM players WHERE name LIKE ? ORDER BY name LIMIT ?`,
     [`%${q}%`, limit]
   );
+  return Promise.all(rows.map(async (p) => ({ ...p, latestActivity: await getLatestActivity(p.id) })));
 }
 
 async function getPlayerRecord(playerId) {

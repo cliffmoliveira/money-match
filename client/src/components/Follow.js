@@ -148,7 +148,10 @@ const Follow = () => {
               <div key={p.id} className="follow-search-row">
                 <span className="follow-search-identity">
                   <PlayerAvatar url={p.photoUrl} size={26} />
-                  <span className="follow-search-name">{p.name}</span>
+                  <span className="follow-search-text">
+                    <span className="follow-search-name">{p.name}</span>
+                    <span className="follow-search-activity">{p.latestActivity || 'No tracked history yet'}</span>
+                  </span>
                 </span>
                 {followedIds.has(p.id) ? (
                   <span className="follow-already">Following</span>
