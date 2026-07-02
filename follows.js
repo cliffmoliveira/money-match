@@ -11,7 +11,7 @@ async function searchPlayers(query, limit = 20) {
   const q = (query || '').trim();
   if (!q) return [];
   return db.allAsync(
-    `SELECT id, name, country FROM players WHERE name LIKE ? ORDER BY name LIMIT ?`,
+    `SELECT id, name, country, photo_url AS photoUrl FROM players WHERE name LIKE ? ORDER BY name LIMIT ?`,
     [`%${q}%`, limit]
   );
 }
@@ -59,7 +59,7 @@ async function getTournamentHistory(playerId) {
 }
 
 async function getPlayerProfile(playerId) {
-  const player = await db.getAsync('SELECT id, name, country FROM players WHERE id = ?', [playerId]);
+  const player = await db.getAsync('SELECT id, name, country, photo_url AS photoUrl FROM players WHERE id = ?', [playerId]);
   if (!player) { const e = new Error('Player not found'); e.code = 'NOT_FOUND'; throw e; }
   const [record, championships, tournaments] = await Promise.all([
     getPlayerRecord(playerId),
@@ -81,7 +81,7 @@ async function unfollowPlayer(userId, playerId) {
 
 async function getFollowedWithStats(userId) {
   const players = await db.allAsync(
-    `SELECT p.id, p.name, p.country, f.created_at AS followedAt
+    `SELECT p.id, p.name, p.country, p.photo_url AS photoUrl, f.created_at AS followedAt
      FROM follows f JOIN players p ON p.id = f.player_id
      WHERE f.user_id = ? ORDER BY f.created_at DESC`,
     [userId]

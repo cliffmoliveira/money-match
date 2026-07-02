@@ -10,7 +10,7 @@ query TournamentGF($slug: String!) {
       videogame { id name }
       sets(perPage: 100, page: 1, sortType: STANDARD, filters: {state: 3}) {
         nodes { id fullRoundText completedAt winnerId
-          slots { entrant { id name } standing { stats { score { value } } } }
+          slots { entrant { id name participants { images { type url } } } standing { stats { score { value } } } }
         }
       }
     }
@@ -55,16 +55,25 @@ async function upsertGame(g) {
   return row?.id;
 }
 
+// A participant's uploaded start.gg profile photo, same `type: "profile"`
+// convention already used for tournament/event logos elsewhere in this codebase.
+// Optional per player — many entrants never upload one.
+function photoOf(entrant) {
+  const images = entrant?.participants?.[0]?.images || [];
+  return images.find((i) => i.type === 'profile')?.url || null;
+}
+
 async function upsertPlayerByEntrant(entrant) {
   const name = entrant?.name?.trim() || 'Unknown';
   const id = entrant?.id || null;
+  const photoUrl = photoOf(entrant);
   await db.runAsync(
-    `INSERT INTO players (name, country, startgg_id)
-     SELECT ?, '', ?
+    `INSERT INTO players (name, country, startgg_id, photo_url)
+     SELECT ?, '', ?, ?
      WHERE NOT EXISTS (SELECT 1 FROM players WHERE startgg_id = ? OR name = ?);
-     UPDATE players SET startgg_id = COALESCE(startgg_id, ?)
+     UPDATE players SET startgg_id = COALESCE(startgg_id, ?), photo_url = COALESCE(?, photo_url)
      WHERE name = ? OR startgg_id = ?;`,
-    [name, id, id, name, id, name, id]
+    [name, id, photoUrl, id, name, id, photoUrl, name, id]
   );
   const row = await db.getAsync(`SELECT id FROM players WHERE startgg_id = ? OR name = ?`, [id, name]);
   return row?.id;

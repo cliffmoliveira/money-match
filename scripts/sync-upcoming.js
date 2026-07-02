@@ -135,7 +135,7 @@ query Entrants($slug: String!, $ids: [ID]) {
       phases {
         id phaseOrder
         seeds(query: { perPage: 16, page: 1 }) {
-          nodes { seedNum entrant { id name } }
+          nodes { seedNum entrant { id name participants { images { type url } } } }
         }
       }
     }
@@ -147,6 +147,10 @@ function logoFrom(images = []) {
     || images.find((i) => i.type === 'banner')?.url
     || null;
 }
+
+// A participant's uploaded start.gg profile photo. Optional per player — many
+// entrants never upload one.
+const photoOf = (entrant) => entrant?.participants?.[0]?.images?.find((i) => i.type === 'profile')?.url || null;
 
 async function upsertTournament(t) {
   const date = new Date(t.startAt * 1000).toISOString().slice(0, 10);
@@ -181,12 +185,16 @@ async function upsertGame(g) {
 async function upsertPlayer(entrant) {
   const name = entrant?.name?.trim();
   if (!name) return null;
+  const photoUrl = photoOf(entrant);
   const existing = await db.getAsync('SELECT id FROM players WHERE startgg_id = ? OR name = ?', [entrant.id, name]);
   if (existing) {
-    await db.runAsync('UPDATE players SET startgg_id = COALESCE(startgg_id, ?) WHERE id = ?', [entrant.id, existing.id]);
+    await db.runAsync(
+      'UPDATE players SET startgg_id = COALESCE(startgg_id, ?), photo_url = COALESCE(?, photo_url) WHERE id = ?',
+      [entrant.id, photoUrl, existing.id]
+    );
     return existing.id;
   }
-  const result = await db.runAsync('INSERT INTO players (name, country, startgg_id) VALUES (?, ?, ?)', [name, '', entrant.id]);
+  const result = await db.runAsync('INSERT INTO players (name, country, startgg_id, photo_url) VALUES (?, ?, ?, ?)', [name, '', entrant.id, photoUrl]);
   return result.lastID;
 }
 

@@ -43,7 +43,7 @@ query PhaseSets($eventId: ID!, $phaseId: ID!, $page: Int!, $perPage: Int!) {
         id state fullRoundText winnerId round
         phaseGroup { id }
         slots {
-          entrant { id name seeds { seedNum } }
+          entrant { id name seeds { seedNum } participants { images { type url } } }
           standing { stats { score { value } } }
         }
       }
@@ -110,15 +110,24 @@ async function findOrCreateGameId(videogame) {
   return res.lastID;
 }
 
+// A participant's uploaded start.gg profile photo, same `type: "profile"`
+// convention already used for tournament/event logos elsewhere in this codebase.
+// Optional per player — many entrants never upload one.
+const photoOf = (entrant) => entrant?.participants?.[0]?.images?.find((i) => i.type === 'profile')?.url || null;
+
 async function findOrCreatePlayerId(entrant) {
   const name = entrant?.name?.trim();
   if (!name) return null;
+  const photoUrl = photoOf(entrant);
   const existing = await db.getAsync('SELECT id FROM players WHERE startgg_id = ? OR name = ?', [entrant.id, name]);
   if (existing) {
-    await db.runAsync('UPDATE players SET startgg_id = COALESCE(startgg_id, ?) WHERE id = ?', [entrant.id, existing.id]);
+    await db.runAsync(
+      'UPDATE players SET startgg_id = COALESCE(startgg_id, ?), photo_url = COALESCE(?, photo_url) WHERE id = ?',
+      [entrant.id, photoUrl, existing.id]
+    );
     return existing.id;
   }
-  const res = await db.runAsync('INSERT INTO players (name, country, startgg_id) VALUES (?, ?, ?)', [name, '', entrant.id]);
+  const res = await db.runAsync('INSERT INTO players (name, country, startgg_id, photo_url) VALUES (?, ?, ?, ?)', [name, '', entrant.id, photoUrl]);
   return res.lastID;
 }
 

@@ -3,6 +3,32 @@ import './Follow.css';
 import { getTournamentLogoSources, getTournamentAlt, getTournamentLogoStyle } from '../utils/tournamentLogos';
 import { apiFetch } from '../utils/api';
 
+// Person outline shown when a player has no start.gg profile photo uploaded,
+// or their photo fails to load. Mirrors Navbar's account-menu fallback.
+const PersonIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
+  </svg>
+);
+
+const PlayerAvatar = ({ url, size = 32 }) => {
+  const [failed, setFailed] = useState(false);
+  const style = { width: size, height: size };
+  if (!url || failed) {
+    return <span className="follow-avatar follow-avatar-fallback" style={style}><PersonIcon /></span>;
+  }
+  return (
+    <img
+      src={url}
+      alt=""
+      className="follow-avatar"
+      style={style}
+      onError={() => setFailed(true)}
+    />
+  );
+};
+
 const TournamentLogo = ({ name, height = 20 }) => {
   const [index, setIndex] = useState(0);
   if (!name) return null;
@@ -120,7 +146,10 @@ const Follow = () => {
             {!searching && results.length === 0 && <div className="follow-muted">No competitors found.</div>}
             {results.map((p) => (
               <div key={p.id} className="follow-search-row">
-                <span className="follow-search-name">{p.name}</span>
+                <span className="follow-search-identity">
+                  <PlayerAvatar url={p.photoUrl} size={26} />
+                  <span className="follow-search-name">{p.name}</span>
+                </span>
                 {followedIds.has(p.id) ? (
                   <span className="follow-already">Following</span>
                 ) : (
@@ -146,7 +175,10 @@ const Follow = () => {
               onClick={() => openProfile(p.id)}
             >
               <div className="follow-card-main">
-                <span className="follow-card-name">{p.name}</span>
+                <span className="follow-card-identity">
+                  <PlayerAvatar url={p.photoUrl} />
+                  <span className="follow-card-name">{p.name}</span>
+                </span>
                 <span className="follow-card-record">{recordLine(p.record)}</span>
               </div>
               <div className="follow-card-sub">
@@ -167,7 +199,10 @@ const Follow = () => {
           {selectedId && profileLoading && <p className="follow-muted">Loading…</p>}
           {selectedId && !profileLoading && profile && (
             <>
-              <h2 className="follow-detail-name">{profile.player.name}</h2>
+              <div className="follow-detail-identity">
+                <PlayerAvatar url={profile.player.photoUrl} size={56} />
+                <h2 className="follow-detail-name">{profile.player.name}</h2>
+              </div>
               <div className="follow-detail-record">
                 {recordLine(profile.record)} <span className="follow-muted">record</span>
               </div>

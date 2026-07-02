@@ -57,6 +57,19 @@ try {
   `);
 } catch (e) { console.error('[boot] follows table setup failed:', e.message); }
 
+// players.photo_url: start.gg entrant profile photo, backfilled during
+// ingestion (sync-live.js, sync-upcoming.js, backfill-top8-2026.js,
+// syncStartgg.js, backfill-results.js). Guarded by a column-exists check
+// rather than try/catch on ALTER, so it doesn't repeat a "duplicate column"
+// error on every boot.
+try {
+  const cols = db.prepare("PRAGMA table_info(players)").all();
+  if (cols.length && !cols.some((c) => c.name === 'photo_url')) {
+    db.exec('ALTER TABLE players ADD COLUMN photo_url TEXT');
+    console.log('[boot] players.photo_url added');
+  }
+} catch (e) { console.error('[boot] players.photo_url setup failed:', e.message); }
+
 // Ensure "KOF XV & SAMSHO at EVO 2026 BYOC" (Start.gg id 881081) exists so the
 // live poller picks it up. Idempotent — no-op if already present.
 try {
