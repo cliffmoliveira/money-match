@@ -130,6 +130,11 @@ const Profile = () => {
             const opp = shortTag(
               b.player1_name === b.picked_name ? b.player2_name : b.player1_name
             );
+            // The pick's own win/loss state already tells us who won the set —
+            // no extra data needed: a win means the picked player won it, a
+            // loss means the opponent did.
+            const pickedWon = b.state === 'won';
+            const oppWon = b.state === 'lost';
             const statusClass = b.state === 'won' ? 'win' : b.state === 'lost' ? 'loss' : 'pending';
             const statusLabel = b.state === 'won' ? 'WON' : b.state === 'lost' ? 'LOST' : b.state === 'refunded' ? 'REFUNDED' : 'PENDING';
             const stakeFm = fmAmount(b.amount_cents);
@@ -149,7 +154,15 @@ const Profile = () => {
                   <div className="bet-game">
                     <GameLogo name={b.game_name} height={24} />
                   </div>
-                  <div className="bet-player pf-bet-pick">{picked}{opp ? ` vs ${opp}` : ''}</div>
+                  <div className="bet-player pf-bet-pick">
+                    <span className={`pf-pick-name${pickedWon ? ' pf-winner' : ''}`}>{picked}</span>
+                    {opp && (
+                      <>
+                        <span className="pf-pick-vs"> vs </span>
+                        <span className={`pf-pick-opp${oppWon ? ' pf-winner' : ''}`}>{opp}</span>
+                      </>
+                    )}
+                  </div>
                   <div className="pf-bet-stake">
                     <span className={`pf-bet-amount${b.state === 'lost' ? ' loss' : ''}`}>{stakeFm} FM</span>
                     {odds && <span className="pf-bet-odds">@ {odds}×</span>}
