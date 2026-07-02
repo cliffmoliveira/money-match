@@ -102,7 +102,6 @@
 }
 .follow-row-name { font-weight: 700; }
 .follow-row-game { color: var(--muted); }
-.follow-row-seed { color: var(--muted); font-size: 12px; }
 .follow-row-result {
   font-family: 'Saira', sans-serif; font-weight: 700; font-size: 11px;
   color: var(--text); background: var(--card); border: 1px solid var(--border);
@@ -110,6 +109,9 @@
 }
 .follow-row-result.champion {
   color: var(--gold); background: var(--gold-tint); border-color: var(--gold);
+}
+.follow-row-result.none {
+  color: var(--muted); background: none; border-color: transparent; font-weight: 600;
 }
 .follow-row-date { margin-left: auto; color: var(--muted); font-size: 12px; white-space: nowrap; }
 

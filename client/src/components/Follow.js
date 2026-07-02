@@ -210,12 +210,12 @@ const Follow = () => {
                             <TournamentLogo name={t.tournamentName} />
                             <span className="follow-row-name">{t.tournamentName}</span>
                             <span className="follow-row-game">{t.gameName}</span>
-                            {t.seedNum != null && <span className="follow-row-seed">Seed {t.seedNum}</span>}
-                            {t.result && (
-                              <span className={`follow-row-result${t.result === 'Champion' ? ' champion' : ''}`}>
-                                {t.result}
-                              </span>
-                            )}
+                            <span className={`follow-row-result${
+                              t.result === 'Champion' ? ' champion'
+                                : t.result === 'No Top 8 result recorded' ? ' none' : ''
+                            }`}>
+                              {t.result}
+                            </span>
                             <span className="follow-row-date">{t.date}</span>
                           </div>
                         ))}

@@ -71,8 +71,9 @@ const depthOf = (roundText) => {
 
 // "How far they made it" in one tournament/game: the deepest settled set they
 // played, described as a win (champion / advanced past that round) or a loss
-// (eliminated there). Falls back to an in-progress open/closed set, or null
-// if nothing's been played yet (e.g. seeded but bracket hasn't started).
+// (eliminated there). Falls back to an in-progress open/closed set, or an
+// explicit "no result" string if nothing was ever recorded for them here
+// (e.g. seeded pre-tournament but didn't make Top 8 in this specific game).
 async function getTournamentResult(playerId, tournamentId, gameId) {
   const sets = await db.allAsync(
     `SELECT round_text, state, winner_id FROM set_markets
@@ -80,7 +81,7 @@ async function getTournamentResult(playerId, tournamentId, gameId) {
        AND round_text IS NOT NULL`,
     [tournamentId, gameId, playerId, playerId]
   );
-  if (!sets.length) return null;
+  if (!sets.length) return 'No Top 8 result recorded';
 
   const byDepth = (a, b) => depthOf(a.round_text) - depthOf(b.round_text);
   const deepestSettled = sets.filter((s) => s.state === 'settled').sort(byDepth)[0];
@@ -91,13 +92,18 @@ async function getTournamentResult(playerId, tournamentId, gameId) {
     return won ? `Won ${deepestSettled.round_text}` : `Eliminated — ${deepestSettled.round_text}`;
   }
   const inProgress = sets.filter((s) => s.state === 'open' || s.state === 'closed').sort(byDepth)[0];
-  return inProgress ? `Currently in ${inProgress.round_text}` : null;
+  // Seeded into this tournament/game (e.g. a pre-event top-seed projection)
+  // but no Top 8 bracket set was ever recorded for them here — most likely
+  // they didn't make Top 8 in this specific game. Distinct from a genuine
+  // loading/error state, so the UI can say so explicitly instead of showing
+  // a blank row.
+  return inProgress ? `Currently in ${inProgress.round_text}` : 'No Top 8 result recorded';
 }
 
 async function getTournamentHistory(playerId) {
   const rows = await db.allAsync(
     `SELECT t.id AS tournamentId, t.name AS tournamentName, t.date, t.logo_url AS logoUrl,
-            g.id AS gameId, g.name AS gameName, pgt.seed_num AS seedNum
+            g.id AS gameId, g.name AS gameName
      FROM players_games_tournaments pgt
      JOIN tournaments t ON t.id = pgt.tournament_id
      JOIN games g ON g.id = pgt.game_id
