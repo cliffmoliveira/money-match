@@ -330,6 +330,10 @@ const LiveBetting = () => {
       ? activeTabs[tName] : tTabs[0]?.key ?? null;
     const activeTabData = tTabs.find((t) => t.key === activeTabKey);
     const tournBets = myBets.filter((b) => b.tournament_name === tName);
+    // Scoped to the bracket actually being viewed — a tournament can span
+    // several games, and having a pick in one shouldn't show "My picks" on
+    // brackets for games the user didn't bet on.
+    const activeGameBets = activeTabData ? tournBets.filter((b) => b.game_name === activeTabData.gameName) : [];
 
     return (
       <div key={tName} className={`live-tourney-pill${hasLive ? ' has-live' : ''}`}>
@@ -382,7 +386,7 @@ const LiveBetting = () => {
             {activeTabData && (
               <section className="live-tournament" role="tabpanel">
                 <div className="live-game">
-                  {tournBets.length > 0 && (
+                  {activeGameBets.length > 0 && (
                     <button
                       className={`live-pnl-toggle live-pnl-toggle--bracket${showPnl ? ' active' : ''}`}
                       type="button"
@@ -396,7 +400,7 @@ const LiveBetting = () => {
                     slip={slip}
                     onPick={togglePick}
                     demoControls={demo ? renderDemoControls : null}
-                    bets={showPnl ? Object.fromEntries(tournBets.filter((b) => b.game_name === activeTabData.gameName).map((b) => [b.market_id, b])) : {}}
+                    bets={showPnl ? Object.fromEntries(activeGameBets.map((b) => [b.market_id, b])) : {}}
                   />
                 </div>
               </section>
