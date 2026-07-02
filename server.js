@@ -8,6 +8,7 @@ const jwt = require('jsonwebtoken');
 const morgan = require('morgan');
 const { secretKey } = require('./auth/secret'); // shared with the requireAuth middleware
 const requireAuth = require('./auth/requireAuth');
+const requireAdminSecret = require('./auth/requireAdminSecret');
 const { syncTournamentBySlug, syncRecent } = require('./syncStartgg');
 const { syncUpcoming, syncRecentResults } = require('./scripts/sync-upcoming');
 const wallet = require('./wallet');
@@ -998,7 +999,16 @@ app.get('/api/exhibitions/results', async (req, res) => {
   }
 });
 
-app.post('/api/admin/exhibition', async (req, res) => {
+app.get('/api/admin/exhibitions', requireAdminSecret, async (req, res) => {
+  try {
+    res.json(await exhibitions.getAllExhibitions());
+  } catch (err) {
+    console.error('Error fetching admin exhibitions:', err.message);
+    res.status(500).json({ error: 'Failed to fetch exhibitions.' });
+  }
+});
+
+app.post('/api/admin/exhibition', requireAdminSecret, async (req, res) => {
   try {
     const { tournament_id, tournament_name, player1_name, player2_name, game_name, notes, event_date, state } = req.body;
     if (!player1_name || !player2_name) return res.status(400).json({ error: 'player1_name and player2_name required.' });
@@ -1010,17 +1020,17 @@ app.post('/api/admin/exhibition', async (req, res) => {
   }
 });
 
-app.post('/api/admin/exhibition/:id/open', async (req, res) => {
+app.post('/api/admin/exhibition/:id/open', requireAdminSecret, async (req, res) => {
   try { await exhibitions.openExhibition(Number(req.params.id)); res.json({ ok: true }); }
   catch (err) { res.status(500).json({ error: 'Failed to open exhibition.' }); }
 });
 
-app.post('/api/admin/exhibition/:id/close', async (req, res) => {
+app.post('/api/admin/exhibition/:id/close', requireAdminSecret, async (req, res) => {
   try { await exhibitions.closeExhibition(Number(req.params.id)); res.json({ ok: true }); }
   catch (err) { res.status(500).json({ error: 'Failed to close exhibition.' }); }
 });
 
-app.post('/api/admin/exhibition/:id/settle', async (req, res) => {
+app.post('/api/admin/exhibition/:id/settle', requireAdminSecret, async (req, res) => {
   try {
     const { winner_name, winner_score, loser_score } = req.body;
     if (!winner_name) return res.status(400).json({ error: 'winner_name required.' });

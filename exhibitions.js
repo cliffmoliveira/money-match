@@ -45,6 +45,18 @@ async function getActiveExhibitions() {
   `);
 }
 
+// Admin-only: every exhibition regardless of state (including 'pending' ones
+// not yet opened), so the admin page can manage drafts the public endpoints
+// deliberately exclude.
+async function getAllExhibitions() {
+  return db.allAsync(`
+    SELECT e.*, t.logo_url AS tournament_logo_url
+    FROM exhibitions e
+    LEFT JOIN tournaments t ON t.id = e.tournament_id
+    ORDER BY e.created_at DESC
+  `);
+}
+
 async function getSettledExhibitions() {
   return db.allAsync(`
     SELECT e.*, t.logo_url AS tournament_logo_url, t.city, t.country
@@ -82,6 +94,7 @@ async function closeExhibition(id) {
 module.exports = {
   applyExhibitionsSchema,
   getActiveExhibitions,
+  getAllExhibitions,
   getSettledExhibitions,
   createExhibition,
   settleExhibition,
