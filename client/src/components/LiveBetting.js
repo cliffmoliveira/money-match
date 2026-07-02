@@ -344,11 +344,6 @@ const LiveBetting = () => {
               </span>
             )}
           </button>
-          {tournBets.length > 0 && (
-            <button className={`live-pnl-toggle${showPnl ? ' active' : ''}`} type="button" onClick={() => setShowPnl((v) => !v)}>
-              My picks
-            </button>
-          )}
           <button type="button" className="live-tourney-pill-meta-toggle" onClick={() => toggleTourney(tName)} aria-expanded={isExpanded}>
             {tDate && (
               <span className="live-tourn-header-meta-right">
@@ -387,6 +382,15 @@ const LiveBetting = () => {
             {activeTabData && (
               <section className="live-tournament" role="tabpanel">
                 <div className="live-game">
+                  {tournBets.length > 0 && (
+                    <button
+                      className={`live-pnl-toggle live-pnl-toggle--bracket${showPnl ? ' active' : ''}`}
+                      type="button"
+                      onClick={() => setShowPnl((v) => !v)}
+                    >
+                      My picks
+                    </button>
+                  )}
                   <Bracket
                     markets={activeTabData.mkts}
                     slip={slip}
