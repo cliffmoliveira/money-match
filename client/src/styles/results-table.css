@@ -87,3 +87,13 @@
   .results-table-container { display: none; }
   .results-cards { display: flex; flex-direction: column; gap: 10px; margin-bottom: 26px; }
 }
+
+@media (max-width: 640px) {
+  /* Show more / Show less were wrapping onto separate lines on mobile since
+     each button's own width (generous padding + long label text) exceeded
+     half the viewport. Keep them on one row, sharing space evenly. */
+  .load-more-row { flex-wrap: nowrap; }
+  .load-more-row .load-more {
+    flex: 1 1 0; min-width: 0; padding: 11px 10px; font-size: 13px;
+  }
+}

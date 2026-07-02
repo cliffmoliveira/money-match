@@ -422,6 +422,23 @@
 
   /* Hide scroll arrows on mobile — touch swipe handles tab navigation */
   .live-tabs-arrow { display: none; }
+
+  /* Regular (non-upcoming) pill header: the tournament name was getting
+     crushed by "My picks" + date/chevron sharing one row with it, truncating
+     names like "Evo 2026" down to "Evo 2...". Give the name its own full-width
+     row and let My picks + date/chevron share the row below it. */
+  .live-tourney-pill-header:not(.live-tourney-pill-header--upcoming) {
+    flex-wrap: wrap;
+  }
+  .live-tourney-pill-header:not(.live-tourney-pill-header--upcoming) .live-tourney-pill-expand {
+    flex-basis: 100%;
+  }
+  .live-tourney-pill-header:not(.live-tourney-pill-header--upcoming) .live-pnl-toggle {
+    margin-left: 0;
+  }
+  .live-tourney-pill-header:not(.live-tourney-pill-header--upcoming) .live-tourney-pill-meta-toggle {
+    margin-left: auto;
+  }
 }
 
 @media (max-width: 980px) {
