@@ -1,5 +1,5 @@
 .follow-page {
-  max-width: 900px;
+  max-width: 640px;
   margin: 0 auto;
   padding: 34px 28px 90px;
   font-family: 'Hanken Grotesk', sans-serif;
@@ -66,44 +66,41 @@
 }
 .follow-unfollow-btn:hover { color: var(--live-text); border-color: var(--live-text); }
 
-.follow-layout {
-  display: grid;
-  grid-template-columns: 320px 1fr;
-  gap: 20px;
-  align-items: start;
-}
-
 .follow-list { display: flex; flex-direction: column; gap: 10px; }
 .follow-card {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 14px;
-  padding: 12px 16px;
-  cursor: pointer;
+  overflow: hidden;
 }
 .follow-card.active { border-color: var(--gold); }
+.follow-card-tap { padding: 12px 16px; cursor: pointer; }
 .follow-card-main { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.follow-card-identity { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.follow-card-identity { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1; }
 .follow-card-name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .follow-card-record { font-family: 'Saira', sans-serif; font-weight: 700; font-variant-numeric: tabular-nums; }
+.follow-card-chevron {
+  width: 8px; height: 8px; flex-shrink: 0;
+  border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
+  transform: rotate(45deg); transition: transform 0.15s ease;
+}
+.follow-card.active .follow-card-chevron { transform: rotate(-135deg); }
 .follow-card-sub {
   display: flex; align-items: center; justify-content: space-between;
   margin-top: 8px; font-size: 12px; color: var(--muted);
 }
 
-.follow-detail {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 20px 22px;
-  min-height: 200px;
+.follow-card-detail {
+  border-top: 1px solid var(--border);
+  padding: 16px;
 }
-.follow-detail-identity { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
-.follow-detail-name { font-family: 'Saira', sans-serif; font-weight: 800; font-size: 22px; margin: 0; }
-.follow-detail-record { font-family: 'Saira', sans-serif; font-weight: 700; font-size: 16px; margin-bottom: 18px; }
 .follow-detail-heading {
   font-family: 'Saira', sans-serif; font-weight: 700; font-size: 14px;
-  margin: 18px 0 10px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted);
+  margin: 0 0 10px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted);
+}
+.follow-detail-rows + .follow-detail-heading,
+.follow-muted + .follow-detail-heading {
+  margin-top: 18px;
 }
 .follow-detail-rows { display: flex; flex-direction: column; gap: 8px; }
 .follow-detail-row {
@@ -122,5 +119,4 @@
 
 @media (max-width: 720px) {
   .follow-page { padding: 22px 14px 90px; }
-  .follow-layout { grid-template-columns: 1fr; }
 }

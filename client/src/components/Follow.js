@@ -92,7 +92,10 @@ const Follow = () => {
     return () => { active = false; clearTimeout(id); };
   }, [query]);
 
-  const openProfile = async (playerId) => {
+  // Toggling the same card closes it; picking a different one collapses the
+  // old one and loads the new one in place.
+  const toggleProfile = async (playerId) => {
+    if (selectedId === playerId) { setSelectedId(null); setProfile(null); return; }
     setSelectedId(playerId);
     setProfileLoading(true);
     setProfile(null);
@@ -164,88 +167,81 @@ const Follow = () => {
         )}
       </div>
 
-      <div className="follow-layout">
-        <div className="follow-list">
-          {loading && <p className="follow-muted">Loading…</p>}
-          {error && <p className="error-message">{error}</p>}
-          {!loading && !error && followed.length === 0 && (
-            <p className="follow-muted">You're not following anyone yet — search above to get started.</p>
-          )}
-          {followed.map((p) => (
-            <div
-              key={p.id}
-              className={`follow-card${selectedId === p.id ? ' active' : ''}`}
-              onClick={() => openProfile(p.id)}
-            >
-              <div className="follow-card-main">
-                <span className="follow-card-identity">
-                  <PlayerAvatar url={p.photoUrl} />
-                  <span className="follow-card-name">{p.name}</span>
-                </span>
-                <span className="follow-card-record">{recordLine(p.record)}</span>
+      <div className="follow-list">
+        {loading && <p className="follow-muted">Loading…</p>}
+        {error && <p className="error-message">{error}</p>}
+        {!loading && !error && followed.length === 0 && (
+          <p className="follow-muted">You're not following anyone yet — search above to get started.</p>
+        )}
+        {followed.map((p) => {
+          const isOpen = selectedId === p.id;
+          return (
+            <div key={p.id} className={`follow-card${isOpen ? ' active' : ''}`}>
+              <div className="follow-card-tap" onClick={() => toggleProfile(p.id)}>
+                <div className="follow-card-main">
+                  <span className="follow-card-identity">
+                    <PlayerAvatar url={p.photoUrl} />
+                    <span className="follow-card-name">{p.name}</span>
+                  </span>
+                  <span className="follow-card-record">{recordLine(p.record)}</span>
+                  <span className="follow-card-chevron" aria-hidden="true" />
+                </div>
+                <div className="follow-card-sub">
+                  <span>{p.championshipCount} championship{p.championshipCount === 1 ? '' : 's'}</span>
+                  <button
+                    className="follow-unfollow-btn"
+                    onClick={(e) => { e.stopPropagation(); unfollow(p.id); }}
+                  >
+                    Unfollow
+                  </button>
+                </div>
               </div>
-              <div className="follow-card-sub">
-                <span>{p.championshipCount} championship{p.championshipCount === 1 ? '' : 's'}</span>
-                <button
-                  className="follow-unfollow-btn"
-                  onClick={(e) => { e.stopPropagation(); unfollow(p.id); }}
-                >
-                  Unfollow
-                </button>
-              </div>
+
+              {isOpen && (
+                <div className="follow-card-detail">
+                  {profileLoading && <p className="follow-muted">Loading…</p>}
+                  {!profileLoading && profile && (
+                    <>
+                      <h3 className="follow-detail-heading">Championships ({profile.championships.length})</h3>
+                      {profile.championships.length === 0 ? (
+                        <p className="follow-muted">No championships on record yet.</p>
+                      ) : (
+                        <div className="follow-detail-rows">
+                          {profile.championships.map((c) => (
+                            <div key={`${c.tournamentId}-${c.gameName}`} className="follow-detail-row">
+                              <TournamentLogo name={c.tournamentName} />
+                              <span className="follow-row-name">{c.tournamentName}</span>
+                              <span className="follow-row-game">{c.gameName}</span>
+                              <span className="follow-row-date">{c.date}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <h3 className="follow-detail-heading">Tournament history ({profile.tournaments.length})</h3>
+                      {profile.tournaments.length === 0 ? (
+                        <p className="follow-muted">No tracked tournaments yet.</p>
+                      ) : (
+                        <div className="follow-detail-rows">
+                          {profile.tournaments.map((t) => (
+                            <div key={`${t.tournamentId}-${t.gameName}`} className="follow-detail-row">
+                              <TournamentLogo name={t.tournamentName} />
+                              <span className="follow-row-name">{t.tournamentName}</span>
+                              <span className="follow-row-game">{t.gameName}</span>
+                              {t.seedNum != null && <span className="follow-row-seed">Seed {t.seedNum}</span>}
+                              {!!t.isWinner && <span className="follow-row-winner">Champion</span>}
+                              <span className="follow-row-date">{t.date}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
             </div>
-          ))}
-        </div>
-
-        <div className="follow-detail">
-          {!selectedId && <p className="follow-muted">Select a followed competitor to see their full history.</p>}
-          {selectedId && profileLoading && <p className="follow-muted">Loading…</p>}
-          {selectedId && !profileLoading && profile && (
-            <>
-              <div className="follow-detail-identity">
-                <PlayerAvatar url={profile.player.photoUrl} size={56} />
-                <h2 className="follow-detail-name">{profile.player.name}</h2>
-              </div>
-              <div className="follow-detail-record">
-                {recordLine(profile.record)} <span className="follow-muted">record</span>
-              </div>
-
-              <h3 className="follow-detail-heading">Championships ({profile.championships.length})</h3>
-              {profile.championships.length === 0 ? (
-                <p className="follow-muted">No championships on record yet.</p>
-              ) : (
-                <div className="follow-detail-rows">
-                  {profile.championships.map((c) => (
-                    <div key={`${c.tournamentId}-${c.gameName}`} className="follow-detail-row">
-                      <TournamentLogo name={c.tournamentName} />
-                      <span className="follow-row-name">{c.tournamentName}</span>
-                      <span className="follow-row-game">{c.gameName}</span>
-                      <span className="follow-row-date">{c.date}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <h3 className="follow-detail-heading">Tournament history ({profile.tournaments.length})</h3>
-              {profile.tournaments.length === 0 ? (
-                <p className="follow-muted">No tracked tournaments yet.</p>
-              ) : (
-                <div className="follow-detail-rows">
-                  {profile.tournaments.map((t) => (
-                    <div key={`${t.tournamentId}-${t.gameName}`} className="follow-detail-row">
-                      <TournamentLogo name={t.tournamentName} />
-                      <span className="follow-row-name">{t.tournamentName}</span>
-                      <span className="follow-row-game">{t.gameName}</span>
-                      {t.seedNum != null && <span className="follow-row-seed">Seed {t.seedNum}</span>}
-                      {!!t.isWinner && <span className="follow-row-winner">Champion</span>}
-                      <span className="follow-row-date">{t.date}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
-        </div>
+          );
+        })}
       </div>
     </div>
   );
