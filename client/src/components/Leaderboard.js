@@ -77,7 +77,7 @@ const Leaderboard = () => {
                 <RankAvatar src={r.avatar} name={r.username} />
                 <span className="lb-name">{r.username}</span>
               </span>
-              <span className="lb-num lb-points">{fmAmount(r.balance_cents)} FM</span>
+              <span className="lb-num lb-points">{fmAmount(r.balance_cents)}</span>
               <span className="lb-num">{Math.round((r.accuracy || 0) * 100)}%</span>
               <span className="lb-num">{r.best_streak}</span>
             </div>
