@@ -58,6 +58,12 @@ const WaitingRoom = ({ tournament, games = [], headerless = false }) => {
   const [projSlip, setProjSlip] = useState({});
   const [placing, setPlacing] = useState(false);
   const [placeMsg, setPlaceMsg] = useState(null);
+  // Slip renders in a bottom-sheet drawer (opened via a sticky floating tab)
+  // instead of inline below the bracket, so it's reachable without scrolling
+  // past the whole Top 8 skeleton. Sticky (not fixed) positioning keeps the
+  // tab scoped to this card — if more than one waiting room is expanded at
+  // once, each gets its own tab instead of them stacking on top of each other.
+  const [slipOpen, setSlipOpen] = useState(false);
 
   // tournament.date is ideally a full timestamp with the real start.gg start
   // hour; older not-yet-resynced rows may still be a bare calendar date —
@@ -113,13 +119,16 @@ const WaitingRoom = ({ tournament, games = [], headerless = false }) => {
   // from the raw seed rows by player_name.
   const onProjectedPick = (projId, pl) => {
     const key = `${projId}_${pl.name}`;
+    let added = false;
     setProjSlip((prev) => {
       if (prev[key]) { const n = { ...prev }; delete n[key]; return n; } // toggle off
       const row = seedRows.find((r) => r.player_name === pl.name);
       if (!row) return prev;
+      added = true;
       return { ...prev, [key]: { gameId: activeGame, playerId: row.player_id, playerName: pl.name, odds: Number(row.live_odds) || 0, stake: '' } };
     });
     setPlaceMsg(null);
+    if (added) setSlipOpen(true); // surface the slip only when adding a pick
   };
   const updateStake = (key, v) =>
     setProjSlip((p) => ({ ...p, [key]: { ...p[key], stake: String(v).replace(/[^0-9.]/g, '') } }));
@@ -210,48 +219,75 @@ const WaitingRoom = ({ tournament, games = [], headerless = false }) => {
       </div>
 
       {slipEntries.length > 0 && (
-        <div className="wr-outright-slip">
-          <div className="wr-slip-title">Outright picks</div>
-          <div className="wr-slip-rows">
-            {slipEntries.map(([key, e]) => {
-              const payout = Math.round((Number(e.stake) || 0) * e.odds * 100);
-              return (
-                <div className="wr-slip-row" key={key}>
-                  <div className="wr-slip-pick">
-                    <span className="wr-slip-name">{e.playerName}</span>
-                    <span className="wr-slip-odds">@{e.odds.toFixed(2)}</span>
-                  </div>
-                  <StakeStepper value={e.stake} onChange={(v) => updateStake(key, v)} />
-                  <span className="wr-slip-payout">→ {fmAmount(payout)} FM</span>
-                  <button
-                    type="button"
-                    className="wr-slip-remove"
-                    aria-label={`Remove ${e.playerName}`}
-                    onClick={() => removeFromSlip(key)}
-                  >
-                    ×
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-          <div className="wr-slip-footer">
-            <div className="wr-slip-total">
-              <span className="wr-slip-total-label">Total stake</span>
-              <span className="wr-slip-total-val">{fmAmount(Math.round(totalStake * 100))} FM</span>
+        <>
+          {!slipOpen && (
+            <div className="wr-drawer-tab-row">
+              <button
+                type="button"
+                className="wr-drawer-tab"
+                onClick={() => setSlipOpen(true)}
+                aria-label="Open outright picks slip"
+              >
+                Picks ({slipEntries.length})
+              </button>
             </div>
-            <p className="wr-slip-note">Fixed odds — your stake locks the price.</p>
+          )}
+          {slipOpen && <div className="wr-drawer-scrim" onClick={() => setSlipOpen(false)} />}
+          <div className={`wr-drawer${slipOpen ? ' open' : ''}`}>
             <button
               type="button"
-              className="wr-slip-place"
-              disabled={placing || totalStake <= 0}
-              onClick={placeOutrights}
+              className="wr-drawer-close"
+              onClick={() => setSlipOpen(false)}
+              aria-label="Close outright picks slip"
             >
-              {placing ? 'Placing…' : 'Place Outrights'}
+              ‹ Close
             </button>
-            {placeMsg && <p className="wr-slip-msg">{placeMsg}</p>}
+            <div className="wr-drawer-body">
+              <div className="wr-outright-slip">
+                <div className="wr-slip-title">Outright picks</div>
+                <div className="wr-slip-rows">
+                  {slipEntries.map(([key, e]) => {
+                    const payout = Math.round((Number(e.stake) || 0) * e.odds * 100);
+                    return (
+                      <div className="wr-slip-row" key={key}>
+                        <div className="wr-slip-pick">
+                          <span className="wr-slip-name">{e.playerName}</span>
+                          <span className="wr-slip-odds">@{e.odds.toFixed(2)}</span>
+                        </div>
+                        <StakeStepper value={e.stake} onChange={(v) => updateStake(key, v)} />
+                        <span className="wr-slip-payout">→ {fmAmount(payout)} FM</span>
+                        <button
+                          type="button"
+                          className="wr-slip-remove"
+                          aria-label={`Remove ${e.playerName}`}
+                          onClick={() => removeFromSlip(key)}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="wr-slip-footer">
+                  <div className="wr-slip-total">
+                    <span className="wr-slip-total-label">Total stake</span>
+                    <span className="wr-slip-total-val">{fmAmount(Math.round(totalStake * 100))} FM</span>
+                  </div>
+                  <p className="wr-slip-note">Fixed odds — your stake locks the price.</p>
+                  <button
+                    type="button"
+                    className="wr-slip-place"
+                    disabled={placing || totalStake <= 0}
+                    onClick={placeOutrights}
+                  >
+                    {placing ? 'Placing…' : 'Place Outrights'}
+                  </button>
+                  {placeMsg && <p className="wr-slip-msg">{placeMsg}</p>}
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

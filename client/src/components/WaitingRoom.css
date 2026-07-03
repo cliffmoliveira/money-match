@@ -29,12 +29,45 @@
 }
 .wr-bracket { overflow-x: auto; }
 
-/* Outright (tournament-winner) bet slip — singles only. Sits below the bracket
-   and only renders when at least one projected player is staged. */
+/* Outright (tournament-winner) bet slip — singles only. Lives in a bottom-sheet
+   drawer (opened via the sticky "Picks (n)" tab below) instead of inline below
+   the bracket, so it's reachable without scrolling past the whole Top 8
+   skeleton. Only renders once at least one projected player is staged. */
 .wr-outright-slip {
-  margin-top: 18px; padding: 16px;
+  padding: 16px;
   background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
 }
+
+/* Floating "Picks (n)" handle — sticky (not fixed) so it's scoped to this
+   waiting-room card. If more than one card is expanded at once, each gets
+   its own tab that scrolls with its own bracket instead of colliding. */
+.wr-drawer-tab-row { display: flex; justify-content: flex-end; margin-top: 14px; }
+.wr-drawer-tab {
+  position: sticky; bottom: 16px; z-index: 20;
+  background: var(--gold-grad); color: var(--on-gold); border: none;
+  border-radius: 999px; padding: 13px 22px; cursor: pointer;
+  font-family: 'Saira', sans-serif; font-weight: 800; font-size: 14px;
+  box-shadow: 0 10px 28px rgba(231, 180, 88, 0.4);
+}
+.wr-drawer-tab:hover { filter: brightness(1.05); }
+
+.wr-drawer-scrim { position: fixed; inset: 0; z-index: 1090; background: rgba(8, 10, 14, 0.5); }
+.wr-drawer {
+  position: fixed; left: 0; right: 0; bottom: 0; width: 100%;
+  max-height: calc(100vh - 70px); z-index: 1100;
+  background: var(--card); border: none; border-radius: 16px 16px 0 0;
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
+  display: none; flex-direction: column;
+}
+.wr-drawer.open { display: flex; }
+.wr-drawer-close {
+  display: block; width: 100%; text-align: left; flex-shrink: 0;
+  background: var(--surface); border: none; border-bottom: 1px solid var(--border);
+  color: var(--text); padding: 13px 16px; cursor: pointer;
+  font-family: 'Saira', sans-serif; font-weight: 700; font-size: 14px;
+}
+.wr-drawer-close:hover { color: var(--gold); }
+.wr-drawer-body { flex: 1; overflow-y: auto; min-height: 0; padding: 16px; }
 .wr-slip-title {
   font-family: 'Saira', sans-serif; font-weight: 800; font-size: 15px;
   color: var(--text); margin-bottom: 12px;
@@ -81,4 +114,7 @@
   .wr-header { gap: 12px; }
   .wr-title h2 { font-size: 19px; }
   .wr-slip-place { margin-left: 0; width: 100%; }
+
+  /* Dock the floating tab above the mobile bottom tab bar. */
+  .wr-drawer-tab { bottom: calc(70px + env(safe-area-inset-bottom, 0px) + 12px); }
 }
