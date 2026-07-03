@@ -353,10 +353,10 @@ body { background: var(--bg); color: var(--text); }
   .lh-player { padding: 9px 12px; }
   .lh-odds { font-size: 15px; }
   /* Keep Rank / Open bets / 7-day P&L on one compact row on phones. */
-  .stat-strip { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-  .stat-card { padding: 12px 10px; }
-  .stat-card .label { font-size: 10px; letter-spacing: .02em; }
-  .stat-card .value { font-size: 19px; }
+  .stat-strip { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .stat-card { padding: 10px 8px; }
+  .stat-card .label { font-size: 9px; letter-spacing: .01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .stat-card .value { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .hero { padding: 32px 22px; }
   .hero h1 { font-size: 28px; }
 
