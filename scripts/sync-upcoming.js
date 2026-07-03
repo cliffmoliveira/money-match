@@ -153,11 +153,15 @@ function logoFrom(images = []) {
 const photoOf = (entrant) => entrant?.participants?.[0]?.images?.find((i) => i.type === 'profile')?.url || null;
 
 async function upsertTournament(t) {
-  const date = new Date(t.startAt * 1000).toISOString().slice(0, 10);
+  // Full timestamp for the DB column — start.gg's startAt carries the real
+  // start hour, not just the calendar date. Keep a plain date-only string
+  // around too, purely for the human-readable name-disambiguation suffix.
+  const date = new Date(t.startAt * 1000).toISOString();
+  const dateOnly = date.slice(0, 10);
   const logoUrl = logoFrom(t.images);
   const existing = await db.getAsync('SELECT id FROM tournaments WHERE startgg_id = ?', [t.id]);
   const nameTaken = await db.getAsync('SELECT id FROM tournaments WHERE name = ? AND id != ?', [t.name, existing?.id ?? -1]);
-  const name = nameTaken ? `${t.name} (${date})` : t.name;
+  const name = nameTaken ? `${t.name} (${dateOnly})` : t.name;
   if (existing) {
     await db.runAsync(
       'UPDATE tournaments SET name = ?, date = ?, city = ?, country = ?, logo_url = ? WHERE id = ?',

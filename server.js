@@ -179,7 +179,7 @@ app.get('/api/past-results', async (req, res) => {
       JOIN players AS player2 ON matches.loser_id = player2.id
       JOIN tournaments ON matches.tournament_id = tournaments.id
       JOIN games ON matches.game_id = games.id
-      WHERE tournaments.date <= DATE('now', '+30 days')
+      WHERE date(tournaments.date) <= DATE('now', '+30 days')
 
       UNION ALL
 
@@ -205,7 +205,7 @@ app.get('/api/past-results', async (req, res) => {
       WHERE sm.winner_id IS NOT NULL
         AND sm.state = 'settled'
         AND sm.round_text = 'Grand Final'
-        AND t.date <= DATE('now', '+30 days')
+        AND date(t.date) <= DATE('now', '+30 days')
 
       ORDER BY sort_ts DESC;
     `;

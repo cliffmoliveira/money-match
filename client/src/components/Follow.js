@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import './Follow.css';
 import { getTournamentLogoSources, getTournamentAlt, getTournamentLogoStyle } from '../utils/tournamentLogos';
 import { apiFetch } from '../utils/api';
+import { parseTournamentDate } from '../utils/tournamentDate';
 
 // Person outline shown when a player has no start.gg profile photo uploaded,
 // or their photo fails to load. Mirrors Navbar's account-menu fallback.
@@ -216,7 +217,9 @@ const Follow = () => {
                             }`}>
                               {t.result}
                             </span>
-                            <span className="follow-row-date">{t.date}</span>
+                            <span className="follow-row-date">
+                              {t.date ? parseTournamentDate(t.date)?.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : ''}
+                            </span>
                           </div>
                         ))}
                       </div>

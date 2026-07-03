@@ -31,14 +31,17 @@ function isGrandFinal(fullRoundText = '') {
 }
 
 async function upsertTournament(t) {
+  // Full timestamp, not just the calendar date — start.gg's startAt already
+  // carries the real start hour; date('unixepoch', ?) used to throw it away.
+  const date = new Date(t.startAt * 1000).toISOString();
   await db.runAsync(
     `INSERT INTO tournaments (name, date, city, country, startgg_id)
-     SELECT ?, date('unixepoch', ?), ?, ?, ?
+     SELECT ?, ?, ?, ?, ?
      WHERE NOT EXISTS (SELECT 1 FROM tournaments WHERE startgg_id = ?);
-     UPDATE tournaments SET name=?, date=date('unixepoch', ?), city=?, country=?
+     UPDATE tournaments SET name=?, date=?, city=?, country=?
      WHERE startgg_id=?;`,
-    [t.name, t.startAt, t.city || '', t.countryCode || '', t.id, t.id,
-     t.name, t.startAt, t.city || '', t.countryCode || '', t.id]
+    [t.name, date, t.city || '', t.countryCode || '', t.id, t.id,
+     t.name, date, t.city || '', t.countryCode || '', t.id]
   );
   const row = await db.getAsync(`SELECT id FROM tournaments WHERE startgg_id = ?`, [t.id]);
   return row?.id;

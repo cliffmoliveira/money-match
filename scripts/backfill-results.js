@@ -164,7 +164,11 @@ async function resolveGameIds(state) {
 }
 
 async function upsertTournament(t) {
-  const date = new Date(t.startAt * 1000).toISOString().slice(0, 10);
+  // Full timestamp for the DB column — start.gg's startAt carries the real
+  // start hour, not just the calendar date. Keep a plain date-only string
+  // around too, purely for the human-readable name-disambiguation suffix.
+  const date = new Date(t.startAt * 1000).toISOString();
+  const dateOnly = date.slice(0, 10);
   // "profile" is the square logo; fall back to the banner if there isn't one.
   const images = t.images || [];
   const logoUrl = images.find((i) => i.type === 'profile')?.url
@@ -177,7 +181,7 @@ async function upsertTournament(t) {
     'SELECT id FROM tournaments WHERE name = ? AND id != ?',
     [t.name, existing?.id ?? -1]
   );
-  const name = nameTaken ? `${t.name} (${date})` : t.name;
+  const name = nameTaken ? `${t.name} (${dateOnly})` : t.name;
   if (existing) {
     await db.runAsync(
       'UPDATE tournaments SET name = ?, date = ?, city = ?, country = ?, logo_url = ? WHERE id = ?',

@@ -9,6 +9,7 @@ import AdjustBetSheet from './AdjustBetSheet';
 import { apiFetch } from '../utils/api';
 import ExhibitionSection from './ExhibitionSection';
 import { splitPlayerName } from '../utils/playerName';
+import { parseTournamentDate } from '../utils/tournamentDate';
 
 // Hoisted to module scope so their component identity is stable across Home
 // re-renders — defining them inside the parent recreates the type every render,
@@ -440,7 +441,7 @@ const Home = () => {
               <div className="next-hero-info">
                 <h2>{next.name}</h2>
                 <p className="next-hero-meta">
-                  {new Date(next.date + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                  {parseTournamentDate(next.date)?.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                   {next.location?.city ? ` · ${next.location.city}, ${next.location.country}` : ''}
                   {next.numEntrants ? ` · ${next.numEntrants.toLocaleString()} entrants` : ''}
                 </p>
@@ -574,7 +575,7 @@ const Home = () => {
                     <span style={{ marginLeft: '10px' }}>{t.name}</span>
                   </h3>
                 </div>
-                <div className="spotlight-date">{new Date(t.date + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
+                <div className="spotlight-date">{parseTournamentDate(t.date)?.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</div>
                 {(t.location?.city || t.location?.country) && (
                   <div className="spotlight-location">
                     {[t.location?.city, t.location?.country].filter(Boolean).join(', ')}
@@ -618,7 +619,7 @@ const Home = () => {
               <div className="champion-winner"><BetPlayerName name={c.winner} /></div>
               <div className="champion-meta">
                 <span className="champion-tournament">{c.tournament}</span>
-                <span className="champion-date">{new Date(c.date + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                <span className="champion-date">{parseTournamentDate(c.date)?.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
               </div>
               <div className="champion-score"><b>{c.score}</b> def. <BetPlayerName name={c.loser} /></div>
             </div>

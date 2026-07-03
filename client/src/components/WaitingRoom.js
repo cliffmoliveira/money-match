@@ -7,6 +7,7 @@ import { apiFetch } from '../utils/api';
 import { fmAmount } from '../utils/money';
 import { getTournamentLogoSources, getTournamentAlt, getTournamentLogoStyle } from '../utils/tournamentLogos';
 import { getGameLogoSources, getGameAlt, getGameLogoStyle } from '../utils/gameLogos';
+import { parseTournamentDate } from '../utils/tournamentDate';
 
 // Small logo helpers that walk the asset candidates and fall back to text,
 // mirroring the pattern in Home.js / LiveBetting.js.
@@ -58,10 +59,13 @@ const WaitingRoom = ({ tournament, games = [], headerless = false }) => {
   const [placing, setPlacing] = useState(false);
   const [placeMsg, setPlaceMsg] = useState(null);
 
-  // The tournament date is a calendar day (UTC midnight); once it passes we
-  // can't count down precisely, so show a standby status instead of a clock.
-  const target = new Date(`${tournament.date}T00:00:00`).getTime();
-  const started = !isNaN(target) && target <= Date.now();
+  // tournament.date is ideally a full timestamp with the real start.gg start
+  // hour; older not-yet-resynced rows may still be a bare calendar date —
+  // parseTournamentDate handles both so a bare date is treated as local
+  // midnight rather than UTC midnight. Once the target time passes, stop
+  // counting down and show a standby status instead of a clock.
+  const target = parseTournamentDate(tournament.date)?.getTime();
+  const started = !isNaN(target) && target != null && target <= Date.now();
 
   // Pull the top-8 Start.gg seeds for the active game (same source the Futures
   // page uses). These are *projected* finalists — shown view-only, never as
