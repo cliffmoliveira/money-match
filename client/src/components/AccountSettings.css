@@ -105,6 +105,7 @@
 }
 .account-form .password-toggle:hover { color: var(--text); }
 .account-pw-hint { margin: 2px 0 0; font-size: 11px; color: var(--faint); }
+.account-security .account-actions { margin-top: 18px; }
 
 @media (max-width: 600px) {
   .account-page { padding: 20px 14px 90px; }
