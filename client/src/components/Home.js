@@ -260,7 +260,7 @@ const Home = () => {
   // The idle hero features the immediate next event, so the "Next Up" list below
   // skips it (when shown) to avoid surfacing the same event twice.
   const heroShowsNext = !!userId && liveNow.length === 0 && pendingMatches.length === 0 && !liveActiveTournament && (upcoming?.length || 0) > 0;
-  const spotlight = (heroShowsNext ? upcoming.slice(1) : (upcoming || [])).slice(0, 4);
+  const spotlight = (heroShowsNext ? upcoming.slice(1) : (upcoming || [])).slice(0, 6);
 
   // Countdown shows only on the next big upcoming major — skip World Warrior / LCQ
   // qualifiers (matched by name). `upcoming` is date-sorted, so the first non-
