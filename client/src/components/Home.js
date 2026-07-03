@@ -582,7 +582,7 @@ const Home = () => {
                   </div>
                 )}
                 {t.numEntrants && (
-                  <div className="spotlight-entrants">{t.numEntrants.toLocaleString()} entrants on Start.gg</div>
+                  <div className="spotlight-entrants">{t.numEntrants.toLocaleString()} entrants</div>
                 )}
                 <div className="spotlight-games">
                   {(Object.values(t.games || {}) || []).slice(0, 4).map(g => (

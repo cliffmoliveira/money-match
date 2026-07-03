@@ -567,7 +567,9 @@ async function clearDemoMarkets() {
 // Returns an array sorted furthest-out first (empty when nothing is scheduled).
 async function getUpcoming() {
   const tournaments = await db.allAsync(
-    `SELECT id, name, date, city, country, logo_url AS logoUrl, is_live AS isLive FROM tournaments t
+    `SELECT id, name, date, city, country, logo_url AS logoUrl, is_live AS isLive,
+       (SELECT SUM(num_entrants) FROM tournament_games tg WHERE tg.tournament_id = t.id) AS numEntrants
+     FROM tournaments t
      WHERE startgg_id IS NOT NULL
        AND (is_live = 1 OR date(date) >= date('now','-1 day'))
      ORDER BY date(date) DESC`

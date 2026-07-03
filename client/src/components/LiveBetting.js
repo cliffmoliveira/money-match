@@ -520,6 +520,7 @@ const LiveBetting = () => {
                       <span className="live-tourn-header-sub">
                         {parseTournamentDate(t.date)?.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
                         {(t.city || t.country) && ` · ${[t.city, t.country].filter(Boolean).join(', ')}`}
+                        {t.numEntrants ? ` · ${t.numEntrants.toLocaleString()} entrants` : ''}
                       </span>
                     </div>
                     <div className="live-tourn-header-countdown">
