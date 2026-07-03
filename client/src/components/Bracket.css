@@ -180,6 +180,10 @@
 }
 .bnode-row.projected.pickable:hover { background: rgba(231,180,88,0.08); }
 .bnode-row.projected.picked { background: rgba(231,180,88,0.18); box-shadow: inset 2px 0 0 var(--gold); }
+/* Override the money-market .bnode-row.picked .bnode-name rule (near-black
+   on-gold text meant for a solid gold background) — the projected row's
+   background is only a translucent gold tint, so on-gold reads illegibly dark. */
+.bnode-row.projected.picked .bnode-name { color: var(--gold); }
 .bnode-seed {
   display: inline-block; margin-right: 7px;
   font-size: 10px; font-weight: 700; color: var(--faint);
