@@ -57,6 +57,32 @@ try {
   `);
 } catch (e) { console.error('[boot] follows table setup failed:', e.message); }
 
+// Bracket tracker: read-only round-by-round history for pre-Top-8 rounds
+// (Pools, Winners/Losers Round N, ...). Deliberately separate from
+// set_markets — this table is never read by the odds engine, never opens/
+// closes/settles a market, and carries no money. Written only by the poller
+// (scripts/sync-live.js); the API only ever reads it.
+try {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS bracket_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tournament_id INTEGER NOT NULL,
+      game_id INTEGER NOT NULL,
+      startgg_set_id TEXT NOT NULL UNIQUE,
+      round_text TEXT,
+      round_int INTEGER,
+      phase_order INTEGER,
+      state TEXT NOT NULL DEFAULT 'pending',
+      player1_id INTEGER,
+      player2_id INTEGER,
+      winner_id INTEGER,
+      player1_score INTEGER,
+      player2_score INTEGER,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+} catch (e) { console.error('[boot] bracket_history table setup failed:', e.message); }
+
 // players.photo_url: start.gg entrant profile photo, backfilled during
 // ingestion (sync-live.js, sync-upcoming.js, backfill-top8-2026.js,
 // syncStartgg.js, backfill-results.js). Guarded by a column-exists check
