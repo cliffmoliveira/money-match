@@ -104,6 +104,21 @@ function isPoolsPhase(name) {
   return /pool/i.test(name || '');
 }
 
+// Resolves an event's TRUE final phase. Start.gg's own phaseOrder doesn't
+// always track chronological/structural order — a later-created "Top 16"
+// consolidation phase can end up with a HIGHER phaseOrder than the phase
+// literally named "Top 8", even though "Top 8" is the real final stage.
+// Confirmed against a real event where "Top 16" (phaseOrder 3) outranked the
+// actual "Top 8" phase (phaseOrder 2), which caused the genuine Top 8 bracket
+// to be misclassified as pre-Top-8 history instead of the live money market.
+// Falls back to highest phaseOrder when no phase is named "Top 8" (the
+// original heuristic, still correct for every ordinary tournament).
+function resolveFinalPhase(phases = []) {
+  const top8 = phases.find((p) => /top\s*8/i.test(p.name || ''));
+  if (top8) return top8;
+  return phases.reduce((a, b) => ((b.phaseOrder ?? 0) > (a.phaseOrder ?? 0) ? b : a));
+}
+
 // "done" once every set in the round has reported a winner (state 3); "live"
 // once at least one set has started (state 2) or finished while others
 // haven't; "next" when every set is still state 1 (pending) — start.gg
@@ -402,7 +417,7 @@ async function fetchActiveEvents(startggId) {
   for (const ev of events) {
     const phases = ev.phases || [];
     if (phases.length === 0) continue;
-    const finalPhase = phases.reduce((a, b) => ((b.phaseOrder ?? 0) > (a.phaseOrder ?? 0) ? b : a));
+    const finalPhase = resolveFinalPhase(phases);
     const nodes = await fetchPhaseSets(ev.id, finalPhase.id);
     out.push({ id: ev.id, name: ev.name, videogame: ev.videogame, sets: { nodes } });
   }
@@ -423,7 +438,7 @@ async function fetchHistoryPhases(startggId) {
   for (const ev of events) {
     const phases = ev.phases || [];
     if (phases.length < 2) continue; // nothing before the final phase to track
-    const finalPhase = phases.reduce((a, b) => ((b.phaseOrder ?? 0) > (a.phaseOrder ?? 0) ? b : a));
+    const finalPhase = resolveFinalPhase(phases);
     for (const phase of phases) {
       if (phase.id === finalPhase.id) continue;
       const nodes = await fetchHistoryPhaseSets(ev.id, phase.id);
@@ -492,7 +507,7 @@ async function syncLive({ all = false } = {}) {
 
 module.exports = {
   syncLive, processTournamentEvents, fetchActiveEvents, selectTop8Sets, isTop8Round,
-  isPoolsPhase, classifyRoundStatus, groupSetsIntoRounds, fetchHistoryPhases, processHistorySets,
+  isPoolsPhase, resolveFinalPhase, classifyRoundStatus, groupSetsIntoRounds, fetchHistoryPhases, processHistorySets,
 };
 
 if (require.main === module) {

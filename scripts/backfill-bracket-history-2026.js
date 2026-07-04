@@ -101,6 +101,17 @@ async function fetchPhaseSets(eventId, phaseId) {
   return all;
 }
 
+// Resolves an event's TRUE final phase. Mirrors sync-live.js resolveFinalPhase:
+// Start.gg's own phaseOrder doesn't always track chronological/structural
+// order - a later-created "Top 16" consolidation phase can end up with a
+// HIGHER phaseOrder than the phase literally named "Top 8", even though "Top
+// 8" is the real final stage. Falls back to highest phaseOrder otherwise.
+function resolveFinalPhase(phases = []) {
+  const top8 = phases.find((p) => /top\s*8/i.test(p.name || ''));
+  if (top8) return top8;
+  return phases.reduce((a, b) => ((b.phaseOrder ?? 0) > (a.phaseOrder ?? 0) ? b : a));
+}
+
 // Sets from every phase EXCEPT the final one (backfill-top8-2026.js already
 // covers the final/Top-8 phase). Mirrors sync-live.js fetchHistoryPhases.
 async function fetchHistoryPhases(startggId) {
@@ -110,7 +121,7 @@ async function fetchHistoryPhases(startggId) {
   for (const ev of events) {
     const phases = ev.phases || [];
     if (phases.length < 2) continue; // nothing before the final phase to track
-    const finalPhase = phases.reduce((a, b) => ((b.phaseOrder ?? 0) > (a.phaseOrder ?? 0) ? b : a));
+    const finalPhase = resolveFinalPhase(phases);
     for (const phase of phases) {
       if (phase.id === finalPhase.id) continue;
       const nodes = await fetchPhaseSets(ev.id, phase.id);

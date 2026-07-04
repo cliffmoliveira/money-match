@@ -43,6 +43,32 @@ test('isPoolsPhase matches common pools phase names, case-insensitively', () => 
   assert.equal(syncLive.isPoolsPhase(''), false);
 });
 
+test('resolveFinalPhase prefers a phase literally named "Top 8" over the highest phaseOrder', () => {
+  // Real-world quirk: a later-created "Top 16" consolidation phase can end
+  // up with a higher phaseOrder than the phase actually named "Top 8", even
+  // though "Top 8" is the true final stage.
+  const phases = [
+    { id: 1, name: 'Bracket Play', phaseOrder: 1 },
+    { id: 2, name: 'Top 8', phaseOrder: 2 },
+    { id: 3, name: 'Top 16', phaseOrder: 3 },
+  ];
+  assert.equal(syncLive.resolveFinalPhase(phases).id, 2);
+});
+
+test('resolveFinalPhase matches "Top 8" case-insensitively and with no space', () => {
+  assert.equal(syncLive.resolveFinalPhase([
+    { id: 1, name: 'Pools', phaseOrder: 1 },
+    { id: 2, name: 'top8', phaseOrder: 2 },
+  ]).id, 2);
+});
+
+test('resolveFinalPhase falls back to highest phaseOrder when no phase is named "Top 8"', () => {
+  assert.equal(syncLive.resolveFinalPhase([
+    { id: 1, name: 'Pools', phaseOrder: 1 },
+    { id: 2, name: 'Bracket', phaseOrder: 2 },
+  ]).id, 2);
+});
+
 test('classifyRoundStatus: done when every set is state 3, live once any set has started, next when none have', () => {
   assert.equal(syncLive.classifyRoundStatus([{ state: 3 }, { state: 3 }]), 'done');
   assert.equal(syncLive.classifyRoundStatus([{ state: 3 }, { state: 2 }]), 'live');
