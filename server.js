@@ -527,6 +527,19 @@ app.get('/api/game/:tournamentId/:gameId/players', async (req, res) => {
   }
 });
 
+// Read-only: round-by-round bracket history for a game (Pools, Winners/Losers
+// Round N, ...) — powers the Bracket Tracker. No auth, no writes, nothing
+// bettable.
+app.get('/api/game/:tournamentId/:gameId/tracker', async (req, res) => {
+  const { tournamentId, gameId } = req.params;
+  try {
+    res.json(await liveMarkets.getGameTracker(tournamentId, gameId));
+  } catch (err) {
+    console.error('Error fetching bracket tracker:', err.message);
+    res.status(500).json({ error: 'Failed to fetch bracket tracker' });
+  }
+});
+
 
 
 app.delete('/api/bets', requireAuth, async (req, res) => {
