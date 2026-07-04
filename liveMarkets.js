@@ -609,11 +609,20 @@ async function getGameTracker(tournamentId, gameId) {
     if (!byRound.has(key)) byRound.set(key, { roundText: r.round_text, roundInt: r.round_int, phaseOrder: r.phase_order, sets: [] });
     byRound.get(key).sets.push(r);
   }
-  const rounds = [...byRound.values()].map((g) => ({
-    roundText: g.roundText,
-    roundInt: g.roundInt,
-    status: g.sets.every((s) => s.state === 'completed') ? 'done' : 'live',
-  }));
+  // "done" once every set has a result; "live" once at least one set has
+  // started or finished; "next" when every set is still 'pending' - start.gg
+  // generates the whole bracket shell (all sets pending) long before a
+  // tournament's early rounds start, so without the "next" case every future
+  // round would falsely read as "live" from the moment it's first synced.
+  const rounds = [...byRound.values()].map((g) => {
+    const allDone = g.sets.every((s) => s.state === 'completed');
+    const anyStarted = g.sets.some((s) => s.state === 'in_progress' || s.state === 'completed');
+    return {
+      roundText: g.roundText,
+      roundInt: g.roundInt,
+      status: allDone ? 'done' : anyStarted ? 'live' : 'next',
+    };
+  });
 
   const playerIds = [...new Set(rows.flatMap((r) => [r.player1_id, r.player2_id]).filter(Boolean))];
   const players = playerIds.length

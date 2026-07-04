@@ -104,13 +104,16 @@ function isPoolsPhase(name) {
   return /pool/i.test(name || '');
 }
 
-// A round is "done" only once every set in it has reported a winner (state 3);
-// otherwise it's "live" — covers both "in progress" and "not started yet but
-// we already know the matchup," which read the same to a viewer (the round is
-// underway). There's no "next" here: a round with zero known sets simply
-// doesn't appear in the grouped output at all.
+// "done" once every set in the round has reported a winner (state 3); "live"
+// once at least one set has started (state 2) or finished while others
+// haven't; "next" when every set is still state 1 (pending) — start.gg
+// generates the full bracket shell, sets and all, long before a tournament's
+// early rounds actually start, so without this a freshly-tracked bracket
+// would show every future round as "live" from the moment it's first synced.
 function classifyRoundStatus(sets = []) {
-  return sets.length > 0 && sets.every((s) => s.state === 3) ? 'done' : 'live';
+  if (sets.length > 0 && sets.every((s) => s.state === 3)) return 'done';
+  if (sets.some((s) => s.state === 2 || s.state === 3)) return 'live';
+  return 'next';
 }
 
 // Turns the per-phase set lists from fetchHistoryPhases() into the round

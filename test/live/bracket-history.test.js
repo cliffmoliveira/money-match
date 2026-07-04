@@ -43,11 +43,14 @@ test('isPoolsPhase matches common pools phase names, case-insensitively', () => 
   assert.equal(syncLive.isPoolsPhase(''), false);
 });
 
-test('classifyRoundStatus: done only when every set is state 3', () => {
+test('classifyRoundStatus: done when every set is state 3, live once any set has started, next when none have', () => {
   assert.equal(syncLive.classifyRoundStatus([{ state: 3 }, { state: 3 }]), 'done');
   assert.equal(syncLive.classifyRoundStatus([{ state: 3 }, { state: 2 }]), 'live');
-  assert.equal(syncLive.classifyRoundStatus([{ state: 1 }, { state: 1 }]), 'live');
-  assert.equal(syncLive.classifyRoundStatus([]), 'live');
+  assert.equal(syncLive.classifyRoundStatus([{ state: 2 }, { state: 1 }]), 'live');
+  // A pre-generated bracket shell reports every future round's sets as state 1
+  // (pending) long before they start - that must read as "next", not "live".
+  assert.equal(syncLive.classifyRoundStatus([{ state: 1 }, { state: 1 }]), 'next');
+  assert.equal(syncLive.classifyRoundStatus([]), 'next');
 });
 
 test('groupSetsIntoRounds: collapses pools phases into one "Pools" group', () => {

@@ -60,6 +60,14 @@ test('getGameTracker groups rounds by status and lists results newest-first', as
   assert.equal(result.results[0].score, '3-1');
 });
 
+test('getGameTracker marks a round "next" when every set in it is still pending', async () => {
+  await addPlayer(1, 'GranTODAKAI'); await addPlayer(2, 'Alioune');
+  await addHistory({ tournamentId: 1, gameId: 10, setId: 's1', roundText: 'Winners Round 1', roundInt: 1, phaseOrder: 2, state: 'pending', p1: 1, p2: 2 });
+
+  const result = await lm.getGameTracker(1, 10);
+  assert.equal(result.rounds.find((r) => r.roundText === 'Winners Round 1').status, 'next');
+});
+
 test('getGameTracker stillAlive excludes anyone who has lost a completed set', async () => {
   await addPlayer(1, 'GranTODAKAI'); await addPlayer(2, 'Alioune');
   await seedPlayer(1, 10, 1, 1);
