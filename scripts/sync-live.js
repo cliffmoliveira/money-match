@@ -277,6 +277,54 @@ async function processTournamentEvents(tRow, events = []) {
 }
 
 /**
+ * Writes grouped round data (from groupSetsIntoRounds) into bracket_history —
+ * one row per start.gg set, upserted by startgg_set_id. Read-only history:
+ * never touches set_markets, odds, or bets. `tRow` is our tournaments row
+ * ({ id, ... }); `gameId` is our games.id for this event's videogame.
+ */
+async function processHistorySets(tRow, gameId, roundGroups = []) {
+  for (const group of roundGroups) {
+    for (const set of group.sets) {
+      const e0 = set.slots?.[0]?.entrant;
+      const e1 = set.slots?.[1]?.entrant;
+      const setId = String(set.id);
+      const state = set.state === 3 ? 'completed' : set.state === 2 ? 'in_progress' : 'pending';
+
+      let p0 = null, p1 = null, winnerPid = null;
+      if (e0?.id) p0 = await findOrCreatePlayerId(e0);
+      if (e1?.id) p1 = await findOrCreatePlayerId(e1);
+      if (set.state === 3 && set.winnerId != null) {
+        const winnerEntrant = set.winnerId === e0?.id ? e0 : e1;
+        if (winnerEntrant) winnerPid = await findOrCreatePlayerId(winnerEntrant);
+      }
+
+      const existing = await db.getAsync('SELECT id FROM bracket_history WHERE startgg_set_id = ?', [setId]);
+      const p1Score = scoreOf(set.slots?.[0]);
+      const p2Score = scoreOf(set.slots?.[1]);
+      if (existing) {
+        await db.runAsync(
+          `UPDATE bracket_history SET
+             round_text=?, round_int=?, phase_order=?, state=?,
+             player1_id=?, player2_id=?, winner_id=?, player1_score=?, player2_score=?,
+             updated_at=CURRENT_TIMESTAMP
+           WHERE startgg_set_id=?`,
+          [group.roundText, group.roundInt, group.phaseOrder, state, p0, p1, winnerPid, p1Score, p2Score, setId]
+        );
+      } else {
+        await db.runAsync(
+          `INSERT INTO bracket_history
+             (tournament_id, game_id, startgg_set_id, round_text, round_int, phase_order,
+              state, player1_id, player2_id, winner_id, player1_score, player2_score)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+          [tRow.id, gameId, setId, group.roundText, group.roundInt, group.phaseOrder,
+            state, p0, p1, winnerPid, p1Score, p2Score]
+        );
+      }
+    }
+  }
+}
+
+/**
  * Pull every set in one phase (paginated). The finals phase is small, but page
  * through it so a Top 8 with a deep losers bracket is never truncated.
  */
@@ -309,6 +357,30 @@ async function fetchActiveEvents(startggId) {
     const finalPhase = phases.reduce((a, b) => ((b.phaseOrder ?? 0) > (a.phaseOrder ?? 0) ? b : a));
     const nodes = await fetchPhaseSets(ev.id, finalPhase.id);
     out.push({ id: ev.id, name: ev.name, videogame: ev.videogame, sets: { nodes } });
+  }
+  return out;
+}
+
+/**
+ * Sets from every phase EXCEPT the final one (fetchActiveEvents already
+ * covers the final/Top-8 phase for real markets). Read-only — feeds
+ * bracket_history via processHistorySets, never set_markets. Returns one
+ * entry per non-final phase so groupSetsIntoRounds can tell pools apart from
+ * bracket rounds by phaseName.
+ */
+async function fetchHistoryPhases(startggId) {
+  const data = await startgg(LIVE_PHASES, { id: startggId });
+  const events = data?.tournament?.events || [];
+  const out = [];
+  for (const ev of events) {
+    const phases = ev.phases || [];
+    if (phases.length < 2) continue; // nothing before the final phase to track
+    const finalPhase = phases.reduce((a, b) => ((b.phaseOrder ?? 0) > (a.phaseOrder ?? 0) ? b : a));
+    for (const phase of phases) {
+      if (phase.id === finalPhase.id) continue;
+      const nodes = await fetchPhaseSets(ev.id, phase.id);
+      out.push({ eventId: ev.id, videogame: ev.videogame, phaseOrder: phase.phaseOrder ?? 0, phaseName: phase.name, sets: nodes });
+    }
   }
   return out;
 }
@@ -358,7 +430,7 @@ async function syncLive({ all = false } = {}) {
 
 module.exports = {
   syncLive, processTournamentEvents, fetchActiveEvents, selectTop8Sets, isTop8Round,
-  isPoolsPhase, classifyRoundStatus, groupSetsIntoRounds,
+  isPoolsPhase, classifyRoundStatus, groupSetsIntoRounds, fetchHistoryPhases, processHistorySets,
 };
 
 if (require.main === module) {

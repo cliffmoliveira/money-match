@@ -85,3 +85,30 @@ test('groupSetsIntoRounds: bracket-phase sets group by round text, not individua
   const r1 = groups.find((g) => g.roundText === 'Winners Round 1');
   assert.equal(r1.sets.length, 2);
 });
+
+test('processHistorySets writes one bracket_history row per set, never touching set_markets', async () => {
+  const roundGroup = {
+    roundText: 'Winners Round 1', roundInt: 1, phaseOrder: 2,
+    sets: [{
+      id: 'hset1', state: 3, fullRoundText: 'Winners Round 1', round: 1,
+      winnerId: 'e1',
+      slots: [
+        { entrant: { id: 'e1', name: 'GranTODAKAI', seeds: [{ seedNum: 1 }] }, standing: { stats: { score: { value: 3 } } } },
+        { entrant: { id: 'e2', name: 'Alioune', seeds: [{ seedNum: 17 }] }, standing: { stats: { score: { value: 1 } } } },
+      ],
+    }],
+  };
+
+  await syncLive.processHistorySets({ id: 1 }, 10, [roundGroup]);
+
+  const rows = await db.allAsync('SELECT * FROM bracket_history');
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].startgg_set_id, 'hset1');
+  assert.equal(rows[0].round_text, 'Winners Round 1');
+  assert.equal(rows[0].state, 'completed');
+  assert.equal(rows[0].player1_score, 3);
+  assert.equal(rows[0].player2_score, 1);
+
+  const marketRows = await db.allAsync('SELECT * FROM set_markets');
+  assert.equal(marketRows.length, 0, 'processHistorySets must never write to set_markets');
+});
