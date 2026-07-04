@@ -1,7 +1,7 @@
 # Bracket Tracker — read-only pre-Top-8 round history
 
 **Date:** 2026-07-04
-**Status:** Draft — pending review
+**Status:** Approved design
 **Branch:** TBD (off `testing`)
 
 ## Problem
@@ -67,9 +67,11 @@ start.gg data.
    version lists whatever rounds start.gg actually reports for that event,
    ordered by `round_int` (the signed depth+side convention `liveMarkets.js`
    already uses: positive = winners side, negative = losers side, magnitude =
-   distance from the final). **Open question for planning:** whether to
-   collapse pools-phase sets into a single "Pools" pill instead of listing
-   every pool round individually (large events could have many).
+   distance from the final). **Pools phases collapse into a single "Pools"
+   pill** (rather than listing every individual pool round) — large events can
+   have dozens of pool rounds, and the interesting granularity there is "are
+   pools done yet," not which specific pool round. Bracket-phase rounds
+   (Winners/Losers Round N, Top 8) still list individually.
 4. **"Still alive" reuses the existing seed endpoint**, minus anyone found as
    a loser in the new round-history data — so it's real data, not a fixed
    snapshot, and updates as results come in.
@@ -133,6 +135,7 @@ there's no risk of it being mistaken for a bettable market anywhere.
 ```json
 {
   "rounds": [
+    { "roundText": "Pools", "roundInt": null, "status": "done" },
     { "roundText": "Winners Round 1", "roundInt": 1, "status": "done" },
     { "roundText": "Winners Round 2", "roundInt": 2, "status": "live" },
     { "roundText": "Top 8", "roundInt": null, "status": "next" }
@@ -148,7 +151,10 @@ there's no risk of it being mistaken for a bettable market anywhere.
   for this game, ordered by `round_int`, each with a `status` derived from its
   sets' `state` (all completed → done; any in_progress or a completed/pending
   mix → live; no rows yet → doesn't appear, the frontend appends "Top 8" as
-  the final pill always).
+  the final pill always). Any set whose `phase` is a pools phase (identified
+  by phase name/type from start.gg, not bracket-structure sets) is grouped
+  into one synthetic `"Pools"` entry instead of one entry per pool round —
+  its `status` is "done" once every pools set is completed, "live" otherwise.
 - `results`: completed rows from `bracket_history`, newest first.
 - `stillAlive`: the existing seed list (`/api/game/:id/:id/players`) with
   anyone appearing as a `loser` in `bracket_history` removed. Reuses existing
