@@ -588,6 +588,12 @@ const LiveBetting = () => {
                   {futureRest.slice(Math.max(0, futureRest.length - futureVisible)).map((item) => renderUpcomingPill(item))}
                 </>
               )}
+              {nextUp.length > 0 && (
+                <>
+                  <div className="brackets-next-up-label">Next Up</div>
+                  {nextUp.map((item) => renderUpcomingPill(item))}
+                </>
+              )}
               {liveNow.length > 0 && (
                 <>
                   <div className="brackets-live-label">
@@ -595,12 +601,6 @@ const LiveBetting = () => {
                     Live
                   </div>
                   {liveNow.map((item) => renderUpcomingPill(item, { highlighted: true, hideCountdown: true }))}
-                </>
-              )}
-              {nextUp.length > 0 && (
-                <>
-                  <div className="brackets-next-up-label">Next Up</div>
-                  {nextUp.map((item) => renderUpcomingPill(item))}
                 </>
               )}
             </>
