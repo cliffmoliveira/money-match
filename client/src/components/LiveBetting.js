@@ -9,7 +9,7 @@ import { getGameLogoSources, getGameAlt, getGameLogoStyle } from '../utils/gameL
 import { fm as fmt, fmSigned as signed, fmAmount } from '../utils/money';
 import { apiFetch } from '../utils/api';
 import TournamentFilterBar from './TournamentFilterBar';
-import { formatTournamentDateTime } from '../utils/tournamentDate';
+import { formatTournamentDateTime, parseTournamentDate } from '../utils/tournamentDate';
 
 const POLL_MS = 6000; // refresh markets/odds/pick'em every 6s while the Live page is open
 
@@ -506,8 +506,37 @@ const LiveBetting = () => {
         )}
 
         {(() => {
-          const nextUp = upcoming.length > 0 ? upcoming[upcoming.length - 1] : null;
-          const futureRest = upcoming.slice(0, upcoming.length - 1);
+          const now = Date.now();
+          const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+          const targetTimeOf = (t) => parseTournamentDate(t.date)?.getTime();
+          const isHappeningNow = (t) => {
+            if (t.isLive) return true;
+            const target = targetTimeOf(t);
+            return target != null && !isNaN(target) && target <= now;
+          };
+
+          // upcoming is sorted furthest-date-first (see getUpcoming()'s
+          // `ORDER BY date(date) DESC`). Split into what's live right now
+          // (any count, no cap) vs. what hasn't started yet, then pick the
+          // next-up window off the NOT-STARTED set specifically - a
+          // tournament that's already live belongs in Live, never Next Up,
+          // no matter how its date sorts.
+          const liveNow = [];
+          const notStarted = [];
+          for (const item of upcoming) (isHappeningNow(item.tournament) ? liveNow : notStarted).push(item);
+
+          const notStartedSoonestFirst = [...notStarted].reverse();
+          const nextUp = notStartedSoonestFirst
+            .filter((item) => {
+              const target = targetTimeOf(item.tournament);
+              return target != null && target - now <= SEVEN_DAYS_MS;
+            })
+            .slice(0, 5);
+          const nextUpIds = new Set(nextUp.map((item) => item.tournament.id));
+          // Keeps notStarted's original furthest-first order, matching the
+          // existing Future Tournaments show-more/less behavior below.
+          const futureRest = notStarted.filter((item) => !nextUpIds.has(item.tournament.id));
+
           const renderUpcomingPill = ({ tournament: t, games }, isNextUp = false) => {
             const isExpanded = expandedTourneys.has(t.name);
             return (
@@ -539,6 +568,18 @@ const LiveBetting = () => {
           };
           return (
             <>
+              {liveNow.length > 0 && (
+                <>
+                  <div className="brackets-next-up-label">Live</div>
+                  {liveNow.map((item) => renderUpcomingPill(item))}
+                </>
+              )}
+              {nextUp.length > 0 && (
+                <>
+                  <div className="brackets-next-up-label">Next Up</div>
+                  {nextUp.map((item) => renderUpcomingPill(item, true))}
+                </>
+              )}
               {futureRest.length > 0 && (
                 <>
                   <div className="brackets-section-head">
@@ -555,12 +596,6 @@ const LiveBetting = () => {
                     </div>
                   </div>
                   {futureRest.slice(Math.max(0, futureRest.length - futureVisible)).map((item) => renderUpcomingPill(item))}
-                </>
-              )}
-              {nextUp && (
-                <>
-                  <div className="brackets-next-up-label">Next Up</div>
-                  {renderUpcomingPill(nextUp, true)}
                 </>
               )}
             </>
