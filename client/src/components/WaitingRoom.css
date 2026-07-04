@@ -29,6 +29,42 @@
 }
 .wr-bracket { overflow-x: auto; }
 
+/* Per-game accordion — one row per game, tap to expand its detail in place.
+   Replaces the old always-one-game tab strip so other games stay visible
+   (as collapsed rows) instead of requiring you to back out to switch. */
+.wr-game-list { display: flex; flex-direction: column; gap: 8px; }
+.wr-game-row { background: var(--surface); border: 1px solid var(--border-soft); border-radius: 12px; overflow: hidden; }
+.wr-game-row.open { border-color: var(--border-strong); }
+.wr-game-row-header {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  background: none; border: none; padding: 12px 14px; cursor: pointer; text-align: left;
+  font-family: 'Hanken Grotesk', sans-serif; color: var(--text);
+}
+.wr-game-row-logo { flex: 1; display: flex; align-items: center; height: 28px; min-width: 0; }
+.wr-game-row-logo img { height: 100%; width: auto; max-width: 100%; object-fit: contain; }
+.wr-game-row-chevron { flex-shrink: 0; margin-left: auto; color: var(--faint); font-size: 11px; }
+.wr-game-row-body { padding: 0 14px 14px; }
+
+/* Round pills double as the nav for each expanded game — tapping "Top 8"
+   shows the live Bracket, tapping any earlier round shows that round's
+   results in History. Status coloring (done/live/next) stays visible
+   alongside a distinct "selected" ring for whichever one you're viewing, so
+   reaching Top 8 doesn't bury how a player got there behind a view that no
+   longer exists. */
+.wr-round-pills { display: flex; gap: 6px; margin-bottom: 14px; }
+.wr-round-pill {
+  flex: 1; text-align: center; padding: 6px 4px; border-radius: 8px; cursor: pointer;
+  background: var(--card); border: 1px solid var(--border-strong);
+  font-family: 'Hanken Grotesk', sans-serif;
+}
+.wr-round-pill.wr-round-done { background: var(--win-tint); border-color: rgba(67, 209, 136, 0.3); }
+.wr-round-pill.wr-round-live { background: var(--gold-tint); border-color: var(--gold); }
+.wr-round-pill-label { font-size: 10px; font-weight: 700; color: var(--faint); }
+.wr-round-pill-status { font-size: 9px; color: var(--faint); }
+.wr-round-pill.wr-round-done .wr-round-pill-label, .wr-round-pill.wr-round-done .wr-round-pill-status { color: var(--win); }
+.wr-round-pill.wr-round-live .wr-round-pill-label, .wr-round-pill.wr-round-live .wr-round-pill-status { color: var(--gold); }
+.wr-round-pill.selected { box-shadow: 0 0 0 2px var(--gold) inset; }
+
 /* Outright (tournament-winner) bet slip — singles only. Lives in a bottom-sheet
    drawer (opened via the sticky "Picks (n)" tab below) instead of inline below
    the bracket, so it's reachable without scrolling past the whole Top 8
