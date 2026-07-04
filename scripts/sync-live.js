@@ -406,6 +406,20 @@ async function syncLive({ all = false } = {}) {
       const s = await processTournamentEvents(tRow, events);
       totals.tournaments++;
       totals.opened += s.opened; totals.closed += s.closed; totals.settled += s.settled;
+
+      // Read-only round history for pre-Top-8 rounds — separate pass, separate
+      // table, never touches set_markets/odds/bets.
+      const historyPhases = await fetchHistoryPhases(tRow.startgg_id);
+      const byGame = new Map();
+      for (const phase of historyPhases) {
+        const gameId = await findOrCreateGameId(phase.videogame);
+        if (!gameId) continue;
+        if (!byGame.has(gameId)) byGame.set(gameId, []);
+        byGame.get(gameId).push(phase);
+      }
+      for (const [gameId, phases] of byGame) {
+        await processHistorySets(tRow, gameId, groupSetsIntoRounds(phases));
+      }
     } catch (err) {
       console.error(`[sync-live] ${tRow.name} (${tRow.startgg_id}) failed: ${err.message}`);
     }

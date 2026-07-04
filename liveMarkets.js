@@ -590,10 +590,72 @@ async function getUpcoming() {
   }));
 }
 
+// Read-only: round-by-round history for a game's pre-Top-8 rounds — powers
+// the Bracket Tracker's round pills, results feed, and still-alive list.
+// Entirely separate from set_markets: no odds, no stakes, nothing bettable.
+async function getGameTracker(tournamentId, gameId) {
+  const rows = await db.allAsync(
+    `SELECT round_text, round_int, phase_order, state,
+            player1_id, player2_id, winner_id, player1_score, player2_score, updated_at
+     FROM bracket_history
+     WHERE tournament_id = ? AND game_id = ?
+     ORDER BY phase_order ASC, round_int ASC, updated_at DESC`,
+    [tournamentId, gameId]
+  );
+
+  const byRound = new Map();
+  for (const r of rows) {
+    const key = r.round_text;
+    if (!byRound.has(key)) byRound.set(key, { roundText: r.round_text, roundInt: r.round_int, phaseOrder: r.phase_order, sets: [] });
+    byRound.get(key).sets.push(r);
+  }
+  const rounds = [...byRound.values()].map((g) => ({
+    roundText: g.roundText,
+    roundInt: g.roundInt,
+    status: g.sets.every((s) => s.state === 'completed') ? 'done' : 'live',
+  }));
+
+  const playerIds = [...new Set(rows.flatMap((r) => [r.player1_id, r.player2_id]).filter(Boolean))];
+  const players = playerIds.length
+    ? await db.allAsync(`SELECT id, name FROM players WHERE id IN (${playerIds.map(() => '?').join(',')})`, playerIds)
+    : [];
+  const nameOf = (id) => players.find((p) => p.id === id)?.name || null;
+
+  const completed = rows.filter((r) => r.state === 'completed' && r.winner_id != null)
+    .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+  const results = completed.map((r) => {
+    const winnerIsP1 = r.winner_id === r.player1_id;
+    const loserId = winnerIsP1 ? r.player2_id : r.player1_id;
+    const winnerScore = winnerIsP1 ? r.player1_score : r.player2_score;
+    const loserScore = winnerIsP1 ? r.player2_score : r.player1_score;
+    return {
+      winner: nameOf(r.winner_id),
+      loser: nameOf(loserId),
+      score: `${winnerScore ?? 0}-${loserScore ?? 0}`,
+      round: r.round_text,
+    };
+  });
+
+  const losers = new Set(completed.map((r) => (r.winner_id === r.player1_id ? r.player2_id : r.player1_id)).filter(Boolean));
+  const seeds = await db.allAsync(
+    `SELECT pgt.player_id, p.name AS player_name, pgt.seed_num
+     FROM players_games_tournaments pgt
+     JOIN players p ON p.id = pgt.player_id
+     WHERE pgt.tournament_id = ? AND pgt.game_id = ? AND pgt.seed_num IS NOT NULL
+     ORDER BY pgt.seed_num`,
+    [tournamentId, gameId]
+  );
+  const stillAlive = seeds
+    .filter((s) => !losers.has(s.player_id))
+    .map((s) => ({ seed: s.seed_num, name: s.player_name }));
+
+  return { rounds, results, stillAlive };
+}
+
 module.exports = {
   ensureOpenMarket, fillBracketSlot, closeMarket, settleMarket, voidMarket,
   refundOrphanedVoidBets,
   placeBet, recomputeOdds, getMarkets, getUserBets, houseBankrollCents, sideRates,
   seedDemoMarkets, advanceDemoBracket, clearDemoMarkets, getUpcoming,
-  invalidateBankrollCache,
+  invalidateBankrollCache, getGameTracker,
 };
