@@ -54,6 +54,32 @@ query PhaseSets($eventId: ID!, $phaseId: ID!, $page: Int!, $perPage: Int!) {
 const SET_PAGE_SIZE = 50;
 const MAX_SET_PAGES = 6; // a Top 8 phase is small; cap to bound a pathological event
 
+// Early rounds (Round 1/2 pools) at big multi-hundred-entrant events blow
+// Start.gg's 1000-object query complexity cap at PHASE_SETS' full field
+// selection + perPage 50 (confirmed against Evo 2026: every Round 1/2 phase
+// failed at ~1050-1250). History tracking doesn't need `seeds` (only the Top
+// 8 path's seedOf() reads that), so drop it and fetch smaller pages to stay
+// well under the cap even as brackets grow.
+const HISTORY_SET_PAGE_SIZE = 15;
+const MAX_HISTORY_SET_PAGES = 40; // covers a ~600-set Round 1 at a 1000+ entrant event
+const HISTORY_PHASE_SETS = `
+query HistoryPhaseSets($eventId: ID!, $phaseId: ID!, $page: Int!, $perPage: Int!) {
+  event(id: $eventId) {
+    id
+    sets(page: $page, perPage: $perPage, sortType: STANDARD, filters: { phaseIds: [$phaseId] }) {
+      pageInfo { totalPages }
+      nodes {
+        id state fullRoundText winnerId round
+        phaseGroup { id }
+        slots {
+          entrant { id name participants { images { type url } } }
+          standing { stats { score { value } } }
+        }
+      }
+    }
+  }
+}`;
+
 // Canonical double-elim Top 8: Winners Semi-Final & Final, Losers Quarter-Final,
 // Semi-Final & Final, Grand Final (+ reset). Match exact round names after
 // normalizing separators so "Quarter-Final" isn't caught by a loose "final".
@@ -341,6 +367,25 @@ async function fetchPhaseSets(eventId, phaseId) {
 }
 
 /**
+ * Same pagination as fetchPhaseSets, but with the lighter HISTORY_PHASE_SETS
+ * query and a much smaller page size — early bracket rounds at huge events
+ * (Evo-scale, hundreds of entrants) exceed Start.gg's query complexity cap at
+ * the Top 8 path's page size, since history tracking here always requests
+ * every non-final phase up front rather than one small finals phase.
+ */
+async function fetchHistoryPhaseSets(eventId, phaseId) {
+  const all = [];
+  for (let page = 1; page <= MAX_HISTORY_SET_PAGES; page++) {
+    const data = await startgg(HISTORY_PHASE_SETS, { eventId, phaseId, page, perPage: HISTORY_SET_PAGE_SIZE });
+    const conn = data?.event?.sets;
+    const nodes = conn?.nodes || [];
+    all.push(...nodes);
+    if (nodes.length < HISTORY_SET_PAGE_SIZE || page >= (conn?.pageInfo?.totalPages ?? 1)) break;
+  }
+  return all;
+}
+
+/**
  * Resolve each event's FINAL phase (highest phaseOrder) and fetch its sets,
  * returning the { id, name, videogame, sets: { nodes } } shape that
  * processTournamentEvents consumes. Targeting the finals phase — instead of the
@@ -378,7 +423,7 @@ async function fetchHistoryPhases(startggId) {
     const finalPhase = phases.reduce((a, b) => ((b.phaseOrder ?? 0) > (a.phaseOrder ?? 0) ? b : a));
     for (const phase of phases) {
       if (phase.id === finalPhase.id) continue;
-      const nodes = await fetchPhaseSets(ev.id, phase.id);
+      const nodes = await fetchHistoryPhaseSets(ev.id, phase.id);
       out.push({ eventId: ev.id, videogame: ev.videogame, phaseOrder: phase.phaseOrder ?? 0, phaseName: phase.name, sets: nodes });
     }
   }
