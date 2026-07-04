@@ -78,6 +78,47 @@ function isPoolsPhase(name) {
   return /pool/i.test(name || '');
 }
 
+// A round is "done" only once every set in it has reported a winner (state 3);
+// otherwise it's "live" — covers both "in progress" and "not started yet but
+// we already know the matchup," which read the same to a viewer (the round is
+// underway). There's no "next" here: a round with zero known sets simply
+// doesn't appear in the grouped output at all.
+function classifyRoundStatus(sets = []) {
+  return sets.length > 0 && sets.every((s) => s.state === 3) ? 'done' : 'live';
+}
+
+// Turns the per-phase set lists from fetchHistoryPhases() into the round
+// buckets the tracker displays: every pools phase collapses into one
+// synthetic "Pools" group (roundInt: null, phaseOrder = the lowest pools
+// phaseOrder seen), while bracket-phase sets group by their own round text
+// (start.gg reports the same fullRoundText/round for every set in a round).
+function groupSetsIntoRounds(historyPhases = []) {
+  const byRoundText = new Map();
+  let poolsPhaseOrder = null;
+
+  for (const phase of historyPhases) {
+    if (isPoolsPhase(phase.phaseName)) {
+      if (poolsPhaseOrder === null || phase.phaseOrder < poolsPhaseOrder) poolsPhaseOrder = phase.phaseOrder;
+      const key = 'Pools';
+      if (!byRoundText.has(key)) byRoundText.set(key, { roundText: 'Pools', roundInt: null, phaseOrder: phase.phaseOrder, sets: [] });
+      byRoundText.get(key).sets.push(...phase.sets);
+      continue;
+    }
+    for (const set of phase.sets) {
+      const key = set.fullRoundText || `phase-${phase.phaseOrder}`;
+      if (!byRoundText.has(key)) {
+        byRoundText.set(key, { roundText: key, roundInt: set.round ?? null, phaseOrder: phase.phaseOrder, sets: [] });
+      }
+      byRoundText.get(key).sets.push(set);
+    }
+  }
+
+  const groups = [...byRoundText.values()];
+  const pools = groups.find((g) => g.roundText === 'Pools');
+  if (pools && poolsPhaseOrder !== null) pools.phaseOrder = poolsPhaseOrder;
+  return groups;
+}
+
 const seedOf = (entrant) => entrant?.seeds?.[0]?.seedNum ?? null;
 const scoreOf = (slot) => {
   const v = slot?.standing?.stats?.score?.value;
@@ -315,7 +356,10 @@ async function syncLive({ all = false } = {}) {
   return totals;
 }
 
-module.exports = { syncLive, processTournamentEvents, fetchActiveEvents, selectTop8Sets, isTop8Round, isPoolsPhase };
+module.exports = {
+  syncLive, processTournamentEvents, fetchActiveEvents, selectTop8Sets, isTop8Round,
+  isPoolsPhase, classifyRoundStatus, groupSetsIntoRounds,
+};
 
 if (require.main === module) {
   const all = process.argv.includes('--all');

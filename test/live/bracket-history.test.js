@@ -42,3 +42,46 @@ test('isPoolsPhase matches common pools phase names, case-insensitively', () => 
   assert.equal(syncLive.isPoolsPhase(undefined), false);
   assert.equal(syncLive.isPoolsPhase(''), false);
 });
+
+test('classifyRoundStatus: done only when every set is state 3', () => {
+  assert.equal(syncLive.classifyRoundStatus([{ state: 3 }, { state: 3 }]), 'done');
+  assert.equal(syncLive.classifyRoundStatus([{ state: 3 }, { state: 2 }]), 'live');
+  assert.equal(syncLive.classifyRoundStatus([{ state: 1 }, { state: 1 }]), 'live');
+  assert.equal(syncLive.classifyRoundStatus([]), 'live');
+});
+
+test('groupSetsIntoRounds: collapses pools phases into one "Pools" group', () => {
+  const phases = [
+    { eventId: 1, phaseOrder: 1, phaseName: 'Pool A', sets: [{ id: 's1', state: 3, fullRoundText: 'Pool A Round 1', round: 1 }] },
+    { eventId: 1, phaseOrder: 1, phaseName: 'Pool B', sets: [{ id: 's2', state: 2, fullRoundText: 'Pool B Round 1', round: 1 }] },
+    { eventId: 1, phaseOrder: 2, phaseName: 'Bracket', sets: [{ id: 's3', state: 1, fullRoundText: 'Winners Round 1', round: 1 }] },
+  ];
+  const groups = syncLive.groupSetsIntoRounds(phases);
+  const pools = groups.find((g) => g.roundText === 'Pools');
+  assert.ok(pools, 'expected a single Pools group');
+  assert.equal(pools.sets.length, 2);
+  assert.equal(pools.roundInt, null);
+  assert.equal(pools.phaseOrder, 1);
+
+  const bracket = groups.find((g) => g.roundText === 'Winners Round 1');
+  assert.ok(bracket);
+  assert.equal(bracket.sets.length, 1);
+  assert.equal(bracket.roundInt, 1);
+});
+
+test('groupSetsIntoRounds: bracket-phase sets group by round text, not individually per set', () => {
+  const phases = [
+    {
+      eventId: 1, phaseOrder: 2, phaseName: 'Bracket',
+      sets: [
+        { id: 's1', state: 3, fullRoundText: 'Winners Round 1', round: 1 },
+        { id: 's2', state: 3, fullRoundText: 'Winners Round 1', round: 1 },
+        { id: 's3', state: 1, fullRoundText: 'Winners Round 2', round: 2 },
+      ],
+    },
+  ];
+  const groups = syncLive.groupSetsIntoRounds(phases);
+  assert.equal(groups.length, 2);
+  const r1 = groups.find((g) => g.roundText === 'Winners Round 1');
+  assert.equal(r1.sets.length, 2);
+});
