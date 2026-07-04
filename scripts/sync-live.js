@@ -28,7 +28,7 @@ query LivePhases($id: ID!) {
     id name
     events {
       id name videogame { id name }
-      phases { id phaseOrder }
+      phases { id name phaseOrder }
     }
   }
 }`;
@@ -68,6 +68,14 @@ const TOP8_ROUNDS = [
 function isTop8Round(text) {
   const n = (text || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
   return TOP8_ROUNDS.some((re) => re.test(n));
+}
+
+// A "Pools" (or "Pool A"/"Pool B"/...) phase collapses into a single synthetic
+// "Pools" round in the tracker instead of listing every individual pool round
+// — large events can have dozens, and the useful granularity there is "are
+// pools done yet," not which specific pool.
+function isPoolsPhase(name) {
+  return /pool/i.test(name || '');
 }
 
 const seedOf = (entrant) => entrant?.seeds?.[0]?.seedNum ?? null;
@@ -307,7 +315,7 @@ async function syncLive({ all = false } = {}) {
   return totals;
 }
 
-module.exports = { syncLive, processTournamentEvents, fetchActiveEvents, selectTop8Sets, isTop8Round };
+module.exports = { syncLive, processTournamentEvents, fetchActiveEvents, selectTop8Sets, isTop8Round, isPoolsPhase };
 
 if (require.main === module) {
   const all = process.argv.includes('--all');
