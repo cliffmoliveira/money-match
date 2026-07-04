@@ -68,6 +68,31 @@ test('getGameTracker marks a round "next" when every set in it is still pending'
   assert.equal(result.rounds.find((r) => r.roundText === 'Winners Round 1').status, 'next');
 });
 
+test('getGameTracker relabels round names that collide with real Top 8 terminology as "Round of N"', async () => {
+  // "Grand Final" / "Winners Semi-Final" / etc. are also the exact round
+  // names the real Top 8 bracket uses - a pre-Top-8 round stuck with one of
+  // these names is easy to mistake for the actual Top 8 already underway.
+  for (let i = 1; i <= 9; i++) await addPlayer(i, `Player${i}`);
+  await addHistory({ tournamentId: 1, gameId: 10, setId: 'gf1', roundText: 'Grand Final', roundInt: 3, phaseOrder: 1, state: 'completed', p1: 1, p2: 2, winner: 1, s1: 3, s2: 0 });
+  await addHistory({ tournamentId: 1, gameId: 10, setId: 'gf2', roundText: 'Grand Final', roundInt: 3, phaseOrder: 1, state: 'completed', p1: 3, p2: 4, winner: 3, s1: 3, s2: 1 });
+  // 5 distinct entrants -> rounds up to the next power of two (8), not the raw count.
+  await addHistory({ tournamentId: 1, gameId: 10, setId: 'lqf1', roundText: 'Losers Quarter-Final', roundInt: -4, phaseOrder: 1, state: 'completed', p1: 5, p2: 6, winner: 5, s1: 2, s2: 0 });
+  await addHistory({ tournamentId: 1, gameId: 10, setId: 'lqf2', roundText: 'Losers Quarter-Final', roundInt: -4, phaseOrder: 1, state: 'completed', p1: 7, p2: 8, winner: 7, s1: 2, s2: 1 });
+  await addHistory({ tournamentId: 1, gameId: 10, setId: 'lqf3', roundText: 'Losers Quarter-Final', roundInt: -4, phaseOrder: 1, state: 'completed', p1: 5, p2: 9, winner: 5, s1: 2, s2: 0 });
+  // Not in the ambiguous list - the real Top 8 bracket never calls a round
+  // plain "Winners Quarter-Final", so this one is left as-is.
+  await addHistory({ tournamentId: 1, gameId: 10, setId: 'wqf1', roundText: 'Winners Quarter-Final', roundInt: 3, phaseOrder: 1, state: 'completed', p1: 1, p2: 3, winner: 1, s1: 3, s2: 2 });
+
+  const result = await lm.getGameTracker(1, 10);
+  assert.equal(result.rounds.find((r) => r.roundInt === 3 && r.status === 'done' && r.roundText.startsWith('Round of')).roundText, 'Round of 4');
+  assert.equal(result.rounds.find((r) => r.roundInt === -4).roundText, 'Round of 8');
+  assert.equal(result.rounds.find((r) => r.roundText === 'Winners Quarter-Final').roundInt, 3);
+  assert.ok(result.results.every((r) => r.round !== 'Grand Final' && r.round !== 'Losers Quarter-Final'));
+  assert.ok(result.results.some((r) => r.round === 'Round of 4'));
+  assert.ok(result.results.some((r) => r.round === 'Round of 8'));
+  assert.ok(result.results.some((r) => r.round === 'Winners Quarter-Final'));
+});
+
 test('getGameTracker stillAlive excludes anyone who has lost a completed set', async () => {
   await addPlayer(1, 'GranTODAKAI'); await addPlayer(2, 'Alioune');
   await seedPlayer(1, 10, 1, 1);

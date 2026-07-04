@@ -593,6 +593,39 @@ async function getUpcoming() {
 // Read-only: round-by-round history for a game's pre-Top-8 rounds — powers
 // the Bracket Tracker's round pills, results feed, and still-alive list.
 // Entirely separate from set_markets: no odds, no stakes, nothing bettable.
+// These exact round names also belong to the real Top 8 bracket (mirrors
+// scripts/sync-live.js's TOP8_ROUNDS/isTop8Round - duplicated rather than
+// imported since sync-live.js already requires this module, and requiring
+// it back would be circular). A pre-Top-8 history round stuck with one of
+// these names is easy to mistake for the actual Top 8 already underway, so
+// getGameTracker() relabels those as "Round of N" instead.
+const AMBIGUOUS_ROUND_NAMES = [
+  /grand final/,
+  /winners final/,
+  /winners semi final/,
+  /losers final/,
+  /losers semi final/,
+  /losers quarter final/,
+];
+function isAmbiguousRoundName(text) {
+  const n = (text || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  return AMBIGUOUS_ROUND_NAMES.some((re) => re.test(n));
+}
+
+// "Round of N" - N is this round's own distinct entrant count, rounded up
+// to the nearest power of two (byes mean brackets rarely land on an exact
+// power of two), so the label reads as "how many were left entering this
+// round" rather than a raw, possibly-odd headcount.
+function roundOfLabel(sets) {
+  const entrants = new Set();
+  for (const s of sets) {
+    if (s.player1_id) entrants.add(s.player1_id);
+    if (s.player2_id) entrants.add(s.player2_id);
+  }
+  const n = entrants.size || 2;
+  return `Round of ${2 ** Math.ceil(Math.log2(n))}`;
+}
+
 async function getGameTracker(tournamentId, gameId) {
   const rows = await db.allAsync(
     `SELECT round_text, round_int, phase_order, state,
@@ -609,6 +642,14 @@ async function getGameTracker(tournamentId, gameId) {
     if (!byRound.has(key)) byRound.set(key, { roundText: r.round_text, roundInt: r.round_int, phaseOrder: r.phase_order, sets: [] });
     byRound.get(key).sets.push(r);
   }
+  // Raw round_text (e.g. "Losers Quarter-Final") -> display label. Computed
+  // once per group so a round's pill and every one of its results use the
+  // identical string - the frontend filters results by exact match against
+  // the selected pill's roundText.
+  const displayLabel = new Map();
+  for (const g of byRound.values()) {
+    displayLabel.set(g.roundText, isAmbiguousRoundName(g.roundText) ? roundOfLabel(g.sets) : g.roundText);
+  }
   // "done" once every set has a result; "live" once at least one set has
   // started or finished; "next" when every set is still 'pending' - start.gg
   // generates the whole bracket shell (all sets pending) long before a
@@ -618,7 +659,7 @@ async function getGameTracker(tournamentId, gameId) {
     const allDone = g.sets.every((s) => s.state === 'completed');
     const anyStarted = g.sets.some((s) => s.state === 'in_progress' || s.state === 'completed');
     return {
-      roundText: g.roundText,
+      roundText: displayLabel.get(g.roundText),
       roundInt: g.roundInt,
       status: allDone ? 'done' : anyStarted ? 'live' : 'next',
     };
@@ -641,7 +682,7 @@ async function getGameTracker(tournamentId, gameId) {
       winner: nameOf(r.winner_id),
       loser: nameOf(loserId),
       score: `${winnerScore ?? 0}-${loserScore ?? 0}`,
-      round: r.round_text,
+      round: displayLabel.get(r.round_text) ?? r.round_text,
     };
   });
 
