@@ -451,7 +451,7 @@ const LiveBetting = () => {
   const renderPastSection = () => (
     <>
       <div className="brackets-section-head">
-        <div className={`brackets-section-label${pastVisible > 0 ? ' brackets-section-label--active' : ''}`}>Past Brackets</div>
+        <div className={`brackets-section-label${pastVisible > 0 ? ' brackets-section-label--active' : ''}`}>Past Tournaments</div>
         <div className="load-more-row">
           {pastEntries.length > pastVisible && (
             <button className="load-more" onClick={() => setPastVisible((n) => n + 5)}>Show more ({pastEntries.length - pastVisible} more)</button>
@@ -537,10 +537,10 @@ const LiveBetting = () => {
           // existing Future Tournaments show-more/less behavior below.
           const futureRest = notStarted.filter((item) => !nextUpIds.has(item.tournament.id));
 
-          const renderUpcomingPill = ({ tournament: t, games }, isNextUp = false) => {
+          const renderUpcomingPill = ({ tournament: t, games }, { highlighted = false, hideCountdown = false } = {}) => {
             const isExpanded = expandedTourneys.has(t.name);
             return (
-              <div key={t.id} className={`live-tourney-pill${isNextUp ? ' live-tourney-pill--next-up' : ''}`}>
+              <div key={t.id} className={`live-tourney-pill${highlighted ? ' live-tourney-pill--next-up' : ''}`}>
                 <div className="live-tourney-pill-header live-tourney-pill-header--upcoming">
                   <button type="button" className="live-tourney-pill-expand" onClick={() => toggleTourney(t.name)} aria-expanded={isExpanded}>
                     {t.logoUrl && <img src={t.logoUrl} alt={t.name} className="live-tourn-header-logo" />}
@@ -552,9 +552,11 @@ const LiveBetting = () => {
                         {t.numEntrants ? ` · ${t.numEntrants.toLocaleString()} entrants` : ''}
                       </span>
                     </div>
-                    <div className="live-tourn-header-countdown">
-                      <Countdown date={t.date} compact />
-                    </div>
+                    {!hideCountdown && (
+                      <div className="live-tourn-header-countdown">
+                        <Countdown date={t.date} compact />
+                      </div>
+                    )}
                     <span className="live-tourney-chevron">{isExpanded ? '▲' : '▼'}</span>
                   </button>
                 </div>
@@ -568,18 +570,6 @@ const LiveBetting = () => {
           };
           return (
             <>
-              {liveNow.length > 0 && (
-                <>
-                  <div className="brackets-next-up-label">Live</div>
-                  {liveNow.map((item) => renderUpcomingPill(item))}
-                </>
-              )}
-              {nextUp.length > 0 && (
-                <>
-                  <div className="brackets-next-up-label">Next Up</div>
-                  {nextUp.map((item) => renderUpcomingPill(item, true))}
-                </>
-              )}
               {futureRest.length > 0 && (
                 <>
                   <div className="brackets-section-head">
@@ -596,6 +586,21 @@ const LiveBetting = () => {
                     </div>
                   </div>
                   {futureRest.slice(Math.max(0, futureRest.length - futureVisible)).map((item) => renderUpcomingPill(item))}
+                </>
+              )}
+              {liveNow.length > 0 && (
+                <>
+                  <div className="brackets-live-label">
+                    <span className="brackets-live-dot" aria-hidden="true" />
+                    Live
+                  </div>
+                  {liveNow.map((item) => renderUpcomingPill(item, { highlighted: true, hideCountdown: true }))}
+                </>
+              )}
+              {nextUp.length > 0 && (
+                <>
+                  <div className="brackets-next-up-label">Next Up</div>
+                  {nextUp.map((item) => renderUpcomingPill(item))}
                 </>
               )}
             </>
