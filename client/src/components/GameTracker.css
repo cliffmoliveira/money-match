@@ -1,0 +1,25 @@
+.gt-tracker { padding: 14px; background: var(--surface); border: 1px solid var(--border-soft); border-radius: 12px; }
+.gt-note {
+  margin: 0 0 12px; font-size: 11px; line-height: 1.4; color: var(--faint);
+  padding: 7px 10px; background: var(--card); border: 1px dashed var(--border-strong); border-radius: 8px;
+}
+
+.gt-section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-bottom: 8px; }
+.gt-results { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.gt-result-row { background: var(--card); border: 1px solid var(--border-soft); border-radius: 10px; padding: 9px 11px; }
+.gt-result-row.gt-new { border-color: rgba(231, 180, 88, 0.3); }
+.gt-result-top { display: flex; align-items: center; justify-content: space-between; }
+.gt-result-winner { font-weight: 600; font-size: 13px; color: var(--text); }
+.gt-result-badge { font-size: 10px; color: var(--gold); font-weight: 700; text-transform: uppercase; }
+.gt-result-bottom { display: flex; align-items: center; justify-content: space-between; margin-top: 2px; }
+.gt-result-meta { font-size: 11px; color: var(--faint); }
+.gt-result-round { font-size: 10px; color: var(--faint); }
+
+.gt-alive { display: flex; flex-direction: column; gap: 6px; }
+.gt-alive-row {
+  display: flex; align-items: center; gap: 8px; padding: 7px 10px;
+  background: var(--card); border: 1px solid var(--border-soft); border-radius: 9px;
+}
+.gt-alive-seed { font-size: 10px; font-weight: 700; color: var(--faint); background: var(--surface); border-radius: 5px; padding: 1px 5px; }
+.gt-alive-name { font-weight: 600; font-size: 13px; color: var(--text); }
+.gt-empty { margin: 0; font-size: 12px; color: var(--faint); }
