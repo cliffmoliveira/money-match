@@ -3,6 +3,7 @@ import './ExhibitionSection.css';
 import '../styles/results-table.css';
 import { getGameLogoSources, getGameAlt, getGameLogoStyle } from '../utils/gameLogos';
 import { getTournamentLogoSources, getTournamentAlt, getTournamentLogoStyle } from '../utils/tournamentLogos';
+import { formatTournamentDateTime } from '../utils/tournamentDate';
 
 const STATE_BADGE = {
   open:    { label: 'LIVE',        cls: 'ex-badge-live' },
@@ -75,9 +76,7 @@ const ExhibitionTable = ({ exhibitions }) => (
         <tbody>
           {exhibitions.map((ex) => {
             const loser = ex.winner_name === ex.player1_name ? ex.player2_name : ex.player1_name;
-            const dateStr = ex.event_date
-              ? new Date(ex.event_date + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
-              : '—';
+            const dateStr = ex.event_date ? formatTournamentDateTime(ex.event_date) : '—';
             return (
               <tr key={ex.id} className="result-row">
                 <td className="tournament-name">
@@ -111,9 +110,7 @@ const ExhibitionTable = ({ exhibitions }) => (
     <div className="results-cards">
       {exhibitions.map((ex) => {
         const loser = ex.winner_name === ex.player1_name ? ex.player2_name : ex.player1_name;
-        const dateStr = ex.event_date
-          ? new Date(ex.event_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-          : null;
+        const dateStr = ex.event_date ? formatTournamentDateTime(ex.event_date) : null;
         return (
           <div className="result-card" key={ex.id}>
             <TournamentLogo name={ex.tournament_name} logoUrl={ex.tournament_logo_url} height={30} />
@@ -136,9 +133,7 @@ const ExhibitionTable = ({ exhibitions }) => (
 // Compact row — used on Home page for settled exhibitions
 const SettledRow = ({ ex }) => {
   const loser = ex.winner_name === ex.player1_name ? ex.player2_name : ex.player1_name;
-  const dateStr = ex.event_date
-    ? new Date(ex.event_date + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
-    : null;
+  const dateStr = ex.event_date ? formatTournamentDateTime(ex.event_date) : null;
   const meta = [ex.tournament_name, dateStr].filter(Boolean).join(' · ');
 
   return (

@@ -7,9 +7,17 @@
  */
 const db = require('./db/db');
 
+// Keep in sync with TIMEZONE_OPTIONS in client/src/utils/timezone.js.
+const VALID_TIMEZONES = new Set([
+  'America/Los_Angeles', 'America/Denver', 'America/Chicago', 'America/New_York',
+  'America/Sao_Paulo', 'UTC', 'Europe/London', 'Europe/Paris', 'Asia/Dubai',
+  'Asia/Kolkata', 'Asia/Seoul', 'Asia/Tokyo', 'Australia/Sydney',
+]);
+
 // field -> validation/normalization rules. `label` is used in error messages.
 const FIELDS = {
   display_name:   { required: true, min: 2, max: 30, label: 'Display name' },
+  timezone:       { oneOf: VALID_TIMEZONES, label: 'Timezone' },
   full_name:      { max: 80, label: 'Full name' },
   birthday:       { date: true, label: 'Birthday' },
   gender:         { max: 30, label: 'Gender' },
@@ -77,6 +85,7 @@ function clean(field, raw) {
     // Reject anything that isn't a raster image data URL (no SVG -> no script payloads).
     throw fail(field, 'Avatar must be a PNG, JPEG, WebP, or GIF image.');
   }
+  if (spec.oneOf && !spec.oneOf.has(v)) throw fail(field, `${spec.label} is not a recognized value.`);
   return v;
 }
 

@@ -60,7 +60,8 @@
 .account-field em.req { color: var(--gold); }
 
 .account-field input,
-.account-field textarea {
+.account-field textarea,
+.account-field select {
   width: 100%; box-sizing: border-box;
   padding: 10px 12px; border: 1px solid var(--border-strong); border-radius: 9px;
   background: var(--input); color: var(--text);
@@ -68,7 +69,8 @@
 }
 .account-field textarea { resize: vertical; min-height: 64px; }
 .account-field input:focus,
-.account-field textarea:focus { outline: none; border-color: rgba(231, 180, 88, 0.55); }
+.account-field textarea:focus,
+.account-field select:focus { outline: none; border-color: rgba(231, 180, 88, 0.55); }
 .account-field input::placeholder,
 .account-field textarea::placeholder { color: var(--faint); }
 

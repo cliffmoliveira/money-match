@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import './AccountSettings.css';
 import { apiFetch } from '../utils/api';
 import PasswordInput from './PasswordInput';
+import { DEFAULT_TIMEZONE, TIMEZONE_OPTIONS, setUserTimezone } from '../utils/timezone';
 
 const GENDERS = ['Male', 'Female', 'Non-binary', 'Prefer not to say'];
 const PRONOUNS = ['he/him', 'she/her', 'they/them'];
@@ -10,7 +11,7 @@ const PRONOUNS = ['he/him', 'she/her', 'they/them'];
 const EMPTY = {
   display_name: '', full_name: '', birthday: '', gender: '', pronouns: '',
   country: '', team: '', favorite_game: '', main_character: '', bio: '',
-  twitch: '', twitter: '', discord: '', avatar: '',
+  twitch: '', twitter: '', discord: '', avatar: '', timezone: DEFAULT_TIMEZONE,
 };
 
 // Person outline shown when no avatar is uploaded.
@@ -73,7 +74,9 @@ const AccountSettings = () => {
         setEmail(a.email || '');
         const next = { ...EMPTY };
         for (const k of Object.keys(EMPTY)) next[k] = a[k] || '';
+        next.timezone = a.timezone || DEFAULT_TIMEZONE;
         setForm(next);
+        setUserTimezone(next.timezone);
       })
       .catch(() => setError('Could not load your account.'));
   }, [userId]);
@@ -118,6 +121,7 @@ const AccountSettings = () => {
       if (!res.ok) throw new Error(data.error || 'Could not save your changes.');
       // Keep the navbar greeting + public name in sync immediately.
       localStorage.setItem('username', data.display_name || form.display_name.trim());
+      setUserTimezone(data.timezone || form.timezone);
       window.dispatchEvent(new Event('mm-user-updated'));
       setSuccess(true);
     } catch (err) {
@@ -206,6 +210,17 @@ const AccountSettings = () => {
             <span>Full name</span>
             <input type="text" value={form.full_name} onChange={set('full_name')} maxLength={80} placeholder="Optional" />
           </label>
+        </section>
+
+        <section className="account-section">
+          <h2>Preferences</h2>
+          <label className="account-field">
+            <span>Timezone</span>
+            <select value={form.timezone} onChange={set('timezone')}>
+              {TIMEZONE_OPTIONS.map((tz) => <option key={tz.value} value={tz.value}>{tz.label}</option>)}
+            </select>
+          </label>
+          <p className="account-pw-hint">Controls what time tournaments are shown in across the site.</p>
         </section>
 
         <section className="account-section">

@@ -9,7 +9,7 @@ import { getGameLogoSources, getGameAlt, getGameLogoStyle } from '../utils/gameL
 import { fm as fmt, fmSigned as signed, fmAmount } from '../utils/money';
 import { apiFetch } from '../utils/api';
 import TournamentFilterBar from './TournamentFilterBar';
-import { parseTournamentDate } from '../utils/tournamentDate';
+import { formatTournamentDateTime } from '../utils/tournamentDate';
 
 const POLL_MS = 6000; // refresh markets/odds/pick'em every 6s while the Live page is open
 
@@ -353,7 +353,7 @@ const LiveBetting = () => {
             {tDate && (
               <span className="live-tourn-header-meta-right">
                 <span className="live-tourn-header-date">
-                  {parseTournamentDate(tDate)?.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                  {formatTournamentDateTime(tDate)}
                 </span>
                 {(tCity || tCountry) && (
                   <span className="live-tourn-header-location">{[tCity, tCountry].filter(Boolean).join(', ')}</span>
@@ -518,7 +518,7 @@ const LiveBetting = () => {
                     <div className="live-tourn-header-meta">
                       <span className="live-tourn-header-name">{t.name}</span>
                       <span className="live-tourn-header-sub">
-                        {parseTournamentDate(t.date)?.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                        {formatTournamentDateTime(t.date)}
                         {(t.city || t.country) && ` · ${[t.city, t.country].filter(Boolean).join(', ')}`}
                         {t.numEntrants ? ` · ${t.numEntrants.toLocaleString()} entrants` : ''}
                       </span>
