@@ -515,6 +515,11 @@ const LiveBetting = () => {
             return target != null && !isNaN(target) && target <= now;
           };
 
+          // Once a tournament's Top 8 bracket actually has real markets, it
+          // gets its own pill further down via renderPills(groups) - showing
+          // it again here too would duplicate it on the page.
+          const upcomingNotYetMarketed = upcoming.filter((item) => !groups[item.tournament.name]);
+
           // upcoming is sorted furthest-date-first (see getUpcoming()'s
           // `ORDER BY date(date) DESC`). Split into what's live right now
           // (any count, no cap) vs. what hasn't started yet, then pick the
@@ -523,7 +528,7 @@ const LiveBetting = () => {
           // no matter how its date sorts.
           const liveNow = [];
           const notStarted = [];
-          for (const item of upcoming) (isHappeningNow(item.tournament) ? liveNow : notStarted).push(item);
+          for (const item of upcomingNotYetMarketed) (isHappeningNow(item.tournament) ? liveNow : notStarted).push(item);
 
           const notStartedSoonestFirst = [...notStarted].reverse();
           const nextUp = notStartedSoonestFirst
