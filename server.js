@@ -496,6 +496,9 @@ app.post('/api/bets', requireAuth, async (req, res) => {
 });
 
 // Endpoint: Fetch Dynamic Bet Details for a Game
+// Also reports whether outright picks are locked (futures.isFuturesLocked -
+// the same check POST /api/bets enforces) so the client can grey out the
+// "Outright" pill instead of letting a pick fail only once submitted.
 app.get('/api/game/:tournamentId/:gameId/players', async (req, res) => {
   const { tournamentId, gameId } = req.params;
 
@@ -519,8 +522,9 @@ app.get('/api/game/:tournamentId/:gameId/players', async (req, res) => {
        ORDER BY (pgt.seed_num IS NULL), pgt.seed_num`,
       [tournamentId, gameId]
     );
+    const lock = await futures.isFuturesLocked(tournamentId);
 
-    res.status(200).json(playersData);
+    res.status(200).json({ locked: lock.locked, entrants: playersData });
   } catch (err) {
     console.error('Error fetching game players:', err.message);
     res.status(500).json({ error: 'Failed to fetch players', details: err.message });

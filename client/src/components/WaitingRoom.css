@@ -62,6 +62,34 @@
 .wr-round-pill.wr-round-done .wr-round-pill-label, .wr-round-pill.wr-round-done .wr-round-pill-status { color: var(--win); }
 .wr-round-pill.wr-round-live .wr-round-pill-label, .wr-round-pill.wr-round-live .wr-round-pill-status { color: var(--gold); }
 .wr-round-pill.selected { box-shadow: 0 0 0 2px var(--gold) inset; }
+/* "Outright" pill: gold/open while picks are still allowed, greyed/locked once
+   the tournament has started (mirrors the "done" vs "live" treatment above but
+   with its own distinct status text so it never reads as a bracket round). */
+.wr-round-pill.wr-round-open { background: var(--gold-tint); border-color: var(--gold); }
+.wr-round-pill.wr-round-open .wr-round-pill-label, .wr-round-pill.wr-round-open .wr-round-pill-status { color: var(--gold); }
+.wr-round-pill.wr-round-locked { background: var(--surface); border-color: var(--border-soft); opacity: .6; }
+.wr-round-pill.wr-round-locked .wr-round-pill-label, .wr-round-pill.wr-round-locked .wr-round-pill-status { color: var(--muted); }
+
+/* Outright picks panel — flat seed list (replaces the old fake seed-paired
+   bracket projection). Each row is tappable to stage a tournament-winner pick
+   in the same slip drawer used below. */
+.wr-outright-panel { margin-bottom: 8px; }
+.wr-empty { margin: 0; padding: 14px; font-size: 13px; color: var(--muted); text-align: center; }
+.wr-outright-rows { display: flex; flex-direction: column; gap: 8px; }
+.wr-outright-row {
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+  padding: 10px 12px; background: var(--card); border: 1px solid var(--border-soft); border-radius: 10px;
+  cursor: pointer; font: inherit; color: inherit; transition: background .15s ease, border-color .15s ease;
+}
+.wr-outright-row:hover { border-color: var(--gold); }
+.wr-outright-row.picked { background: rgba(231, 180, 88, 0.12); border-color: var(--gold); }
+.wr-outright-seed {
+  flex-shrink: 0; font-size: 11px; font-weight: 700; color: var(--faint);
+  background: var(--surface); border-radius: 5px; padding: 2px 6px; font-variant-numeric: tabular-nums;
+}
+.wr-outright-name { flex: 1; min-width: 0; font-family: 'Saira', sans-serif; font-weight: 700; font-size: 14px; color: var(--text); }
+.wr-outright-row.picked .wr-outright-name { color: var(--gold); }
+.wr-outright-odds { flex-shrink: 0; font-size: 13px; font-weight: 700; color: var(--gold); }
 
 /* Outright (tournament-winner) bet slip — singles only. Lives in a bottom-sheet
    drawer (opened via the sticky "Picks (n)" tab below) instead of inline below
