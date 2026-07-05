@@ -83,13 +83,26 @@
 }
 .wr-outright-row:hover { border-color: var(--gold); }
 .wr-outright-row.picked { background: rgba(231, 180, 88, 0.12); border-color: var(--gold); }
+.wr-outright-row:disabled { cursor: default; }
+.wr-outright-row:disabled:hover { border-color: var(--border-soft); }
+/* Already-placed pick (from myPicks) — a distinct win-green treatment so it
+   reads as "confirmed" rather than "currently staged" (gold), and stays
+   visible/highlighted even once the row is disabled (locked). */
+.wr-outright-row.confirmed { background: var(--win-tint); border-color: rgba(67, 209, 136, 0.35); }
+.wr-outright-row.confirmed:hover { border-color: rgba(67, 209, 136, 0.35); }
+.wr-outright-badge {
+  flex-shrink: 0; font-size: 10px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase;
+  color: var(--win); background: rgba(67, 209, 136, 0.15); border-radius: 5px; padding: 2px 6px;
+}
 .wr-outright-seed {
   flex-shrink: 0; font-size: 11px; font-weight: 700; color: var(--faint);
   background: var(--surface); border-radius: 5px; padding: 2px 6px; font-variant-numeric: tabular-nums;
 }
 .wr-outright-name { flex: 1; min-width: 0; font-family: 'Saira', sans-serif; font-weight: 700; font-size: 14px; color: var(--text); }
 .wr-outright-row.picked .wr-outright-name { color: var(--gold); }
+.wr-outright-row.confirmed .wr-outright-name { color: var(--win); }
 .wr-outright-odds { flex-shrink: 0; font-size: 13px; font-weight: 700; color: var(--gold); }
+.wr-outright-row.confirmed .wr-outright-odds { color: var(--win); }
 
 /* Outright (tournament-winner) bet slip — singles only. Lives in a bottom-sheet
    drawer (opened via the sticky "Picks (n)" tab below) instead of inline below

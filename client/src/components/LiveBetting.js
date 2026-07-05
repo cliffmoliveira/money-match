@@ -5,6 +5,9 @@ import WaitingRoom from './WaitingRoom';
 import GameTracker from './GameTracker';
 import GameTabStrip from './GameTabStrip';
 import RoundPillStrip from './RoundPillStrip';
+import OutrightPanel from './OutrightPanel';
+import OutrightSlipDrawer from './OutrightSlipDrawer';
+import useOutrightPicks from '../utils/useOutrightPicks';
 import Countdown from './Countdown';
 import StakeStepper from './StakeStepper';
 // Fight Money formatters (fmt/signed kept as names so call sites are unchanged).
@@ -18,12 +21,16 @@ const POLL_MS = 6000; // refresh markets/odds/pick'em every 6s while the Live pa
 // Pre-Top-8 round history (Pools, Round of N, ...) for a tournament/game that
 // already has real Top-8 markets — the same round-pill nav WaitingRoom uses
 // pre-Top-8, so a tournament's full run stays visible once markets exist
-// (live or already settled), not just its Top 8 bracket.
+// (live or already settled), not just its Top 8 bracket. Also carries the
+// "Outright" pill (same as WaitingRoom) so a tournament-winner pick placed
+// before Top 8 started stays visible/highlighted for the tournament's whole
+// run, instead of disappearing the moment real markets exist.
 const TrackerPanel = ({ tournamentId, gameId, top8Status, bracket }) => {
   const [rounds, setRounds] = useState([]);
   const [results, setResults] = useState([]);
   const [stillAlive, setStillAlive] = useState([]);
   const [selected, setSelected] = useState('Top 8');
+  const outright = useOutrightPicks(tournamentId, gameId);
 
   useEffect(() => {
     if (!tournamentId || !gameId) { setRounds([]); setResults([]); setStillAlive([]); return; }
@@ -41,15 +48,38 @@ const TrackerPanel = ({ tournamentId, gameId, top8Status, bracket }) => {
     return () => { active = false; };
   }, [tournamentId, gameId]);
 
-  if (rounds.length === 0) return bracket; // nothing tracked pre-Top-8 — just the bracket
-
-  const pills = [...rounds, { roundText: 'Top 8', roundInt: null, status: top8Status }];
+  const pills = [
+    { roundText: 'Outright', roundInt: null, status: outright.locked ? 'locked' : 'open' },
+    ...rounds,
+    { roundText: 'Top 8', roundInt: null, status: top8Status },
+  ];
   return (
     <>
       <RoundPillStrip rounds={pills} selected={selected} onSelect={(r) => setSelected(r.roundText)} />
-      {selected === 'Top 8'
-        ? bracket
-        : <GameTracker seeds={stillAlive} results={results} roundLabel={selected} />}
+      {selected === 'Outright' ? (
+        <OutrightPanel
+          seedRows={outright.seedRows}
+          locked={outright.locked}
+          slip={outright.slip}
+          myPicks={outright.myPicks}
+          onPick={outright.onPick}
+        />
+      ) : selected === 'Top 8' ? (
+        bracket
+      ) : (
+        <GameTracker seeds={stillAlive} results={results} roundLabel={selected} />
+      )}
+      <OutrightSlipDrawer
+        slipEntries={outright.slipEntries}
+        slipOpen={outright.slipOpen}
+        setSlipOpen={outright.setSlipOpen}
+        updateStake={outright.updateStake}
+        removeFromSlip={outright.removeFromSlip}
+        totalStake={outright.totalStake}
+        placing={outright.placing}
+        placeMsg={outright.placeMsg}
+        placeOutrights={outright.placeOutrights}
+      />
     </>
   );
 };
