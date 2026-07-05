@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import './LiveBetting.css';
 import Bracket from './Bracket';
 import WaitingRoom from './WaitingRoom';
+import GameTracker from './GameTracker';
 import Countdown from './Countdown';
 import StakeStepper from './StakeStepper';
 import { getGameLogoSources, getGameAlt, getGameLogoStyle } from '../utils/gameLogos';
@@ -31,6 +32,59 @@ const GameLogo = ({ name, height = 30 }) => {
       style={getGameLogoStyle(name, height)}
       onError={() => (index + 1 < candidates.length ? setIndex(index + 1) : setFailed(true))}
     />
+  );
+};
+
+// Pre-Top-8 round history (Pools, Round of N, ...) for a tournament/game that
+// already has real Top-8 markets — the same round-pill nav WaitingRoom uses
+// pre-Top-8, so a tournament's full run stays visible once markets exist
+// (live or already settled), not just its Top 8 bracket.
+const TrackerPanel = ({ tournamentId, gameId, top8Status, bracket }) => {
+  const [rounds, setRounds] = useState([]);
+  const [results, setResults] = useState([]);
+  const [stillAlive, setStillAlive] = useState([]);
+  const [selected, setSelected] = useState('Top 8');
+
+  useEffect(() => {
+    if (!tournamentId || !gameId) { setRounds([]); setResults([]); setStillAlive([]); return; }
+    let active = true;
+    setSelected('Top 8');
+    fetch(`/api/game/${tournamentId}/${gameId}/tracker`)
+      .then((r) => (r.ok ? r.json() : { rounds: [], results: [], stillAlive: [] }))
+      .then((data) => {
+        if (!active) return;
+        setRounds(data.rounds || []);
+        setResults(data.results || []);
+        setStillAlive(data.stillAlive || []);
+      })
+      .catch(() => { if (active) { setRounds([]); setResults([]); setStillAlive([]); } });
+    return () => { active = false; };
+  }, [tournamentId, gameId]);
+
+  if (rounds.length === 0) return bracket; // nothing tracked pre-Top-8 — just the bracket
+
+  const pills = [...rounds, { roundText: 'Top 8', roundInt: null, status: top8Status }];
+  return (
+    <>
+      <div className="wr-round-pills" role="tablist">
+        {pills.map((r, i) => (
+          <button
+            type="button"
+            role="tab"
+            key={`${r.roundText}-${i}`}
+            aria-selected={selected === r.roundText}
+            className={`wr-round-pill wr-round-${r.status}${selected === r.roundText ? ' selected' : ''}`}
+            onClick={() => setSelected(r.roundText)}
+          >
+            <div className="wr-round-pill-label">{r.roundText}</div>
+            <div className="wr-round-pill-status">{r.status}</div>
+          </button>
+        ))}
+      </div>
+      {selected === 'Top 8'
+        ? bracket
+        : <GameTracker seeds={stillAlive} results={results} roundLabel={selected} />}
+    </>
   );
 };
 
@@ -396,12 +450,19 @@ const LiveBetting = () => {
                       My picks
                     </button>
                   )}
-                  <Bracket
-                    markets={activeTabData.mkts}
-                    slip={slip}
-                    onPick={togglePick}
-                    demoControls={demo ? renderDemoControls : null}
-                    bets={showPnl ? Object.fromEntries(activeGameBets.map((b) => [b.market_id, b])) : {}}
+                  <TrackerPanel
+                    tournamentId={activeTabData.mkts[0]?.tournament_id}
+                    gameId={activeTabData.mkts[0]?.game_id}
+                    top8Status={activeTabData.isSettled ? 'done' : activeTabData.mkts.some((m) => m.state === 'open' || m.state === 'closed') ? 'live' : 'next'}
+                    bracket={
+                      <Bracket
+                        markets={activeTabData.mkts}
+                        slip={slip}
+                        onPick={togglePick}
+                        demoControls={demo ? renderDemoControls : null}
+                        bets={showPnl ? Object.fromEntries(activeGameBets.map((b) => [b.market_id, b])) : {}}
+                      />
+                    }
                   />
                 </div>
               </section>
