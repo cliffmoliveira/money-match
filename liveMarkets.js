@@ -243,6 +243,15 @@ async function settleMarket(marketId, winnerId, p1Score = null, p2Score = null) 
     const market = await db.getAsync('SELECT * FROM set_markets WHERE id = ?', [marketId]);
     if (!market || market.state === 'void') return; // a void market has no winner; never settle it after the fact
     const alreadySettled = market.state === 'settled';
+    // Guard against settling a slot that was never actually filled. Can happen
+    // when fillBracketSlot's stillActive guard returns early for one player
+    // (they already have an active match elsewhere) while start.gg still
+    // reports the set as complete - without this check the market gets
+    // force-settled with one side still the TBD sentinel (id 0), showing as
+    // "TBD" winning a real score in the bracket. Safe to skip: the caller
+    // (scripts/sync-live.js) re-polls and retries settlement once the slot
+    // genuinely fills in.
+    if (!alreadySettled && (!market.player1_id || !market.player2_id)) return;
     // Authoritative once settled: ignore the caller's argument so a stray
     // re-call can't re-grade the market against a different winner.
     const effectiveWinnerId = alreadySettled ? market.winner_id : winnerId;

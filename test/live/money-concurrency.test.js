@@ -135,6 +135,28 @@ test('concurrency: a burst of bets while the market settles never loses money', 
   await assertLedgerReconciles(users);
 });
 
+test('settleMarket refuses to settle a market whose opponent slot is still TBD', async () => {
+  // Reproduces a real production bug: fillBracketSlot's stillActive guard can
+  // return early for one slot (its player already has an active match
+  // elsewhere) while the caller in scripts/sync-live.js still goes on to call
+  // settleMarket unconditionally once start.gg reports the set as complete.
+  // The result was a "settled" market with one side still the TBD sentinel
+  // (id 0), rendered in the bracket as if TBD had won a real score.
+  const r = await db.runAsync(
+    `INSERT INTO set_markets (tournament_id, game_id, startgg_set_id, player1_id, player2_id,
+       state, p1_prob, p2_prob, seed_k_cents, p1_live_odds, p2_live_odds)
+     VALUES (1, 1, 'm-tbd', ?, 0, 'pending', 0.5, 0.5, 0, 0, 0)`,
+    [P1]
+  );
+  const marketId = r.lastID;
+
+  await lm.settleMarket(marketId, P1, 3, 0);
+
+  const market = await db.getAsync('SELECT * FROM set_markets WHERE id = ?', [marketId]);
+  assert.notEqual(market.state, 'settled', 'a market with an unfilled (TBD) slot must never be marked settled');
+  assert.equal(market.winner_id, null);
+});
+
 test('house bankroll cache reflects settlement (invalidated, not stale)', async () => {
   for (const u of [1, 2]) await addUser(u);
   const marketId = await openMarket();
