@@ -460,17 +460,30 @@ async function fetchHistoryPhaseSets(eventId, phaseId) {
 }
 
 /**
+ * The tournament/events/phases shell (no set data yet) - the one piece both
+ * fetchActiveEvents and fetchHistoryPhases need. Fetched once per tournament
+ * per poll cycle and passed to both, instead of each independently re-issuing
+ * this same query - with several tournaments live at once, that duplicate
+ * call was itself a meaningful chunk of the request volume triggering
+ * start.gg's rate limit.
+ */
+async function fetchTournamentEvents(startggId) {
+  const data = await ggRetry(LIVE_PHASES, { id: startggId });
+  return data?.tournament?.events || [];
+}
+
+/**
  * Resolve each event's FINAL phase (highest phaseOrder) and fetch its sets,
  * returning the { id, name, videogame, sets: { nodes } } shape that
  * processTournamentEvents consumes. Targeting the finals phase — instead of the
  * first page of the event-wide set list — is what makes Top 8 detection reliable
- * for large tournaments.
+ * for large tournaments. Accepts pre-fetched `events` (see fetchTournamentEvents)
+ * to avoid a redundant LIVE_PHASES call; fetches its own if omitted.
  */
-async function fetchActiveEvents(startggId) {
-  const data = await ggRetry(LIVE_PHASES, { id: startggId });
-  const events = data?.tournament?.events || [];
+async function fetchActiveEvents(startggId, events = null) {
+  const evs = events ?? (await fetchTournamentEvents(startggId));
   const out = [];
-  for (const ev of events) {
+  for (const ev of evs) {
     const phases = ev.phases || [];
     if (phases.length === 0) continue;
     const finalPhase = resolveFinalPhase(phases);
@@ -485,13 +498,14 @@ async function fetchActiveEvents(startggId) {
  * covers the final/Top-8 phase for real markets). Read-only — feeds
  * bracket_history via processHistorySets, never set_markets. Returns one
  * entry per non-final phase so groupSetsIntoRounds can tell pools apart from
- * bracket rounds by phaseName.
+ * bracket rounds by phaseName. Accepts pre-fetched `events` (see
+ * fetchTournamentEvents) to avoid a redundant LIVE_PHASES call; fetches its
+ * own if omitted.
  */
-async function fetchHistoryPhases(startggId) {
-  const data = await ggRetry(LIVE_PHASES, { id: startggId });
-  const events = data?.tournament?.events || [];
+async function fetchHistoryPhases(startggId, events = null) {
+  const evs = events ?? (await fetchTournamentEvents(startggId));
   const out = [];
-  for (const ev of events) {
+  for (const ev of evs) {
     const phases = ev.phases || [];
     if (phases.length < 2) continue; // nothing before the final phase to track
     const finalPhase = resolveFinalPhase(phases);
@@ -521,14 +535,15 @@ async function syncLive({ all = false } = {}) {
   const totals = { tournaments: 0, opened: 0, closed: 0, settled: 0 };
   for (const tRow of tournaments) {
     try {
-      const events = await fetchActiveEvents(tRow.startgg_id);
+      const tournamentEvents = await fetchTournamentEvents(tRow.startgg_id);
+      const events = await fetchActiveEvents(tRow.startgg_id, tournamentEvents);
       const s = await processTournamentEvents(tRow, events);
       totals.tournaments++;
       totals.opened += s.opened; totals.closed += s.closed; totals.settled += s.settled;
 
       // Read-only round history for pre-Top-8 rounds — separate pass, separate
       // table, never touches set_markets/odds/bets.
-      const historyPhases = await fetchHistoryPhases(tRow.startgg_id);
+      const historyPhases = await fetchHistoryPhases(tRow.startgg_id, tournamentEvents);
       const byGame = new Map();
       for (const phase of historyPhases) {
         const gameId = await findOrCreateGameId(phase.videogame);
