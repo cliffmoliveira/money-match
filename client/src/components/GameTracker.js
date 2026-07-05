@@ -34,7 +34,7 @@ const GameTracker = ({ seeds = [], results = [], roundLabel }) => {
         ))}
       </div>
 
-      <div className="gt-section-title">Still alive</div>
+      <div className="gt-section-title">Still alive (current)</div>
       <div className="gt-alive">
         {seeds.length === 0 && <p className="gt-empty">Seeding not available yet.</p>}
         {seeds.map((p) => (
