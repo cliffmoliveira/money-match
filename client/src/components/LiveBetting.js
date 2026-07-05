@@ -569,7 +569,7 @@ const LiveBetting = () => {
               <div key={t.id} className={`live-tourney-pill${highlighted ? ' live-tourney-pill--next-up' : ''}`}>
                 {renderTourneyHeader({
                   name: t.name, logoUrl: t.logoUrl, date: t.date, city: t.city, country: t.country,
-                  numEntrants: t.numEntrants, hasLive: highlighted, isExpanded, onToggle: () => toggleTourney(t.name),
+                  numEntrants: t.numEntrants, hasLive: !!t.hasLiveRound, isExpanded, onToggle: () => toggleTourney(t.name),
                   countdown: !hideCountdown && (
                     <div className="live-tourn-header-countdown">
                       <Countdown date={t.date} compact />

@@ -584,7 +584,8 @@ async function clearDemoMarkets() {
 async function getUpcoming() {
   const tournaments = await db.allAsync(
     `SELECT id, name, date, city, country, logo_url AS logoUrl, is_live AS isLive,
-       (SELECT SUM(num_entrants) FROM tournament_games tg WHERE tg.tournament_id = t.id) AS numEntrants
+       (SELECT SUM(num_entrants) FROM tournament_games tg WHERE tg.tournament_id = t.id) AS numEntrants,
+       EXISTS (SELECT 1 FROM bracket_history bh WHERE bh.tournament_id = t.id AND bh.state = 'in_progress') AS hasLiveRound
      FROM tournaments t
      WHERE startgg_id IS NOT NULL
        AND (is_live = 1
