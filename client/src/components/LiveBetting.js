@@ -371,7 +371,13 @@ const LiveBetting = () => {
         const isSettled = mkts.length > 0 && mkts.every((m) => m.state === 'settled' || m.state === 'void');
         const gfMarket = isSettled ? mkts.find((m) => m.state === 'settled' && /grand.final/i.test(m.round_text || '')) : null;
         const winner = gfMarket ? shortTag(gfMarket.winner_id === gfMarket.player1_id ? gfMarket.player1_name : gfMarket.player2_name) : null;
-        return { key: `${tName}::${gName}`, gameName: gName, mkts, isLive: mkts.some((m) => m.state === 'closed'), isSettled, winner };
+        // "Live" means the bracket has started and isn't fully settled yet -
+        // not just "a set is being played this exact second." Between two
+        // sets (one just settled, the next not yet opened) every market is
+        // either settled/void or still pending, with none open/closed - that
+        // used to read as "not live" even though the bracket is clearly mid-run.
+        const isLive = !isSettled && mkts.some((m) => m.state !== 'pending');
+        return { key: `${tName}::${gName}`, gameName: gName, mkts, isLive, isSettled, winner };
       });
     const hasLive = tTabs.some((t) => t.isLive);
     const isExpanded = expandedTourneys.has(tName);
@@ -412,7 +418,7 @@ const LiveBetting = () => {
                   <TrackerPanel
                     tournamentId={activeTabData.mkts[0]?.tournament_id}
                     gameId={activeTabData.mkts[0]?.game_id}
-                    top8Status={activeTabData.isSettled ? 'done' : activeTabData.mkts.some((m) => m.state === 'open' || m.state === 'closed') ? 'live' : 'next'}
+                    top8Status={activeTabData.isSettled ? 'done' : activeTabData.isLive ? 'live' : 'next'}
                     bracket={
                       <Bracket
                         markets={activeTabData.mkts}
