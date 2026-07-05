@@ -29,23 +29,8 @@
 }
 .wr-bracket { overflow-x: auto; }
 
-/* Per-game accordion — one row per game, tap to expand its detail in place.
-   Replaces the old always-one-game tab strip so other games stay visible
-   (as collapsed rows) instead of requiring you to back out to switch. */
-.wr-game-list { display: flex; flex-direction: column; gap: 8px; }
-.wr-game-row { background: var(--surface); border: 1px solid var(--border-soft); border-radius: 12px; overflow: hidden; }
-.wr-game-row.open { border-color: var(--border-strong); }
-.wr-game-row-header {
-  display: flex; align-items: center; gap: 10px; width: 100%;
-  background: none; border: none; padding: 12px 14px; cursor: pointer; text-align: left;
-  font-family: 'Hanken Grotesk', sans-serif; color: var(--text);
-}
-.wr-game-row-logo { flex: 1; display: flex; align-items: center; height: 28px; min-width: 0; }
-.wr-game-row-logo img { height: 100%; width: auto; max-width: 100%; object-fit: contain; }
-.wr-game-row-chevron { flex-shrink: 0; margin-left: auto; color: var(--faint); font-size: 11px; }
-.wr-game-row-body { padding: 0 14px 14px; }
-
-/* Round pills double as the nav for each expanded game — tapping "Top 8"
+/* Round pills double as the nav for the active game (picked via the shared
+   GameTabStrip above) — tapping "Top 8"
    shows the live Bracket, tapping any earlier round shows that round's
    results in History. Status coloring (done/live/next) stays visible
    alongside a distinct "selected" ring for whichever one you're viewing, so

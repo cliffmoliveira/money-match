@@ -65,10 +65,6 @@
   background: none; border: none; cursor: pointer;
   padding: 10px 8px; text-align: left; min-width: 0;
 }
-.live-tourney-pill-meta-toggle {
-  flex-shrink: 0; display: flex; align-items: center; gap: 8px;
-  background: none; border: none; cursor: pointer; padding: 10px 8px;
-}
 .live-tourney-chevron {
   font-size: 10px; color: var(--muted); flex-shrink: 0;
 }
@@ -76,6 +72,7 @@
   display: flex; flex-direction: column; justify-content: center;
   min-width: 0; flex: 1;
 }
+.live-tourn-header-name-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .live-tourn-header-sub {
   font-family: 'Saira', sans-serif; font-size: 11px; font-weight: 500;
   color: var(--muted); margin-top: 2px;
@@ -228,21 +225,6 @@
   color: var(--text); letter-spacing: -0.01em;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
 }
-/* Regular pill: name is a direct flex child and must stretch to push date right */
-.live-tourney-pill-expand > .live-tourn-header-name { flex: 1; }
-.live-tourn-header-meta-right {
-  display: flex; flex-direction: column; align-items: flex-end;
-  gap: 2px; margin-left: auto; flex-shrink: 0;
-}
-.live-tourn-header-date {
-  font-family: 'Saira', sans-serif; font-size: 13px; font-weight: 600;
-  color: var(--text); white-space: nowrap;
-}
-.live-tourn-header-location {
-  font-family: 'Saira', sans-serif; font-size: 12px; font-weight: 400;
-  color: var(--muted); white-space: nowrap;
-}
-
 .live-tournament { margin-bottom: 30px; }
 .live-tournament > h2 { display: none; }
 .live-tournament + .live-tournament {

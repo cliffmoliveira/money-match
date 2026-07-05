@@ -418,6 +418,7 @@ async function getMarkets({ includeAll = false, pastOnly = false } = {}) {
   return db.allAsync(
     `SELECT m.*, t.name AS tournament_name, t.logo_url AS tournament_logo_url,
             t.date AS tournament_date, t.city AS tournament_city, t.country AS tournament_country,
+            (SELECT SUM(num_entrants) FROM tournament_games tg WHERE tg.tournament_id = t.id) AS tournament_num_entrants,
             g.name AS game_name,
             p1.name AS player1_name, p2.name AS player2_name
      FROM set_markets m

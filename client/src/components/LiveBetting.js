@@ -3,9 +3,9 @@ import './LiveBetting.css';
 import Bracket from './Bracket';
 import WaitingRoom from './WaitingRoom';
 import GameTracker from './GameTracker';
+import GameTabStrip from './GameTabStrip';
 import Countdown from './Countdown';
 import StakeStepper from './StakeStepper';
-import { getGameLogoSources, getGameAlt, getGameLogoStyle } from '../utils/gameLogos';
 // Fight Money formatters (fmt/signed kept as names so call sites are unchanged).
 import { fm as fmt, fmSigned as signed, fmAmount } from '../utils/money';
 import { apiFetch } from '../utils/api';
@@ -13,27 +13,6 @@ import TournamentFilterBar from './TournamentFilterBar';
 import { formatTournamentDateTime, parseTournamentDate } from '../utils/tournamentDate';
 
 const POLL_MS = 6000; // refresh markets/odds/pick'em every 6s while the Live page is open
-
-// Game logo for the live section headers; walks the asset candidates and falls
-// back to the game name as text if none load.
-const GameLogo = ({ name, height = 30 }) => {
-  const [index, setIndex] = useState(0);
-  const [failed, setFailed] = useState(false);
-  if (!name) return null;
-  const candidates = Object.values(getGameLogoSources(name)).filter(Boolean);
-  const src = candidates[index];
-  // Fall back to the game name as text if there's no logo, or every candidate
-  // fails to load.
-  if (failed || !src) return <>{name}</>;
-  return (
-    <img
-      src={src}
-      alt={getGameAlt(name)}
-      style={getGameLogoStyle(name, height)}
-      onError={() => (index + 1 < candidates.length ? setIndex(index + 1) : setFailed(true))}
-    />
-  );
-};
 
 // Pre-Top-8 round history (Pools, Round of N, ...) for a tournament/game that
 // already has real Top-8 markets — the same round-pill nav WaitingRoom uses
@@ -108,8 +87,6 @@ const LiveBetting = () => {
   const [activeTabs, setActiveTabs] = useState({});     // { [tName]: tabKey }
   const [expandedTourneys, setExpandedTourneys] = useState(new Set());
   const [showPnl, setShowPnl] = useState(false);
-  const tabsRefs = useRef({});
-  const scrollTabs = (tName, dir) => tabsRefs.current[tName]?.scrollBy({ left: dir * 220, behavior: 'smooth' });
   const toggleTourney = (tName) => setExpandedTourneys((prev) => {
     const next = new Set(prev);
     next.has(tName) ? next.delete(tName) : next.add(tName);
@@ -369,8 +346,38 @@ const LiveBetting = () => {
 
   if (loading) return <p className="live-loading">Loading live markets…</p>;
 
+  // Single header layout shared by every tournament pill (Future/Next Up/Live/
+  // Past/marketed) — logo, name (+ LIVE badge), date · location · entrants
+  // subline, optional countdown, chevron. One consistent look regardless of
+  // which section or data source (upcoming vs real markets) the pill came from.
+  const renderTourneyHeader = ({ name, logoUrl, date, city, country, numEntrants, hasLive, isExpanded, onToggle, countdown }) => (
+    <div className="live-tourney-pill-header live-tourney-pill-header--upcoming">
+      <button type="button" className="live-tourney-pill-expand" onClick={onToggle} aria-expanded={isExpanded}>
+        {logoUrl && <img src={logoUrl} alt={name} className="live-tourn-header-logo" />}
+        <div className="live-tourn-header-meta">
+          <span className="live-tourn-header-name-row">
+            <span className="live-tourn-header-name">{name}</span>
+            {hasLive && (
+              <span className="live-tourn-live-badge">
+                <span className="live-tab-live-dot" aria-hidden="true" />
+                LIVE
+              </span>
+            )}
+          </span>
+          <span className="live-tourn-header-sub">
+            {date && formatTournamentDateTime(date)}
+            {(city || country) && ` · ${[city, country].filter(Boolean).join(', ')}`}
+            {numEntrants ? ` · ${numEntrants.toLocaleString()} entrants` : ''}
+          </span>
+        </div>
+        {countdown}
+        <span className="live-tourney-chevron">{isExpanded ? '▲' : '▼'}</span>
+      </button>
+    </div>
+  );
+
   // Group markets by tournament -> game, capturing the tournament logo on first encounter
-  const renderPills = (grps) => Object.entries(grps).map(([tName, { logoUrl: tLogo, date: tDate, city: tCity, country: tCountry, games }]) => {
+  const renderPills = (grps) => Object.entries(grps).map(([tName, { logoUrl: tLogo, date: tDate, city: tCity, country: tCountry, numEntrants: tNumEntrants, games }]) => {
     const tTabs = Object.entries(games)
       .sort(([, a], [, b]) => gamePriority(a) - gamePriority(b))
       .map(([gName, mkts]) => {
@@ -392,52 +399,17 @@ const LiveBetting = () => {
 
     return (
       <div key={tName} className={`live-tourney-pill${hasLive ? ' has-live' : ''}`}>
-        <div className="live-tourney-pill-header">
-          <button type="button" className="live-tourney-pill-expand" onClick={() => toggleTourney(tName)} aria-expanded={isExpanded}>
-            {tLogo && <img src={tLogo} alt={tName} className="live-tourn-header-logo" />}
-            <span className="live-tourn-header-name">{tName}</span>
-            {hasLive && (
-              <span className="live-tourn-live-badge">
-                <span className="live-tab-live-dot" aria-hidden="true" />
-                LIVE
-              </span>
-            )}
-          </button>
-          <button type="button" className="live-tourney-pill-meta-toggle" onClick={() => toggleTourney(tName)} aria-expanded={isExpanded}>
-            {tDate && (
-              <span className="live-tourn-header-meta-right">
-                <span className="live-tourn-header-date">
-                  {formatTournamentDateTime(tDate)}
-                </span>
-                {(tCity || tCountry) && (
-                  <span className="live-tourn-header-location">{[tCity, tCountry].filter(Boolean).join(', ')}</span>
-                )}
-              </span>
-            )}
-            <span className="live-tourney-chevron">{isExpanded ? '▲' : '▼'}</span>
-          </button>
-        </div>
+        {renderTourneyHeader({
+          name: tName, logoUrl: tLogo, date: tDate, city: tCity, country: tCountry,
+          numEntrants: tNumEntrants, hasLive, isExpanded, onToggle: () => toggleTourney(tName),
+        })}
         {isExpanded && (
           <div className="live-tourney-pill-body">
-            <div className="live-tabs-wrap">
-              <button type="button" className="live-tabs-arrow" aria-label="Scroll left" onClick={() => scrollTabs(tName, -1)}>‹</button>
-              <div className="live-tabs" role="tablist" ref={(el) => { tabsRefs.current[tName] = el; }}>
-                {tTabs.map((tab) => (
-                  <button key={tab.key} type="button" role="tab" aria-selected={tab.key === activeTabKey}
-                    className={`live-tab${tab.key === activeTabKey ? ' active' : ''}${tab.isSettled ? ' settled' : ''}`}
-                    onClick={() => setActiveTabs((prev) => ({ ...prev, [tName]: tab.key }))}>
-                    {tab.isLive && (
-                      <span className="live-tab-live-badge"><span className="live-tab-live-dot" aria-hidden="true" />LIVE</span>
-                    )}
-                    <div className="live-tab-logo"><GameLogo name={tab.gameName} height={32} /></div>
-                    {tab.isSettled && tab.winner && (
-                      <span className="live-tab-winner"><span className="live-tab-winner-star">★</span> {tab.winner}</span>
-                    )}
-                  </button>
-                ))}
-              </div>
-              <button type="button" className="live-tabs-arrow" aria-label="Scroll right" onClick={() => scrollTabs(tName, 1)}>›</button>
-            </div>
+            <GameTabStrip
+              tabs={tTabs}
+              activeKey={activeTabKey}
+              onSelect={(key) => setActiveTabs((prev) => ({ ...prev, [tName]: key }))}
+            />
             {activeTabData && (
               <section className="live-tournament" role="tabpanel">
                 <div className="live-game">
@@ -481,6 +453,7 @@ const LiveBetting = () => {
         date: m.tournament_date || null,
         city: m.tournament_city || null,
         country: m.tournament_country || null,
+        numEntrants: m.tournament_num_entrants || null,
         games: {},
       };
       g[m.tournament_name].games[m.game_name] = g[m.tournament_name].games[m.game_name] || [];
@@ -607,25 +580,15 @@ const LiveBetting = () => {
             const isExpanded = expandedTourneys.has(t.name);
             return (
               <div key={t.id} className={`live-tourney-pill${highlighted ? ' live-tourney-pill--next-up' : ''}`}>
-                <div className="live-tourney-pill-header live-tourney-pill-header--upcoming">
-                  <button type="button" className="live-tourney-pill-expand" onClick={() => toggleTourney(t.name)} aria-expanded={isExpanded}>
-                    {t.logoUrl && <img src={t.logoUrl} alt={t.name} className="live-tourn-header-logo" />}
-                    <div className="live-tourn-header-meta">
-                      <span className="live-tourn-header-name">{t.name}</span>
-                      <span className="live-tourn-header-sub">
-                        {formatTournamentDateTime(t.date)}
-                        {(t.city || t.country) && ` · ${[t.city, t.country].filter(Boolean).join(', ')}`}
-                        {t.numEntrants ? ` · ${t.numEntrants.toLocaleString()} entrants` : ''}
-                      </span>
+                {renderTourneyHeader({
+                  name: t.name, logoUrl: t.logoUrl, date: t.date, city: t.city, country: t.country,
+                  numEntrants: t.numEntrants, hasLive: false, isExpanded, onToggle: () => toggleTourney(t.name),
+                  countdown: !hideCountdown && (
+                    <div className="live-tourn-header-countdown">
+                      <Countdown date={t.date} compact />
                     </div>
-                    {!hideCountdown && (
-                      <div className="live-tourn-header-countdown">
-                        <Countdown date={t.date} compact />
-                      </div>
-                    )}
-                    <span className="live-tourney-chevron">{isExpanded ? '▲' : '▼'}</span>
-                  </button>
-                </div>
+                  ),
+                })}
                 {isExpanded && (
                   <div className="live-tourney-pill-body">
                     <WaitingRoom tournament={t} games={games || []} headerless />
