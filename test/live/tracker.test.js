@@ -85,13 +85,70 @@ test('getGameTracker relabels round names that collide with real Top 8 terminolo
   await addHistory({ tournamentId: 1, gameId: 10, setId: 'wqf1', roundText: 'Winners Quarter-Final', roundInt: 3, phaseOrder: 1, state: 'completed', p1: 1, p2: 3, winner: 1, s1: 3, s2: 2 });
 
   const result = await lm.getGameTracker(1, 10);
+  // "Grand Final" carries no Winners/Losers side of its own, so it's unprefixed.
   assert.equal(result.rounds.find((r) => r.roundInt === 3 && r.status === 'done' && r.roundText.startsWith('Round of')).roundText, 'Round of 4');
-  assert.equal(result.rounds.find((r) => r.roundInt === -4).roundText, 'Round of 8');
+  // "Losers Quarter-Final" is prefixed with its side - a same-numbered Winners-side
+  // round would otherwise render as an indistinguishable duplicate "Round of 8" pill.
+  assert.equal(result.rounds.find((r) => r.roundInt === -4).roundText, 'Losers Round of 8');
   assert.equal(result.rounds.find((r) => r.roundText === 'Winners Quarter-Final').roundInt, 3);
   assert.ok(result.results.every((r) => r.round !== 'Grand Final' && r.round !== 'Losers Quarter-Final'));
   assert.ok(result.results.some((r) => r.round === 'Round of 4'));
-  assert.ok(result.results.some((r) => r.round === 'Round of 8'));
+  assert.ok(result.results.some((r) => r.round === 'Losers Round of 8'));
   assert.ok(result.results.some((r) => r.round === 'Winners Quarter-Final'));
+});
+
+test('getGameTracker gives Winners-side and Losers-side rounds distinct labels even when their entrant counts match', async () => {
+  // Reproduces a real production bug: a Winners-side round and a Losers-side
+  // round both round up to the same entrant count (e.g. both "Round of 16"),
+  // rendering as two pills with identical, indistinguishable text.
+  for (let i = 1; i <= 8; i++) await addPlayer(i, `Player${i}`);
+  await addHistory({ tournamentId: 1, gameId: 10, setId: 'wsf1', roundText: 'Winners Semi-Final', roundInt: 3, phaseOrder: 1, state: 'completed', p1: 1, p2: 2, winner: 1, s1: 2, s2: 0 });
+  await addHistory({ tournamentId: 1, gameId: 10, setId: 'wsf2', roundText: 'Winners Semi-Final', roundInt: 3, phaseOrder: 1, state: 'completed', p1: 3, p2: 4, winner: 3, s1: 2, s2: 1 });
+  await addHistory({ tournamentId: 1, gameId: 10, setId: 'lqf1', roundText: 'Losers Quarter-Final', roundInt: -3, phaseOrder: 1, state: 'completed', p1: 5, p2: 6, winner: 5, s1: 2, s2: 0 });
+  await addHistory({ tournamentId: 1, gameId: 10, setId: 'lqf2', roundText: 'Losers Quarter-Final', roundInt: -3, phaseOrder: 1, state: 'completed', p1: 7, p2: 8, winner: 7, s1: 2, s2: 1 });
+
+  const result = await lm.getGameTracker(1, 10);
+  const labels = result.rounds.map((r) => r.roundText);
+  assert.deepEqual(new Set(labels).size, labels.length, 'no two rounds should share an identical pill label');
+  assert.ok(labels.includes('Winners Round of 4'));
+  assert.ok(labels.includes('Losers Round of 4'));
+});
+
+test('getGameTracker falls back to the real round name when two rounds on the SAME side collide on the same entrant count', async () => {
+  // The Winners/Losers prefix alone doesn't help when both colliding rounds
+  // are already on the same side - confirmed live: several past tournaments
+  // ended up with "Losers Round of 8" assigned to two genuinely different
+  // Losers rounds. "Losers Semi-Final" and "Losers Quarter-Final" are both
+  // ambiguous names that independently round up to the same count (4) here.
+  for (let i = 1; i <= 8; i++) await addPlayer(i, `Player${i}`);
+  await addHistory({ tournamentId: 1, gameId: 10, setId: 'lsf-1', roundText: 'Losers Semi-Final', roundInt: -3, phaseOrder: 1, state: 'completed', p1: 1, p2: 2, winner: 1, s1: 2, s2: 0 });
+  await addHistory({ tournamentId: 1, gameId: 10, setId: 'lsf-2', roundText: 'Losers Semi-Final', roundInt: -3, phaseOrder: 1, state: 'completed', p1: 3, p2: 4, winner: 3, s1: 2, s2: 1 });
+  await addHistory({ tournamentId: 1, gameId: 10, setId: 'lqf1', roundText: 'Losers Quarter-Final', roundInt: -4, phaseOrder: 1, state: 'completed', p1: 5, p2: 6, winner: 5, s1: 2, s2: 0 });
+  await addHistory({ tournamentId: 1, gameId: 10, setId: 'lqf2', roundText: 'Losers Quarter-Final', roundInt: -4, phaseOrder: 1, state: 'completed', p1: 7, p2: 8, winner: 7, s1: 2, s2: 1 });
+
+  const result = await lm.getGameTracker(1, 10);
+  const labels = result.rounds.map((r) => r.roundText);
+  assert.deepEqual(new Set(labels).size, labels.length, 'no two rounds should share an identical pill label');
+  // Processed in round_int ASC order: Losers Quarter-Final (-4) claims
+  // "Losers Round of 4" first; Losers Semi-Final (-3) would collide on the
+  // same computed label and falls back to its own real name instead.
+  assert.ok(labels.includes('Losers Round of 4'));
+  assert.ok(labels.includes('Losers Semi-Final'));
+});
+
+test('getGameTracker falls back to the real round name when Grand Final collides with Grand Final Reset', async () => {
+  // Both match the same /grand final/ regex and both naturally have ~2
+  // entrants, so without a fallback both would render as an identical
+  // "Round of 2" pill.
+  for (let i = 1; i <= 4; i++) await addPlayer(i, `Player${i}`);
+  await addHistory({ tournamentId: 1, gameId: 10, setId: 'gf1', roundText: 'Grand Final', roundInt: 5, phaseOrder: 1, state: 'completed', p1: 1, p2: 2, winner: 2, s1: 2, s2: 3 });
+  await addHistory({ tournamentId: 1, gameId: 10, setId: 'gfr1', roundText: 'Grand Final Reset', roundInt: 6, phaseOrder: 1, state: 'completed', p1: 1, p2: 2, winner: 1, s1: 3, s2: 1 });
+
+  const result = await lm.getGameTracker(1, 10);
+  const labels = result.rounds.map((r) => r.roundText);
+  assert.deepEqual(new Set(labels).size, labels.length, 'Grand Final and Grand Final Reset must not share an identical pill label');
+  assert.ok(labels.includes('Round of 2'));
+  assert.ok(labels.includes('Grand Final Reset'));
 });
 
 test('getGameTracker falls back to the real round name instead of guessing when entrant ids are missing', async () => {

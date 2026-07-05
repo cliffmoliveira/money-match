@@ -640,21 +640,27 @@ function isAmbiguousRoundName(text) {
   return AMBIGUOUS_ROUND_NAMES.some((re) => re.test(n));
 }
 
-// "Round of N" - N is this round's own distinct entrant count, rounded up
-// to the nearest power of two (byes mean brackets rarely land on an exact
-// power of two), so the label reads as "how many were left entering this
-// round" rather than a raw, possibly-odd headcount. Returns null when none of
-// this round's sets have entrant ids on file (start.gg occasionally omits
-// them for older historical sets) - guessing a fixed default here would make
+// "[Winners/Losers ]Round of N" - N is this round's own distinct entrant
+// count, rounded up to the nearest power of two (byes mean brackets rarely
+// land on an exact power of two), so the label reads as "how many were left
+// entering this round" rather than a raw, possibly-odd headcount. Prefixed
+// with the bracket side (read off the original round_text) when present -
+// a Winners-side round and a Losers-side round can easily land on the same
+// entrant count (e.g. both "Round of 16"), and without the prefix they'd
+// render as two pills with identical text. Returns null when none of this
+// round's sets have entrant ids on file (start.gg occasionally omits them
+// for older historical sets) - guessing a fixed default here would make
 // every such round collide on the identical label instead of just this one.
-function roundOfLabel(sets) {
+function roundOfLabel(sets, roundText) {
   const entrants = new Set();
   for (const s of sets) {
     if (s.player1_id) entrants.add(s.player1_id);
     if (s.player2_id) entrants.add(s.player2_id);
   }
   if (entrants.size === 0) return null;
-  return `Round of ${2 ** Math.ceil(Math.log2(entrants.size))}`;
+  const n = 2 ** Math.ceil(Math.log2(entrants.size));
+  const side = /losers/i.test(roundText || '') ? 'Losers ' : /winners/i.test(roundText || '') ? 'Winners ' : '';
+  return `${side}Round of ${n}`;
 }
 
 async function getGameTracker(tournamentId, gameId) {
@@ -677,9 +683,23 @@ async function getGameTracker(tournamentId, gameId) {
   // once per group so a round's pill and every one of its results use the
   // identical string - the frontend filters results by exact match against
   // the selected pill's roundText.
+  //
+  // The Winners/Losers prefix in roundOfLabel() disambiguates most collisions,
+  // but not all: two rounds on the SAME side can round up to the same
+  // entrant count (e.g. two different Losers rounds both landing on "Losers
+  // Round of 8"), and "Grand Final" collides with "Grand Final Reset" (same
+  // regex match, both naturally ~2 entrants). usedLabels tracks every label
+  // already claimed - whichever round would collide falls back to its real,
+  // guaranteed-unique round_text (byRound's own Map key) instead of a
+  // duplicate. This is a strict superset of the "no entrant data" fallback
+  // below, so it's folded into the same check.
   const displayLabel = new Map();
+  const usedLabels = new Set();
   for (const g of byRound.values()) {
-    displayLabel.set(g.roundText, (isAmbiguousRoundName(g.roundText) ? roundOfLabel(g.sets) : null) || g.roundText);
+    let label = (isAmbiguousRoundName(g.roundText) ? roundOfLabel(g.sets, g.roundText) : null) || g.roundText;
+    if (usedLabels.has(label)) label = g.roundText;
+    usedLabels.add(label);
+    displayLabel.set(g.roundText, label);
   }
   // "done" once every set has a result; "live" once at least one set has
   // started or finished; "next" when every set is still 'pending' - start.gg
