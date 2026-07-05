@@ -51,9 +51,13 @@ async function main() {
       await db.runAsync(`UPDATE set_bets SET state='refunded', payout_cents=? WHERE id=?`, [bet.amount_cents, bet.id]);
     }
 
+    // p1_score/p2_score are NOT NULL - leave them as-is rather than force a
+    // fake 0, matching fillBracketSlot's own void-reuse reset precedent.
+    // settleMarket() re-writes them for real once this market genuinely
+    // settles again.
     await db.runAsync(
       `UPDATE set_markets
-       SET state='pending', winner_id=NULL, p1_score=NULL, p2_score=NULL, settled_at=NULL
+       SET state='pending', winner_id=NULL, settled_at=NULL
        WHERE id=?`,
       [m.id]
     );
