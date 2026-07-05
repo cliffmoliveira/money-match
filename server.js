@@ -933,6 +933,24 @@ app.post('/api/sync/startgg/recent', async (req, res) => {
 });
 
 
+// Read-only: is any tournament live right now, or dated today? Used to defer
+// the daily Start.gg sync below - it shares start.gg's rate limit with the
+// 60s live poller, and a live event needs that budget far more urgently than
+// a majors-list refresh does.
+async function hasLiveTournamentToday() {
+  try {
+    const row = await db.getAsync(
+      `SELECT 1 FROM tournaments
+       WHERE startgg_id IS NOT NULL AND (is_live = 1 OR date(date) = date('now'))
+       LIMIT 1`
+    );
+    return !!row;
+  } catch (err) {
+    console.error('Failed to check for live tournaments:', err.message);
+    return false; // fail open - a query error shouldn't block this job forever
+  }
+}
+
 // Daily scheduler: refresh upcoming major tournaments (+ their seeds) for the
 // Future Tournaments page, and record recently-completed major results for the
 // Past Results page. Both are curated to major brands, so each run is light.
@@ -943,6 +961,7 @@ function scheduleStartGgSync() {
     return;
   }
   const DAY_MS = 24 * 60 * 60 * 1000;
+  const DEFER_MS = 60 * 60 * 1000; // recheck sooner if deferred for a live day
   const LAST_RUN_KEY = 'last_upstream_sync_at';
   const runSync = async () => {
     try {
@@ -965,12 +984,24 @@ function scheduleStartGgSync() {
       console.error(`Failed to record ${LAST_RUN_KEY}:`, err.message);
     }
   };
+  // Re-checks hasLiveTournamentToday() on every cycle (not just the first) -
+  // syncUpcoming() alone makes one start.gg call per tracked major, and each
+  // one that gets 429'd retries with its own backoff before giving up, so a
+  // single run can take a long time to grind through and starve the live
+  // poller the whole way. Defer entirely rather than race it.
+  const attempt = async () => {
+    if (await hasLiveTournamentToday()) {
+      console.log('[startgg-sync] deferring — a tournament is live or scheduled today; rechecking in 1h');
+      setTimeout(attempt, DEFER_MS);
+      return;
+    }
+    await runSync();
+    setTimeout(attempt, DAY_MS);
+  };
   // A Render redeploy restarts this process. Without persisting when this
-  // last actually ran, every restart re-triggers the full burst immediately -
-  // which shares start.gg's rate limit with the 60s live poller, so a deploy
-  // landing during a live event can 429-storm the poller right when it
-  // matters most. Only run right now if a full day has genuinely passed
-  // since the last completed run; otherwise wait out the remainder first.
+  // last actually ran, every restart re-triggers the full burst immediately.
+  // Only run right now if a full day has genuinely passed since the last
+  // completed run; otherwise wait out the remainder first.
   (async () => {
     let lastRun = null;
     try {
@@ -981,10 +1012,7 @@ function scheduleStartGgSync() {
     }
     const elapsed = lastRun ? Date.now() - lastRun : Infinity;
     const initialDelay = elapsed >= DAY_MS ? 0 : DAY_MS - elapsed;
-    setTimeout(async () => {
-      await runSync();
-      setInterval(runSync, DAY_MS);
-    }, initialDelay);
+    setTimeout(attempt, initialDelay);
   })();
 }
 
