@@ -83,11 +83,17 @@
 .live-tourn-header-countdown .countdown { margin-top: 0; }
 .live-tourn-header-countdown .countdown-live { margin-top: 0; }
 .live-tourn-live-badge {
-  display: inline-flex; align-items: center; gap: 4px;
+  display: inline-flex; align-items: center; gap: 6px;
   background: var(--live-tint); color: #fff;
-  font-family: 'Saira', sans-serif; font-size: 9px; font-weight: 800;
+  font-family: 'Saira', sans-serif; font-size: 13px; font-weight: 800;
   letter-spacing: .06em; text-transform: uppercase;
-  padding: 2px 6px 2px 4px; border-radius: 4px; flex-shrink: 0;
+  padding: 4px 9px 4px 7px; border-radius: 6px; flex-shrink: 0;
+}
+.live-tourn-live-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  background: var(--live-text);
+  box-shadow: 0 0 8px 2px var(--live-tint), 0 0 2px 1px var(--live-text);
+  animation: liveTabPulse 1.8s ease-in-out infinite;
 }
 .live-tourn-upcoming-badge {
   display: inline-flex; align-items: center;
@@ -171,18 +177,19 @@
   50%       { opacity: 0.5; transform: scale(0.7); }
 }
 
-/* "Live" section label — white text, glowing pulsing red dot (distinct from
-   the gold Next Up / Future Tournaments labels, so it reads as urgent). */
+/* "Happening Now" section label — same typography as the other section
+   labels (.brackets-section-label), just white instead of muted/gold, with
+   a small glowing pulsing red dot so it still reads as urgent. */
 .brackets-live-label {
-  display: flex; align-items: center; gap: 12px;
-  font-family: 'Saira', sans-serif; font-size: 26px; font-weight: 800;
+  display: flex; align-items: center; gap: 9px;
+  font-family: 'Saira', sans-serif; font-size: 18px; font-weight: 800;
   letter-spacing: .06em; text-transform: uppercase;
   color: #fff; margin: 24px 0 12px; padding-left: 2px;
 }
 .brackets-live-dot {
-  width: 13px; height: 13px; border-radius: 50%; flex-shrink: 0;
+  width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
   background: var(--live-text);
-  box-shadow: 0 0 12px 3px var(--live-tint), 0 0 3px 1.5px var(--live-text);
+  box-shadow: 0 0 8px 2px var(--live-tint), 0 0 2px 1px var(--live-text);
   animation: liveTabPulse 1.8s ease-in-out infinite;
 }
 

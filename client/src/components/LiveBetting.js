@@ -346,7 +346,7 @@ const LiveBetting = () => {
             <span className="live-tourn-header-name">{name}</span>
             {hasLive && (
               <span className="live-tourn-live-badge">
-                <span className="live-tab-live-dot" aria-hidden="true" />
+                <span className="live-tourn-live-dot" aria-hidden="true" />
                 LIVE
               </span>
             )}
