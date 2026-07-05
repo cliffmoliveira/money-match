@@ -13,8 +13,6 @@ const OutrightPanel = ({ seedRows, locked, slip, myPicks, onPick }) => {
       </p>
       {seedRows.length === 0 ? (
         <p className="wr-empty">Seeding not available yet.</p>
-      ) : locked && !hasMyPicks ? (
-        <p className="wr-empty">Outright picks are closed — this tournament has started.</p>
       ) : (
         <div className="wr-outright-rows">
           {seedRows.map((row) => {
@@ -37,8 +35,12 @@ const OutrightPanel = ({ seedRows, locked, slip, myPicks, onPick }) => {
           })}
         </div>
       )}
-      {locked && hasMyPicks && (
-        <p className="wr-proj-note">Picks are locked — no changes once the bracket begins.</p>
+      {locked && seedRows.length > 0 && (
+        <p className="wr-proj-note">
+          {hasMyPicks
+            ? 'Picks are locked — no changes once the bracket begins.'
+            : 'Outright picks are closed — this tournament has started. Shown here as seeded.'}
+        </p>
       )}
     </div>
   );
