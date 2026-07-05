@@ -178,19 +178,12 @@
 }
 
 /* "Happening Now" section label — same typography as the other section
-   labels (.brackets-section-label), just white instead of muted/gold, with
-   a small glowing pulsing red dot so it still reads as urgent. */
+   labels (.brackets-section-label), just white instead of muted/gold. The
+   per-pill LIVE badges already carry the pulsing-dot urgency cue. */
 .brackets-live-label {
-  display: flex; align-items: center; gap: 9px;
   font-family: 'Saira', sans-serif; font-size: 18px; font-weight: 800;
   letter-spacing: .06em; text-transform: uppercase;
   color: #fff; margin: 24px 0 12px; padding-left: 2px;
-}
-.brackets-live-dot {
-  width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
-  background: var(--live-text);
-  box-shadow: 0 0 8px 2px var(--live-tint), 0 0 2px 1px var(--live-text);
-  animation: liveTabPulse 1.8s ease-in-out infinite;
 }
 
 .live-tab-logo {

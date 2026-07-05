@@ -612,10 +612,7 @@ const LiveBetting = () => {
               )}
               {liveNow.length > 0 && (
                 <>
-                  <div className="brackets-live-label">
-                    <span className="brackets-live-dot" aria-hidden="true" />
-                    Happening Now
-                  </div>
+                  <div className="brackets-live-label">Happening Now</div>
                   {liveNow.map((item) => renderUpcomingPill(item, { highlighted: true, hideCountdown: true }))}
                 </>
               )}
