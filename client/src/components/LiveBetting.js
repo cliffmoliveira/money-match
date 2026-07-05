@@ -499,6 +499,18 @@ const LiveBetting = () => {
   };
   const groups = buildGroups(markets);
 
+  // A marketed tournament (real Top-8 or pre-Top-8 round markets) still
+  // belongs under "Happening Now" until every one of its games is fully
+  // settled - mirrors renderPills' own isLive calc so a tournament that has
+  // already graduated past the pre-Top-8 waiting-room pill doesn't fall
+  // through both headings and read as if it vanished from the page.
+  const groupIsLive = (group) => Object.values(group.games).some((mkts) => {
+    const isSettled = mkts.length > 0 && mkts.every((m) => m.state === 'settled' || m.state === 'void');
+    return !isSettled && mkts.some((m) => m.state !== 'pending');
+  });
+  const liveGroups = Object.fromEntries(Object.entries(groups).filter(([, g]) => groupIsLive(g)));
+  const restGroups = Object.fromEntries(Object.entries(groups).filter(([, g]) => !groupIsLive(g)));
+
   // Past-section filter options (derived from the raw past markets, not groups).
   const pastYears = [...new Set(pastMarkets.map((m) => (m.tournament_date || '').slice(0, 4)).filter(Boolean))].sort((a, b) => b.localeCompare(a));
   const pastTournaments = [...new Set(pastMarkets.map((m) => m.tournament_name).filter(Boolean))].sort((a, b) => a.localeCompare(b));
@@ -659,10 +671,11 @@ const LiveBetting = () => {
                   {nextUp.map((item) => renderUpcomingPill(item))}
                 </>
               )}
-              {liveNow.length > 0 && (
+              {(liveNow.length > 0 || Object.keys(liveGroups).length > 0) && (
                 <>
                   <div className="brackets-live-label">Happening Now</div>
                   {liveNow.map((item) => renderUpcomingPill(item, { highlighted: true, hideCountdown: true }))}
+                  {renderPills(liveGroups)}
                 </>
               )}
             </>
@@ -674,7 +687,7 @@ const LiveBetting = () => {
             <p>Markets open automatically when a tracked tournament reaches Top 8.</p>
           </div>
         )}
-        {markets.length > 0 && renderPills(groups)}
+        {markets.length > 0 && renderPills(restGroups)}
         {pastMarkets.length > 0 && renderPastSection()}
       </div>
 
