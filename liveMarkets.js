@@ -406,7 +406,13 @@ async function getMarkets({ includeAll = false, pastOnly = false } = {}) {
     ? `1=1`
     : pastOnly
     ? `t.is_live = 0 AND date(t.date) < date('now') AND strftime('%Y', t.date) = '2026' AND m.state = 'settled'`
-    : `(t.is_live = 1 OR date(t.date) BETWEEN date('now','-1 day') AND date('now','+2 day'))`;
+    // A tournament stays "current" once its date arrives, or while it still has
+    // an open/closed market (covers results trickling in past midnight). No blind
+    // "-1 day" grace: once fully settled and its date has passed, it belongs only
+    // in Past Tournaments, not duplicated here too.
+    : `(t.is_live = 1
+        OR date(t.date) BETWEEN date('now') AND date('now','+2 day')
+        OR EXISTS (SELECT 1 FROM set_markets sm2 WHERE sm2.tournament_id = t.id AND sm2.state IN ('open','closed')))`;
   // LEFT JOIN the player tables so half-filled (pending) nodes — where one slot
   // is still TBD (player id 0) — are still returned.
   return db.allAsync(
@@ -571,7 +577,9 @@ async function getUpcoming() {
        (SELECT SUM(num_entrants) FROM tournament_games tg WHERE tg.tournament_id = t.id) AS numEntrants
      FROM tournaments t
      WHERE startgg_id IS NOT NULL
-       AND (is_live = 1 OR date(date) >= date('now','-1 day'))
+       AND (is_live = 1
+            OR date(date) >= date('now')
+            OR EXISTS (SELECT 1 FROM set_markets sm2 WHERE sm2.tournament_id = t.id AND sm2.state IN ('open','closed')))
      ORDER BY date(date) DESC`
   );
   return Promise.all(tournaments.map(async (tournament) => {
