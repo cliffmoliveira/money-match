@@ -702,7 +702,8 @@ async function getGameTracker(tournamentId, gameId) {
     return {
       winner: nameOf(r.winner_id),
       loser: nameOf(loserId),
-      score: `${winnerScore ?? 0}-${loserScore ?? 0}`,
+      winnerScore: winnerScore ?? 0,
+      loserScore: loserScore ?? 0,
       round: displayLabel.get(r.round_text) ?? r.round_text,
     };
   });

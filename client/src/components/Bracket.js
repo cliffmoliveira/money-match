@@ -50,7 +50,7 @@ function classify(market) {
 const splitName = splitPlayerName;
 const shortName = (name) => splitName(name).tag || name;
 
-const PlayerName = ({ name }) => {
+export const PlayerName = ({ name }) => {
   if (!name) return <span className="bnode-tag">TBD</span>;
   const { sponsor, tag } = splitName(name);
   // 2v2 team (e.g. 2XKO): no Japanese prefix but has slash → stack player names

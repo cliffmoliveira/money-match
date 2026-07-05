@@ -1,10 +1,14 @@
 import React from 'react';
 import './GameTracker.css';
+import { PlayerName } from './Bracket';
 
 // Round-by-round tracker body: the results feed (optionally scoped to one
 // round) + who's still alive. The round-pill strip itself lives in
 // WaitingRoom.js, since it doubles as the nav between this view and the live
-// Bracket.
+// Bracket. Result cards reuse the same bnode-* classes as the live Top 8
+// bracket (winner bold/white with a star, loser dimmed, green/red scores,
+// sponsor in subscript above the tag) so history reads as one visual family
+// with the bracket instead of a plainer, disconnected list.
 const GameTracker = ({ seeds = [], results = [], roundLabel }) => {
   const shown = roundLabel ? results.filter((r) => r.round === roundLabel) : results;
 
@@ -15,12 +19,19 @@ const GameTracker = ({ seeds = [], results = [], roundLabel }) => {
         {shown.length === 0 && <p className="gt-empty">No results tracked for this round yet.</p>}
         {shown.map((r, i) => (
           <div className="gt-result-row" key={`${r.winner}-${r.loser}-${i}`}>
-            <div className="gt-result-top">
-              <span className="gt-result-winner">{r.winner}</span>
+            <div className="gt-result-head">{r.round}</div>
+            <div className="bnode-row gt-result-player win">
+              <span className="gt-result-name-group">
+                <span className="gt-result-star" aria-hidden="true">★</span>
+                <span className="bnode-name bnode-name-stack"><PlayerName name={r.winner} /></span>
+              </span>
+              <span className="bnode-score">{r.winnerScore}</span>
             </div>
-            <div className="gt-result-bottom">
-              <span className="gt-result-meta">def. {r.loser} &middot; {r.score}</span>
-              <span className="gt-result-round">{r.round}</span>
+            <div className="bnode-row gt-result-player loss">
+              <span className="gt-result-name-group">
+                <span className="bnode-name bnode-name-stack"><PlayerName name={r.loser} /></span>
+              </span>
+              <span className="bnode-score">{r.loserScore}</span>
             </div>
           </div>
         ))}

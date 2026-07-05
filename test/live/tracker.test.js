@@ -57,7 +57,8 @@ test('getGameTracker groups rounds by status and lists results newest-first', as
   assert.equal(result.results.length, 1);
   assert.equal(result.results[0].winner, 'GranTODAKAI');
   assert.equal(result.results[0].loser, 'Alioune');
-  assert.equal(result.results[0].score, '3-1');
+  assert.equal(result.results[0].winnerScore, 3);
+  assert.equal(result.results[0].loserScore, 1);
 });
 
 test('getGameTracker marks a round "next" when every set in it is still pending', async () => {

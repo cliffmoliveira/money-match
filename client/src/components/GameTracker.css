@@ -5,15 +5,21 @@
 }
 
 .gt-section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-bottom: 8px; }
-.gt-results { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
-.gt-result-row { background: var(--card); border: 1px solid var(--border-soft); border-radius: 10px; padding: 9px 11px; }
-.gt-result-row.gt-new { border-color: rgba(231, 180, 88, 0.3); }
-.gt-result-top { display: flex; align-items: center; justify-content: space-between; }
-.gt-result-winner { font-weight: 600; font-size: 13px; color: var(--text); }
-.gt-result-badge { font-size: 10px; color: var(--gold); font-weight: 700; text-transform: uppercase; }
-.gt-result-bottom { display: flex; align-items: center; justify-content: space-between; margin-top: 2px; }
-.gt-result-meta { font-size: 11px; color: var(--faint); }
-.gt-result-round { font-size: 10px; color: var(--faint); }
+.gt-results { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+
+/* Result card - same bnode-* classes as the live Top 8 bracket (Bracket.css)
+   for winner/loser name, sponsor, and score styling, so a settled history
+   result and a settled Top 8 match read as the same visual family. */
+.gt-result-row { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.gt-result-head {
+  padding: 6px 12px; font-family: 'Saira', sans-serif; font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .05em; color: var(--muted);
+  border-bottom: 1px solid var(--border-soft);
+}
+.gt-result-row .gt-result-player { cursor: default; font-size: 13px; }
+.gt-result-row .bnode-row.gt-result-player:hover { background: transparent; }
+.gt-result-name-group { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.gt-result-star { color: var(--gold); font-size: 12px; flex-shrink: 0; }
 
 .gt-alive { display: flex; flex-direction: column; gap: 6px; }
 .gt-alive-row {
