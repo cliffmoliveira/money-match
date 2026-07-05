@@ -242,13 +242,6 @@
 }
 .live-game { position: relative; margin-bottom: 30px; }
 
-/* Sits where the old game-logo watermark used to float (top-right of the
-   bracket) — that was removed for overlapping match cards on mobile, but a
-   button is small enough not to have that problem. */
-.live-pnl-toggle--bracket {
-  position: absolute; top: 0; right: 0; margin-left: 0; z-index: 1;
-}
-
 .live-market-grid { display: flex; flex-direction: column; gap: 12px; }
 
 /* Match card */

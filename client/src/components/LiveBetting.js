@@ -25,12 +25,17 @@ const POLL_MS = 6000; // refresh markets/odds/pick'em every 6s while the Live pa
 // "Outright" pill (same as WaitingRoom) so a tournament-winner pick placed
 // before Top 8 started stays visible/highlighted for the tournament's whole
 // run, instead of disappearing the moment real markets exist.
-const TrackerPanel = ({ tournamentId, gameId, top8Status, bracket }) => {
+const TrackerPanel = ({ tournamentId, gameId, top8Status, bracket, bracketBets = [], showPnl, onToggleShowPnl }) => {
   const [rounds, setRounds] = useState([]);
   const [results, setResults] = useState([]);
   const [stillAlive, setStillAlive] = useState([]);
   const [selected, setSelected] = useState('Top 8');
   const outright = useOutrightPicks(tournamentId, gameId);
+  // Single toggle governs highlighting in both the bracket (WON/LOST/IN PLAY
+  // badges, wired by the caller via `bracket`'s own `bets` prop) and the
+  // Outright panel (the "Your Pick" badge below) — only shown once there's
+  // something for it to reveal.
+  const hasAnyPicks = bracketBets.length > 0 || Object.keys(outright.myPicks).length > 0;
 
   useEffect(() => {
     if (!tournamentId || !gameId) { setRounds([]); setResults([]); setStillAlive([]); return; }
@@ -55,7 +60,20 @@ const TrackerPanel = ({ tournamentId, gameId, top8Status, bracket }) => {
   ];
   return (
     <>
-      <RoundPillStrip rounds={pills} selected={selected} onSelect={(r) => setSelected(r.roundText)} />
+      <RoundPillStrip
+        rounds={pills}
+        selected={selected}
+        onSelect={(r) => setSelected(r.roundText)}
+        trailingAction={hasAnyPicks && (
+          <button
+            type="button"
+            className={`live-pnl-toggle${showPnl ? ' active' : ''}`}
+            onClick={onToggleShowPnl}
+          >
+            My picks
+          </button>
+        )}
+      />
       {selected === 'Outright' ? (
         <OutrightPanel
           seedRows={outright.seedRows}
@@ -63,6 +81,7 @@ const TrackerPanel = ({ tournamentId, gameId, top8Status, bracket }) => {
           slip={outright.slip}
           myPicks={outright.myPicks}
           onPick={outright.onPick}
+          highlight={showPnl}
         />
       ) : selected === 'Top 8' ? (
         bracket
@@ -436,19 +455,13 @@ const LiveBetting = () => {
             {activeTabData && (
               <section className="live-tournament" role="tabpanel">
                 <div className="live-game">
-                  {activeGameBets.length > 0 && (
-                    <button
-                      className={`live-pnl-toggle live-pnl-toggle--bracket${showPnl ? ' active' : ''}`}
-                      type="button"
-                      onClick={() => setShowPnl((v) => !v)}
-                    >
-                      My picks
-                    </button>
-                  )}
                   <TrackerPanel
                     tournamentId={activeTabData.mkts[0]?.tournament_id}
                     gameId={activeTabData.mkts[0]?.game_id}
                     top8Status={activeTabData.isSettled ? 'done' : activeTabData.isLive ? 'live' : 'next'}
+                    bracketBets={activeGameBets}
+                    showPnl={showPnl}
+                    onToggleShowPnl={() => setShowPnl((v) => !v)}
                     bracket={
                       <Bracket
                         markets={activeTabData.mkts}

@@ -5,7 +5,7 @@ import useScrollEdges from '../utils/useScrollEdges';
 // (LiveBetting.js) and WaitingRoom.js. Horizontally scrollable with arrows
 // that only show when there's actually more to scroll to, matching the
 // game tab strip above it.
-const RoundPillStrip = ({ rounds, selected, onSelect }) => {
+const RoundPillStrip = ({ rounds, selected, onSelect, trailingAction }) => {
   const { ref: stripRef, canScrollLeft, canScrollRight, scrollBy } = useScrollEdges([rounds.length]);
   return (
     <div className="wr-round-pills-wrap">
@@ -30,6 +30,7 @@ const RoundPillStrip = ({ rounds, selected, onSelect }) => {
       {canScrollRight && (
         <button type="button" className="wr-round-pills-arrow" aria-label="Scroll right" onClick={() => scrollBy(1, 160)}>›</button>
       )}
+      {trailingAction}
     </div>
   );
 };
