@@ -1,5 +1,6 @@
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { getGameLogoSources, getGameAlt, getGameLogoStyle } from '../utils/gameLogos';
+import useScrollEdges from '../utils/useScrollEdges';
 
 // Game logo for tab strips; walks the asset candidates and falls back to the
 // game name as text if none load.
@@ -26,11 +27,12 @@ export const GameLogo = ({ name, height = 30 }) => {
 // picker looks and behaves the same in every state — scales to many-game
 // events (e.g. Evo) via horizontal scroll instead of stacking rows.
 const GameTabStrip = ({ tabs, activeKey, onSelect }) => {
-  const stripRef = useRef(null);
-  const scroll = (dir) => stripRef.current?.scrollBy({ left: dir * 220, behavior: 'smooth' });
+  const { ref: stripRef, canScrollLeft, canScrollRight, scrollBy } = useScrollEdges([tabs.length]);
   return (
     <div className="live-tabs-wrap">
-      <button type="button" className="live-tabs-arrow" aria-label="Scroll left" onClick={() => scroll(-1)}>‹</button>
+      {canScrollLeft && (
+        <button type="button" className="live-tabs-arrow" aria-label="Scroll left" onClick={() => scrollBy(-1, 220)}>‹</button>
+      )}
       <div className="live-tabs" role="tablist" ref={stripRef}>
         {tabs.map((tab) => (
           <button
@@ -51,7 +53,9 @@ const GameTabStrip = ({ tabs, activeKey, onSelect }) => {
           </button>
         ))}
       </div>
-      <button type="button" className="live-tabs-arrow" aria-label="Scroll right" onClick={() => scroll(1)}>›</button>
+      {canScrollRight && (
+        <button type="button" className="live-tabs-arrow" aria-label="Scroll right" onClick={() => scrollBy(1, 220)}>›</button>
+      )}
     </div>
   );
 };

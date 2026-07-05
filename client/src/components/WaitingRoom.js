@@ -5,6 +5,7 @@ import Countdown from './Countdown';
 import StakeStepper from './StakeStepper';
 import GameTracker from './GameTracker';
 import GameTabStrip from './GameTabStrip';
+import RoundPillStrip from './RoundPillStrip';
 import { apiFetch } from '../utils/api';
 import { fmAmount } from '../utils/money';
 import { getTournamentLogoSources, getTournamentAlt, getTournamentLogoStyle } from '../utils/tournamentLogos';
@@ -213,21 +214,7 @@ const WaitingRoom = ({ tournament, games = [], headerless = false }) => {
             activeKey={activeGame}
             onSelect={openGame}
           />
-          <div className="wr-round-pills" role="tablist">
-            {trackerRounds.map((r) => (
-              <button
-                type="button"
-                role="tab"
-                key={r.roundText}
-                aria-selected={selectedRound === r.roundText}
-                className={`wr-round-pill wr-round-${r.status}${selectedRound === r.roundText ? ' selected' : ''}`}
-                onClick={() => selectRound(r)}
-              >
-                <div className="wr-round-pill-label">{r.roundText}</div>
-                <div className="wr-round-pill-status">{r.status}</div>
-              </button>
-            ))}
-          </div>
+          <RoundPillStrip rounds={trackerRounds} selected={selectedRound} onSelect={selectRound} />
 
           {activeView === 'bracket' ? (
             <>

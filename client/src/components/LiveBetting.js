@@ -4,6 +4,7 @@ import Bracket from './Bracket';
 import WaitingRoom from './WaitingRoom';
 import GameTracker from './GameTracker';
 import GameTabStrip from './GameTabStrip';
+import RoundPillStrip from './RoundPillStrip';
 import Countdown from './Countdown';
 import StakeStepper from './StakeStepper';
 // Fight Money formatters (fmt/signed kept as names so call sites are unchanged).
@@ -45,21 +46,7 @@ const TrackerPanel = ({ tournamentId, gameId, top8Status, bracket }) => {
   const pills = [...rounds, { roundText: 'Top 8', roundInt: null, status: top8Status }];
   return (
     <>
-      <div className="wr-round-pills" role="tablist">
-        {pills.map((r, i) => (
-          <button
-            type="button"
-            role="tab"
-            key={`${r.roundText}-${i}`}
-            aria-selected={selected === r.roundText}
-            className={`wr-round-pill wr-round-${r.status}${selected === r.roundText ? ' selected' : ''}`}
-            onClick={() => setSelected(r.roundText)}
-          >
-            <div className="wr-round-pill-label">{r.roundText}</div>
-            <div className="wr-round-pill-status">{r.status}</div>
-          </button>
-        ))}
-      </div>
+      <RoundPillStrip rounds={pills} selected={selected} onSelect={(r) => setSelected(r.roundText)} />
       {selected === 'Top 8'
         ? bracket
         : <GameTracker seeds={stillAlive} results={results} roundLabel={selected} />}
