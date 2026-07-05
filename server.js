@@ -942,6 +942,8 @@ function scheduleStartGgSync() {
     console.warn('STARTGG_API_TOKEN not set; Start.gg auto-sync is disabled.');
     return;
   }
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const LAST_RUN_KEY = 'last_upstream_sync_at';
   const runSync = async () => {
     try {
       await syncUpcoming({ months: 12, top: 16 });
@@ -953,10 +955,37 @@ function scheduleStartGgSync() {
     } catch (err) {
       console.error('Start.gg recent-results sync failed:', err.message);
     }
+    try {
+      await db.runAsync(
+        `INSERT INTO app_state (key, value) VALUES (?, ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+        [LAST_RUN_KEY, new Date().toISOString()]
+      );
+    } catch (err) {
+      console.error(`Failed to record ${LAST_RUN_KEY}:`, err.message);
+    }
   };
-  // Run once on server start, then every 24 hours.
-  runSync();
-  setInterval(runSync, 24 * 60 * 60 * 1000);
+  // A Render redeploy restarts this process. Without persisting when this
+  // last actually ran, every restart re-triggers the full burst immediately -
+  // which shares start.gg's rate limit with the 60s live poller, so a deploy
+  // landing during a live event can 429-storm the poller right when it
+  // matters most. Only run right now if a full day has genuinely passed
+  // since the last completed run; otherwise wait out the remainder first.
+  (async () => {
+    let lastRun = null;
+    try {
+      const row = await db.getAsync('SELECT value FROM app_state WHERE key = ?', [LAST_RUN_KEY]);
+      lastRun = row ? new Date(row.value).getTime() : null;
+    } catch (err) {
+      console.error(`Failed to read ${LAST_RUN_KEY}:`, err.message);
+    }
+    const elapsed = lastRun ? Date.now() - lastRun : Infinity;
+    const initialDelay = elapsed >= DAY_MS ? 0 : DAY_MS - elapsed;
+    setTimeout(async () => {
+      await runSync();
+      setInterval(runSync, DAY_MS);
+    }, initialDelay);
+  })();
 }
 
 // Live poller: refresh Top 8 markets for active tournaments. Cheap when nothing

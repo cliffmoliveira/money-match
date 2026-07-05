@@ -57,6 +57,18 @@ try {
   `);
 } catch (e) { console.error('[boot] follows table setup failed:', e.message); }
 
+// Tiny generic key/value store for small persisted bits of app state that
+// don't warrant their own table (e.g. "when did the daily Start.gg sync last
+// actually run" - see scheduleStartGgSync in server.js).
+try {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS app_state (
+      key TEXT PRIMARY KEY,
+      value TEXT
+    )
+  `);
+} catch (e) { console.error('[boot] app_state table setup failed:', e.message); }
+
 // Bracket tracker: read-only round-by-round history for pre-Top-8 rounds
 // (Pools, Winners/Losers Round N, ...). Deliberately separate from
 // set_markets — this table is never read by the odds engine, never opens/
