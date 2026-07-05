@@ -269,7 +269,17 @@ async function processTournamentEvents(tRow, events = []) {
     const gameId = await findOrCreateGameId(ev.videogame);
     if (!gameId) continue;
 
-    for (const set of selectTop8Sets(ev.sets?.nodes || [])) {
+    // Completed (state 3) sets first, within a single poll cycle: fillBracketSlot's
+    // stillActive guard blocks advancing a player into a downstream slot while
+    // they still show 'open'/'closed' elsewhere in this tournament. If a
+    // just-finished match (e.g. Losers Final) and the pending set it feeds
+    // (Grand Final) both show up in the same batch, processing the pending
+    // one first would see the winner as still 'closed' from our DB's own
+    // not-yet-settled prior state and skip filling them in - stuck until the
+    // next poll cycle. Settling the finished match first avoids that race
+    // entirely instead of relying on a second cycle to self-heal it.
+    const orderedSets = [...selectTop8Sets(ev.sets?.nodes || [])].sort((a, b) => (a.state === 3 ? 0 : 1) - (b.state === 3 ? 0 : 1));
+    for (const set of orderedSets) {
       const e0 = set.slots?.[0]?.entrant;
       const e1 = set.slots?.[1]?.entrant;
       const setId = String(set.id);

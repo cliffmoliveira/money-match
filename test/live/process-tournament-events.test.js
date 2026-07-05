@@ -97,3 +97,67 @@ test('processTournamentEvents backfills a still-TBD slot on a pre-existing marke
   assert.equal(market.p1_score, 0);
   assert.equal(market.p2_score, 3);
 });
+
+test('processTournamentEvents settles a just-finished match before advancing its winner into a downstream pending slot, even when start.gg lists the pending set first', async () => {
+  // Reproduces a real production race on Saltmine League - UK & Ireland 3:
+  // Losers Final just finished (EndingWalker beat MysticSmash) and Grand
+  // Final already shows both real entrants (EndingWalker advanced) in the
+  // SAME poll batch. fillBracketSlot's stillActive guard blocks filling a
+  // player into a downstream slot while they still show 'open'/'closed'
+  // elsewhere - if the still-pending Grand Final is processed before the
+  // Losers Final gets settled, our own not-yet-updated 'closed' state on
+  // EndingWalker's Losers Final row makes stillActive block the advance,
+  // leaving Grand Final stuck on TBD for a whole extra poll cycle.
+  const gameRes = await db.runAsync(`INSERT INTO games (name, startgg_id) VALUES ('Street Fighter 6', 'g1')`);
+  const gameId = gameRes.lastID;
+  const problemXRes = await db.runAsync(`INSERT INTO players (name, startgg_id) VALUES ('Problem X', 'e-problemx')`);
+  const problemXId = problemXRes.lastID;
+  const mysticSmashRes = await db.runAsync(`INSERT INTO players (name, startgg_id) VALUES ('MysticSmash', 'e-mysticsmash')`);
+  const mysticSmashId = mysticSmashRes.lastID;
+  const endingWalkerRes = await db.runAsync(`INSERT INTO players (name, startgg_id) VALUES ('EndingWalker', 'e-endingwalker')`);
+  const endingWalkerId = endingWalkerRes.lastID;
+
+  await db.runAsync(
+    `INSERT INTO set_markets (tournament_id, game_id, startgg_set_id, round_text, player1_id, player2_id, state)
+     VALUES (1, ?, 'losers-final', 'Losers Final', ?, ?, 'closed')`,
+    [gameId, mysticSmashId, endingWalkerId]
+  );
+  await db.runAsync(
+    `INSERT INTO set_markets (tournament_id, game_id, startgg_set_id, round_text, player1_id, player2_id, state)
+     VALUES (1, ?, 'grand-final', 'Grand Final', ?, 0, 'pending')`,
+    [gameId, problemXId]
+  );
+
+  const events = [{
+    videogame: { id: 'g1', name: 'Street Fighter 6' },
+    sets: {
+      // Grand Final (still pending) listed BEFORE Losers Final (now complete) -
+      // the exact ordering that exposes the race without the fix.
+      nodes: [
+        {
+          id: 'grand-final', state: 1, fullRoundText: 'Grand Final', round: null,
+          slots: [
+            { entrant: { id: 'e-problemx', name: 'Problem X', seeds: [{ seedNum: 1 }] } },
+            { entrant: { id: 'e-endingwalker', name: 'EndingWalker', seeds: [{ seedNum: 3 }] } },
+          ],
+        },
+        {
+          id: 'losers-final', state: 3, fullRoundText: 'Losers Final', round: null, winnerId: 'e-endingwalker',
+          slots: [
+            { entrant: { id: 'e-mysticsmash', name: 'MysticSmash', seeds: [{ seedNum: 2 }] }, standing: { stats: { score: { value: 0 } } } },
+            { entrant: { id: 'e-endingwalker', name: 'EndingWalker', seeds: [{ seedNum: 3 }] }, standing: { stats: { score: { value: 3 } } } },
+          ],
+        },
+      ],
+    },
+  }];
+
+  await sync.processTournamentEvents({ id: 1 }, events);
+
+  const losersFinal = await db.getAsync(`SELECT * FROM set_markets WHERE startgg_set_id = 'losers-final'`);
+  assert.equal(losersFinal.state, 'settled');
+  assert.equal(losersFinal.winner_id, endingWalkerId);
+
+  const grandFinal = await db.getAsync(`SELECT * FROM set_markets WHERE startgg_set_id = 'grand-final'`);
+  assert.equal(grandFinal.player2_id, endingWalkerId, 'EndingWalker must advance into Grand Final in the same cycle their Losers Final settles');
+});
