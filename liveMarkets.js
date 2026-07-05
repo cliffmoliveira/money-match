@@ -410,9 +410,18 @@ async function getMarkets({ includeAll = false, pastOnly = false } = {}) {
     // an open/closed market (covers results trickling in past midnight). No blind
     // "-1 day" grace: once fully settled and its date has passed, it belongs only
     // in Past Tournaments, not duplicated here too.
-    : `(t.is_live = 1
-        OR date(t.date) BETWEEN date('now') AND date('now','+2 day')
-        OR EXISTS (SELECT 1 FROM set_markets sm2 WHERE sm2.tournament_id = t.id AND sm2.state IN ('open','closed')))`;
+    //
+    // Scoped to `tournaments` (a couple hundred rows) rather than an OR/EXISTS
+    // directly against `m` — that shape can't use m's tournament_id index, so
+    // SQLite full-scans every set_markets row (thousands, growing) to evaluate
+    // it. Pre-resolving the qualifying tournament ids here keeps the scan on
+    // the small table and lets the outer query stay an indexed lookup.
+    : `m.tournament_id IN (
+        SELECT id FROM tournaments t2
+        WHERE t2.is_live = 1
+           OR date(t2.date) BETWEEN date('now') AND date('now','+2 day')
+           OR EXISTS (SELECT 1 FROM set_markets sm2 WHERE sm2.tournament_id = t2.id AND sm2.state IN ('open','closed'))
+      )`;
   // LEFT JOIN the player tables so half-filled (pending) nodes — where one slot
   // is still TBD (player id 0) — are still returned.
   return db.allAsync(
