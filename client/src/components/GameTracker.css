@@ -7,19 +7,27 @@
 .gt-section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-bottom: 8px; }
 .gt-results { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
 
-/* Result card - same bnode-* classes as the live Top 8 bracket (Bracket.css)
-   for winner/loser name, sponsor, and score styling, so a settled history
-   result and a settled Top 8 match read as the same visual family. */
-.gt-result-row { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
-.gt-result-head {
-  padding: 6px 12px; font-family: 'Saira', sans-serif; font-size: 10px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .05em; color: var(--muted);
-  border-bottom: 1px solid var(--border-soft);
+/* One scoreboard row per match: winner (name + star) left, loser right,
+   scores flanking a "VS" in the middle. Reuses Bracket.css's bnode-name-stack
+   / bnode-sponsor / bnode-tag for the name+sponsor rendering so history
+   still reads as the same visual family as the live Top 8 bracket - just a
+   neutral (uncolored) card, since the win/loss read comes from the score
+   colors and dimmed loser name, not a tinted background. */
+.gt-result-row {
+  display: grid; grid-template-columns: minmax(0,1fr) auto auto auto minmax(0,1fr);
+  align-items: center; gap: 8px;
+  background: var(--card); border: 1px solid var(--border-soft); border-radius: 10px;
+  padding: 10px 12px; font-family: 'Saira', sans-serif; font-size: 14px;
 }
-.gt-result-row .gt-result-player { cursor: default; font-size: 13px; }
-.gt-result-row .bnode-row.gt-result-player:hover { background: transparent; }
-.gt-result-name-group { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.gt-result-side { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.gt-result-winner { color: var(--text); font-weight: 700; }
+.gt-result-loser { justify-content: flex-end; text-align: right; color: var(--faint); font-weight: 500; }
+.gt-result-loser .bnode-tag-p2 { color: var(--faint); font-weight: 500; }
 .gt-result-star { color: var(--gold); font-size: 12px; flex-shrink: 0; }
+.gt-result-score { font-weight: 700; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+.gt-result-score-win { color: var(--win); }
+.gt-result-score-loss { color: var(--live-text); }
+.gt-result-vs { font-size: 10px; font-weight: 700; color: var(--faint); letter-spacing: .04em; flex-shrink: 0; }
 
 .gt-alive { display: flex; flex-direction: column; gap: 6px; }
 .gt-alive-row {
