@@ -93,6 +93,20 @@ test('getGameTracker relabels round names that collide with real Top 8 terminolo
   assert.ok(result.results.some((r) => r.round === 'Winners Quarter-Final'));
 });
 
+test('getGameTracker falls back to the real round name instead of guessing when entrant ids are missing', async () => {
+  // start.gg occasionally omits entrant ids on older historical sets. Two
+  // different ambiguous rounds both missing entrant data used to both default
+  // to the same guessed "Round of 2" label, making them indistinguishable in
+  // the UI - each should keep its own real name instead.
+  await addHistory({ tournamentId: 1, gameId: 10, setId: 'lqf1', roundText: 'Losers Quarter-Final', roundInt: -4, phaseOrder: 1, state: 'completed', p1: null, p2: null });
+  await addHistory({ tournamentId: 1, gameId: 10, setId: 'wsf1', roundText: 'Winners Semi-Final', roundInt: 3, phaseOrder: 1, state: 'completed', p1: null, p2: null });
+
+  const result = await lm.getGameTracker(1, 10);
+  const labels = result.rounds.map((r) => r.roundText);
+  assert.deepEqual(labels, ['Losers Quarter-Final', 'Winners Semi-Final']);
+  assert.equal(new Set(labels).size, labels.length);
+});
+
 test('getGameTracker stillAlive excludes anyone who has lost a completed set', async () => {
   await addPlayer(1, 'GranTODAKAI'); await addPlayer(2, 'Alioune');
   await seedPlayer(1, 10, 1, 1);

@@ -633,15 +633,18 @@ function isAmbiguousRoundName(text) {
 // "Round of N" - N is this round's own distinct entrant count, rounded up
 // to the nearest power of two (byes mean brackets rarely land on an exact
 // power of two), so the label reads as "how many were left entering this
-// round" rather than a raw, possibly-odd headcount.
+// round" rather than a raw, possibly-odd headcount. Returns null when none of
+// this round's sets have entrant ids on file (start.gg occasionally omits
+// them for older historical sets) - guessing a fixed default here would make
+// every such round collide on the identical label instead of just this one.
 function roundOfLabel(sets) {
   const entrants = new Set();
   for (const s of sets) {
     if (s.player1_id) entrants.add(s.player1_id);
     if (s.player2_id) entrants.add(s.player2_id);
   }
-  const n = entrants.size || 2;
-  return `Round of ${2 ** Math.ceil(Math.log2(n))}`;
+  if (entrants.size === 0) return null;
+  return `Round of ${2 ** Math.ceil(Math.log2(entrants.size))}`;
 }
 
 async function getGameTracker(tournamentId, gameId) {
@@ -666,7 +669,7 @@ async function getGameTracker(tournamentId, gameId) {
   // the selected pill's roundText.
   const displayLabel = new Map();
   for (const g of byRound.values()) {
-    displayLabel.set(g.roundText, isAmbiguousRoundName(g.roundText) ? roundOfLabel(g.sets) : g.roundText);
+    displayLabel.set(g.roundText, (isAmbiguousRoundName(g.roundText) ? roundOfLabel(g.sets) : null) || g.roundText);
   }
   // "done" once every set has a result; "live" once at least one set has
   // started or finished; "next" when every set is still 'pending' - start.gg
