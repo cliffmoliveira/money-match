@@ -18,6 +18,37 @@ const db = require('../db/db');
 const { startgg } = require('../startggClient');
 const lm = require('../liveMarkets');
 
+// startgg() itself has no pacing or retry - every caller is responsible for
+// its own. With several tournaments active on a busy day, each needing
+// multiple calls (finals phase + history phases + paginated sets), firing
+// them back-to-back with zero delay is enough on its own to blow through
+// Start.gg's rate limit every single 60s cycle, independent of any other job
+// sharing the same budget (confirmed live: every active tournament 429ing in
+// the same poll cycle while nothing else was competing for the limit).
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const REQ_DELAY_MS = 600;
+const MAX_RETRIES = 5;
+async function ggRetry(query, vars) {
+  for (let attempt = 0; ; attempt++) {
+    await sleep(REQ_DELAY_MS);
+    try {
+      return await startgg(query, vars);
+    } catch (err) {
+      const status = err?.response?.status;
+      if (status === 429 && attempt < MAX_RETRIES) {
+        const retryAfter = Number(err?.response?.headers?.['retry-after']);
+        const wait = Number.isFinite(retryAfter) && retryAfter > 0
+          ? retryAfter * 1000
+          : Math.min(30000, 4000 * 2 ** attempt);
+        console.log(`[sync-live] 429 rate-limited; waiting ${Math.round(wait / 1000)}s (retry ${attempt + 1}/${MAX_RETRIES})`);
+        await sleep(wait);
+        continue;
+      }
+      throw err;
+    }
+  }
+}
+
 // The Top 8 lives in an event's FINAL phase (highest phaseOrder). Resolve that
 // phase first (LIVE_PHASES), then pull only its sets (PHASE_SETS), paginated —
 // so detection holds even for majors whose thousands of pools sets would never
@@ -375,7 +406,7 @@ async function processHistorySets(tRow, gameId, roundGroups = []) {
 async function fetchPhaseSets(eventId, phaseId) {
   const all = [];
   for (let page = 1; page <= MAX_SET_PAGES; page++) {
-    const data = await startgg(PHASE_SETS, { eventId, phaseId, page, perPage: SET_PAGE_SIZE });
+    const data = await ggRetry(PHASE_SETS, { eventId, phaseId, page, perPage: SET_PAGE_SIZE });
     const conn = data?.event?.sets;
     const nodes = conn?.nodes || [];
     all.push(...nodes);
@@ -394,7 +425,7 @@ async function fetchPhaseSets(eventId, phaseId) {
 async function fetchHistoryPhaseSets(eventId, phaseId) {
   const all = [];
   for (let page = 1; page <= MAX_HISTORY_SET_PAGES; page++) {
-    const data = await startgg(HISTORY_PHASE_SETS, { eventId, phaseId, page, perPage: HISTORY_SET_PAGE_SIZE });
+    const data = await ggRetry(HISTORY_PHASE_SETS, { eventId, phaseId, page, perPage: HISTORY_SET_PAGE_SIZE });
     const conn = data?.event?.sets;
     const nodes = conn?.nodes || [];
     all.push(...nodes);
@@ -411,7 +442,7 @@ async function fetchHistoryPhaseSets(eventId, phaseId) {
  * for large tournaments.
  */
 async function fetchActiveEvents(startggId) {
-  const data = await startgg(LIVE_PHASES, { id: startggId });
+  const data = await ggRetry(LIVE_PHASES, { id: startggId });
   const events = data?.tournament?.events || [];
   const out = [];
   for (const ev of events) {
@@ -432,7 +463,7 @@ async function fetchActiveEvents(startggId) {
  * bracket rounds by phaseName.
  */
 async function fetchHistoryPhases(startggId) {
-  const data = await startgg(LIVE_PHASES, { id: startggId });
+  const data = await ggRetry(LIVE_PHASES, { id: startggId });
   const events = data?.tournament?.events || [];
   const out = [];
   for (const ev of events) {
