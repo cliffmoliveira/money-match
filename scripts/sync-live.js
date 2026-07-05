@@ -526,8 +526,13 @@ async function getActiveTournaments() {
   );
 }
 
-async function syncLive({ all = false } = {}) {
-  const tournaments = all
+async function syncLive({ all = false, tournamentIds = null } = {}) {
+  const tournaments = tournamentIds && tournamentIds.length > 0
+    ? await db.allAsync(
+        `SELECT id, name, startgg_id FROM tournaments WHERE startgg_id IS NOT NULL AND id IN (${tournamentIds.map(() => '?').join(',')})`,
+        tournamentIds
+      )
+    : all
     ? await db.allAsync('SELECT id, name, startgg_id FROM tournaments WHERE startgg_id IS NOT NULL')
     : await getActiveTournaments();
   if (tournaments.length === 0) return { tournaments: 0, opened: 0, closed: 0, settled: 0 };
@@ -583,5 +588,9 @@ module.exports = {
 
 if (require.main === module) {
   const all = process.argv.includes('--all');
-  syncLive({ all }).then(() => process.exit(0)).catch((e) => { console.error(e.message); process.exit(1); });
+  const idsArg = process.argv.find((a) => a.startsWith('--tournament-id='));
+  const tournamentIds = idsArg
+    ? idsArg.slice('--tournament-id='.length).split(',').map((s) => parseInt(s.trim(), 10)).filter(Number.isFinite)
+    : null;
+  syncLive({ all, tournamentIds }).then(() => process.exit(0)).catch((e) => { console.error(e.message); process.exit(1); });
 }
