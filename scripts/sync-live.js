@@ -195,9 +195,13 @@ function groupSetsIntoRounds(historyPhases = []) {
 }
 
 const seedOf = (entrant) => entrant?.seeds?.[0]?.seedNum ?? null;
+// Start.gg only reports a set's score once it's been recorded (usually at
+// completion) — during an in-progress set most events never populate this,
+// so null here means "unknown," not "0". Keep it null rather than coercing
+// to 0, which would paint a fake 0-0 scoreline for the whole match.
 const scoreOf = (slot) => {
   const v = slot?.standing?.stats?.score?.value;
-  return v == null || v < 0 ? 0 : v;
+  return v == null || v < 0 ? null : v;
 };
 const isGrandFinal = (text) => (text || '').toLowerCase().includes('grand final');
 

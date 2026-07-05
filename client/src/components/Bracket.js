@@ -147,7 +147,7 @@ const Node = ({ market, slip, onPick, demoControls, registerRef, projected, isCh
       {settled
         ? <span className="bnode-score">{score}</span>
         : closed
-        ? <span className="bnode-score live">{score ?? 0}</span>
+        ? <span className="bnode-score live">{score ?? '–'}</span>
         : open
         ? <span className="bnode-odds-stack" title={`${Number(odds).toFixed(2)}× odds — pick 10 FM to win ${(10 * odds).toFixed(1)} FM back. Shifts as picks come in, locks when the set starts.`}>
             <span className="bnode-odds-label">Odds</span>
