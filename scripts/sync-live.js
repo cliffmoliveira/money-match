@@ -276,9 +276,16 @@ async function processTournamentEvents(tRow, events = []) {
       const existing = await db.getAsync('SELECT id, state FROM set_markets WHERE startgg_set_id = ?', [setId]);
 
       if (set.state === 3 && set.winnerId != null) {
-        if (!existing && e0?.id && e1?.id) {
-          // Set completed before we ever saw it as upcoming (poller missed the window).
-          // Create + settle it now so it appears in the bracket with the winner highlighted.
+        // Covers both "never seen before" (!existing) AND "row exists but one
+        // slot is still the TBD sentinel" - a market can be created with only
+        // one entrant known (state 1's pending-fill path) and later reported
+        // complete before the other slot was ever ready to backfill. Always
+        // re-fill both slots from the now-complete set before settling, so a
+        // pre-existing-but-incomplete row doesn't get skipped straight to
+        // settleMarket (which correctly refuses to settle a still-TBD slot,
+        // leaving the market stuck 'pending' forever).
+        const notFinal = !existing || (existing.state !== 'settled' && existing.state !== 'void');
+        if (notFinal && e0?.id && e1?.id) {
           const phaseGroupId = set.phaseGroup?.id != null ? String(set.phaseGroup.id) : null;
           const p0 = await findOrCreatePlayerId(e0);
           const p1 = await findOrCreatePlayerId(e1);
@@ -293,11 +300,6 @@ async function processTournamentEvents(tRow, events = []) {
               stats.settled++;
             }
           }
-        } else if (existing && existing.state !== 'settled' && existing.state !== 'void' && e0?.id && e1?.id) {
-          const winnerEntrant = set.winnerId === e0.id ? e0 : e1;
-          const winnerPid = await findOrCreatePlayerId(winnerEntrant);
-          await lm.settleMarket(existing.id, winnerPid, scoreOf(set.slots[0]), scoreOf(set.slots[1]));
-          stats.settled++;
         }
         continue;
       }
