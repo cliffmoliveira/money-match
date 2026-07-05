@@ -36,9 +36,14 @@
    alongside a distinct "selected" ring for whichever one you're viewing, so
    reaching Top 8 doesn't bury how a player got there behind a view that no
    longer exists. */
-.wr-round-pills { display: flex; gap: 6px; margin-bottom: 14px; }
+.wr-round-pills {
+  display: flex; gap: 6px; margin-bottom: 14px;
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; -ms-overflow-style: none;
+}
+.wr-round-pills::-webkit-scrollbar { display: none; }
 .wr-round-pill {
-  flex: 1; text-align: center; padding: 6px 4px; border-radius: 8px; cursor: pointer;
+  flex: 0 0 auto; min-width: 88px; text-align: center; padding: 6px 4px; border-radius: 8px; cursor: pointer;
   background: var(--card); border: 1px solid var(--border-strong);
   font-family: 'Hanken Grotesk', sans-serif;
 }
