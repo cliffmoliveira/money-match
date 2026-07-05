@@ -44,6 +44,21 @@ test('a tournament starting today is locked (closes at the start of the event da
   assert.deepEqual(await futures.isFuturesLocked(3), { found: true, locked: true });
 });
 
+test('a tournament with a real start.gg timestamp for today is locked hours after it started', async () => {
+  // Reproduces a real production bug: tournament dates store a full ISO
+  // timestamp (e.g. "2026-07-05T15:00:00.000Z"), not a bare date, since
+  // ingestion stopped truncating start.gg's startAt to date-only. The raw
+  // string comparison `date <= DATE('now')` then compares
+  // "2026-07-05T15:00:00.000Z" (longer) against "2026-07-05" (shorter,
+  // a prefix of the first) - lexicographically the bare date sorts
+  // *before* the fuller timestamp, so the comparison evaluates false and
+  // the tournament reads as still-open all day, even while its bracket is
+  // already live.
+  const { d } = await db.getAsync("SELECT DATE('now') AS d");
+  await addTournament(4, `${d}T15:00:00.000Z`);
+  assert.deepEqual(await futures.isFuturesLocked(4), { found: true, locked: true });
+});
+
 test('an unknown tournament reports not found', async () => {
   assert.deepEqual(await futures.isFuturesLocked(999), { found: false, locked: false });
 });
