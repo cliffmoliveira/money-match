@@ -201,10 +201,12 @@ const scoreOf = (slot) => { const v = slot?.standing?.stats?.score?.value; retur
 async function processHistorySets(tournamentId, gameId, roundGroups = []) {
   const stats = { created: 0, updated: 0 };
   for (const group of roundGroups) {
+    const currentSetIds = [];
     for (const set of group.sets) {
       const e0 = set.slots?.[0]?.entrant;
       const e1 = set.slots?.[1]?.entrant;
       const setId = String(set.id);
+      currentSetIds.push(setId);
       const state = set.state === 3 ? 'completed' : set.state === 2 ? 'in_progress' : 'pending';
 
       let p0 = null, p1 = null, winnerPid = null;
@@ -241,6 +243,19 @@ async function processHistorySets(tournamentId, gameId, roundGroups = []) {
         );
         stats.created++;
       }
+    }
+    // Start.gg occasionally reassigns new set ids to the same logical matches
+    // within a round (e.g. a bracket regeneration) — see sync-live.js's
+    // processHistorySets for the confirmed live case. Scoped delete: this
+    // round, this tournament/game, ids not in the current fetch.
+    if (!DRY && currentSetIds.length > 0) {
+      const placeholders = currentSetIds.map(() => '?').join(',');
+      await db.runAsync(
+        `DELETE FROM bracket_history
+         WHERE tournament_id = ? AND game_id = ? AND round_text = ?
+           AND startgg_set_id NOT IN (${placeholders})`,
+        [tournamentId, gameId, group.roundText, ...currentSetIds]
+      );
     }
   }
   return stats;

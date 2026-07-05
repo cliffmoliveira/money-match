@@ -359,10 +359,12 @@ async function processTournamentEvents(tRow, events = []) {
  */
 async function processHistorySets(tRow, gameId, roundGroups = []) {
   for (const group of roundGroups) {
+    const currentSetIds = [];
     for (const set of group.sets) {
       const e0 = set.slots?.[0]?.entrant;
       const e1 = set.slots?.[1]?.entrant;
       const setId = String(set.id);
+      currentSetIds.push(setId);
       const state = set.state === 3 ? 'completed' : set.state === 2 ? 'in_progress' : 'pending';
 
       let p0 = null, p1 = null, winnerPid = null;
@@ -395,6 +397,25 @@ async function processHistorySets(tRow, gameId, roundGroups = []) {
             state, p0, p1, winnerPid, p1Score, p2Score]
         );
       }
+    }
+    // Start.gg occasionally reassigns new set ids to the same logical matches
+    // within a round (e.g. a bracket regeneration) — confirmed live against
+    // Esports World Cup 2026 FATAL FURY LCQ, where every set in a finished
+    // Top 16 round got a fresh id, leaving the old ids stuck at whatever
+    // state they were last synced at (usually 'pending', since they were
+    // captured before ever being played). Upsert-by-id never removes an id
+    // that stops appearing, so a fully finished round kept reading as still
+    // in progress (classifyRoundStatus requires every set to be 'completed'
+    // to report "done"). Scoped delete — this round, this tournament/game,
+    // ids not in the current fetch — so it only clears genuinely stale rows.
+    if (currentSetIds.length > 0) {
+      const placeholders = currentSetIds.map(() => '?').join(',');
+      await db.runAsync(
+        `DELETE FROM bracket_history
+         WHERE tournament_id = ? AND game_id = ? AND round_text = ?
+           AND startgg_set_id NOT IN (${placeholders})`,
+        [tRow.id, gameId, group.roundText, ...currentSetIds]
+      );
     }
   }
 }

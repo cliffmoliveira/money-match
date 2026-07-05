@@ -141,3 +141,37 @@ test('processHistorySets writes one bracket_history row per set, never touching 
   const marketRows = await db.allAsync('SELECT * FROM set_markets');
   assert.equal(marketRows.length, 0, 'processHistorySets must never write to set_markets');
 });
+
+test('processHistorySets removes stale rows for a round whose set ids start.gg no longer reports', async () => {
+  // Confirmed live against Esports World Cup 2026 FATAL FURY LCQ: a bracket
+  // regeneration reassigned new start.gg set ids to the same logical Top 16
+  // matches, leaving the old ids stuck at 'pending' in bracket_history
+  // forever (upsert-by-id never deletes an id that stops appearing), so a
+  // fully finished round kept reading as unfinished — status stuck "live"
+  // instead of "done" because not every stored set for the round was 'done'.
+  await db.runAsync(
+    `INSERT INTO bracket_history (tournament_id, game_id, startgg_set_id, round_text, round_int, phase_order, state)
+     VALUES (1, 10, 'orphaned-old-id', 'Winners Quarter-Final', 1, 2, 'pending')`
+  );
+
+  const roundGroup = {
+    roundText: 'Winners Quarter-Final', roundInt: 1, phaseOrder: 2,
+    sets: [{
+      id: 'fresh-current-id', state: 3, fullRoundText: 'Winners Quarter-Final', round: 1,
+      winnerId: 'e1',
+      slots: [
+        { entrant: { id: 'e1', name: 'Gummy', seeds: [{ seedNum: 1 }] }, standing: { stats: { score: { value: 2 } } } },
+        { entrant: { id: 'e2', name: 'Alioune', seeds: [{ seedNum: 8 }] }, standing: { stats: { score: { value: 0 } } } },
+      ],
+    }],
+  };
+
+  await syncLive.processHistorySets({ id: 1 }, 10, [roundGroup]);
+
+  const rows = await db.allAsync(
+    `SELECT startgg_set_id, state FROM bracket_history WHERE tournament_id = 1 AND game_id = 10 AND round_text = 'Winners Quarter-Final'`
+  );
+  assert.equal(rows.length, 1, 'the orphaned set id should be removed, leaving only the current one');
+  assert.equal(rows[0].startgg_set_id, 'fresh-current-id');
+  assert.equal(rows[0].state, 'completed');
+});
