@@ -27,6 +27,18 @@ const FIELD_PLAYER_NAME = 'The Field';
 // close to the event) and only when the top seed is genuinely low.
 const FUTURES_WINDOW_DAYS = 21;
 const SEED_SANITY_MAX = 4;
+// start.gg's `upcoming: true` filter drops a tournament the moment it starts
+// - and a tournament that's currently mid-bracket is neither `upcoming: true`
+// nor `past: true` (confirmed against the live API: a same-day event in
+// progress is invisible to both booleans). One that only becomes seed-
+// eligible (real seeds, within FUTURES_WINDOW_DAYS) between two daily runs
+// can therefore go live without ever being seeded, leaving its Outright picks
+// stuck on "not available" forever. So also sweep a plain date-range window
+// around "now" (no upcoming/past filter at all) each run, to catch anything
+// straddling that boundary. Seed data doesn't change once the bracket begins,
+// so backfilling it after the fact is exactly as accurate as catching it the
+// day before.
+const NEAR_NOW_WINDOW_DAYS = 2;
 // Reuse the backfill's main-event Grand Finals recorder for the recent-results sync.
 const { processTournament: recordPastResults } = require('./backfill-results');
 
@@ -111,6 +123,17 @@ const BRAND_SEARCH = `
 query UpcomingBrand($name: String!, $after: Timestamp!, $before: Timestamp!, $ids: [ID], $page: Int!) {
   tournaments(query: { perPage: 25, page: $page, sortBy: "startAt asc",
     filter: { name: $name, upcoming: true, afterDate: $after, beforeDate: $before, videogameIds: $ids } }) {
+    nodes { id name slug startAt city countryCode images { type url } }
+  }
+}`;
+
+// No upcoming/past filter at all - start.gg treats "currently in progress" as
+// neither, so a plain date-range sweep is the only way to catch a tournament
+// that's live right now.
+const NEAR_NOW_BRAND_SEARCH = `
+query NearNowBrand($name: String!, $after: Timestamp!, $before: Timestamp!, $ids: [ID], $page: Int!) {
+  tournaments(query: { perPage: 25, page: $page, sortBy: "startAt asc",
+    filter: { name: $name, afterDate: $after, beforeDate: $before, videogameIds: $ids } }) {
     nodes { id name slug startAt city countryCode images { type url } }
   }
 }`;
@@ -380,6 +403,21 @@ async function syncUpcoming({ months = 12, top = 8, dryRun = false } = {}) {
 
   const seen = await findBrandTournaments(BRAND_SEARCH, now, before);
   console.log(`[sync-upcoming] found ${seen.size} upcoming major tournament(s).`);
+
+  // Also sweep a plain date-range window around "now" (see NEAR_NOW_WINDOW_DAYS
+  // above) to catch anything start.gg's upcoming/past booleans miss while it's
+  // in progress — processTournament seeds an already-started event exactly
+  // the same way as an upcoming one.
+  const nearNow = await findBrandTournaments(
+    NEAR_NOW_BRAND_SEARCH, now - NEAR_NOW_WINDOW_DAYS * 86400, now + NEAR_NOW_WINDOW_DAYS * 86400
+  );
+  let nearNowNew = 0;
+  for (const [slug, name] of nearNow) {
+    if (!seen.has(slug)) { seen.set(slug, name); nearNowNew++; }
+  }
+  if (nearNowNew > 0) {
+    console.log(`[sync-upcoming] +${nearNowNew} tournament(s) near "now" needing a seeding pass.`);
+  }
 
   let totalEvents = 0, totalPlayers = 0, withData = 0, countdownOnly = 0;
   for (const [slug, name] of seen) {
