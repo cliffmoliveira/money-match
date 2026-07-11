@@ -575,27 +575,18 @@ async function syncLive({ all = false, tournamentIds = null } = {}) {
       console.error(`[sync-live] ${tRow.name} (${tRow.startgg_id}) failed: ${err.message}`);
     }
   }
-  // Auto-clear is_live for tournaments that have ended: nothing left open,
-  // closed (in progress), or (within STALE_PENDING_DAYS of the tournament's
-  // date) pending — checked regardless of date, so a same-day major clears
-  // the moment its last set settles instead of waiting for its date to
-  // become "past" (that lag used to keep finished same-day events out of
-  // Past Tournaments; see getMarkets() in liveMarkets.js, which uses this
-  // same "no unresolved sets" signal, with the same staleness cutoff, for
-  // its current/past split instead of a raw date comparison).
-  const STALE_PENDING_DAYS = 5;
+  // Auto-clear is_live for tournaments that have ended, using the shared
+  // "unresolved sets" definition (liveMarkets.unresolvedSetsSql) — checked
+  // regardless of date, so a same-day major clears the moment its last set
+  // settles instead of waiting for its date to become "past" (that lag used
+  // to keep finished same-day events out of Past Tournaments). Sharing the
+  // helper with getMarkets()'s current/past split keeps is_live from ever
+  // drifting out of sync with what the UI considers "over".
   await db.runAsync(`
     UPDATE tournaments
     SET is_live = 0
     WHERE is_live = 1
-      AND NOT EXISTS (
-        SELECT 1 FROM set_markets sm
-        WHERE sm.tournament_id = tournaments.id
-          AND (
-            sm.state IN ('open', 'closed')
-            OR (sm.state = 'pending' AND date(tournaments.date) >= date('now','-${STALE_PENDING_DAYS} days'))
-          )
-      )
+      AND NOT ${lm.unresolvedSetsSql('sm', 'tournaments')}
   `);
 
   console.log(`[sync-live] ${totals.tournaments} tournament(s): +${totals.opened} open, ${totals.closed} closed, ${totals.settled} settled`);

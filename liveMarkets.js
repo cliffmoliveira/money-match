@@ -11,6 +11,35 @@ const { openingProbabilities, computeLiveOdds, effectiveSubsidyCents, RAKE, roun
 
 const TBD = 0; // player id placeholder for an unfilled bracket slot
 
+// ---- Shared "is this tournament actually over" definition ----
+//
+// A tournament is NOT over while any of its sets are open, closed (in
+// progress), or — within STALE_PENDING_DAYS of the tournament's date —
+// pending (bracket structure known, round not yet reached; created
+// just-in-time from the same poll pass that settles the feeder set, so a
+// genuinely live event always has a pending next-round slot between rounds).
+// Older pending rows are treated as noise: a few past tournaments have
+// permanently orphaned pending rows from sets Start.gg never finished
+// reporting (see the stuck-market diagnostic in db.js), and without a cutoff
+// those would block resolution forever.
+//
+// Every place that needs to know whether a tournament is finished — Past
+// Tournaments, the live poller's is_live auto-clear, the upcoming-tournaments
+// list — uses this one definition instead of separately-maintained copies,
+// which is exactly how the original date-only classification bug happened
+// (each surface had its own "is it past yet" check, and they disagreed).
+const STALE_PENDING_DAYS = 5;
+function unresolvedSetsSql(marketAlias, tournamentAlias) {
+  return `EXISTS (
+    SELECT 1 FROM set_markets ${marketAlias}
+    WHERE ${marketAlias}.tournament_id = ${tournamentAlias}.id
+      AND (
+        ${marketAlias}.state IN ('open','closed')
+        OR (${marketAlias}.state = 'pending' AND date(${tournamentAlias}.date) >= date('now','-${STALE_PENDING_DAYS} days'))
+      )
+  )`;
+}
+
 // ---- House bankroll + per-side pricing (scaled subsidy, rake-funded cap) ----
 
 // Virtual-currency marketing budget the house is willing to risk. 0 => the house can
@@ -411,31 +440,11 @@ async function placeBet({ userId, marketId, playerId, amountCents }) {
  * includeAll is set.
  */
 async function getMarkets({ includeAll = false, pastOnly = false } = {}) {
-  // "Over" = every set that was ever created for this tournament has resolved
-  // (settled or void) — nothing left open, closed (in progress), or (within
-  // STALE_PENDING_DAYS of the tournament's date) pending. That's a stronger
-  // signal than the tournament's date alone: a same-day major is "over" the
-  // moment its Grand Final settles, not at midnight, while a multi-day event
-  // stays "current" past its start date as long as later rounds are pending.
-  //
-  // Pending rows are created just-in-time as each round's winner becomes
-  // known (fillBracketSlot, called from the same poll pass that settles the
-  // feeder set), so during an actively-live event a pending next-round slot
-  // reliably exists between rounds. But a handful of past tournaments have
-  // permanently orphaned pending rows from sets Start.gg never finished
-  // reporting (see the "stuck past their tournament date" diagnostic logged
-  // at boot in db.js) — without a cutoff those would block the Past
-  // transition forever. STALE_PENDING_DAYS comfortably covers any real
-  // multi-day major (Evo runs ~4 days) while treating older strays as noise.
-  const STALE_PENDING_DAYS = 5;
-  const unresolvedExists = (marketAlias, tournamentAlias) => `EXISTS (
-    SELECT 1 FROM set_markets ${marketAlias}
-    WHERE ${marketAlias}.tournament_id = ${tournamentAlias}.id
-      AND (
-        ${marketAlias}.state IN ('open','closed')
-        OR (${marketAlias}.state = 'pending' AND date(${tournamentAlias}.date) >= date('now','-${STALE_PENDING_DAYS} days'))
-      )
-  )`;
+  // "Over" = nothing left unresolved (see unresolvedSetsSql above). That's a
+  // stronger signal than the tournament's date alone: a same-day major is
+  // "over" the moment its Grand Final settles, not at midnight, while a
+  // multi-day event stays "current" past its start date as long as later
+  // rounds are pending.
   const where = includeAll
     ? `1=1`
     : pastOnly
@@ -445,7 +454,7 @@ async function getMarkets({ includeAll = false, pastOnly = false } = {}) {
     ? `t.is_live = 0
        AND strftime('%Y', t.date) = '2026'
        AND m.state = 'settled'
-       AND NOT ${unresolvedExists('sm6', 't')}`
+       AND NOT ${unresolvedSetsSql('sm6', 't')}`
     // Scoped to `tournaments` (a couple hundred rows) rather than an OR/EXISTS
     // directly against `m` — that shape can't use m's tournament_id index, so
     // SQLite full-scans every set_markets row (thousands, growing) to evaluate
@@ -454,7 +463,7 @@ async function getMarkets({ includeAll = false, pastOnly = false } = {}) {
     : `m.tournament_id IN (
         SELECT id FROM tournaments t2
         WHERE t2.is_live = 1
-           OR ${unresolvedExists('sm2', 't2')}
+           OR ${unresolvedSetsSql('sm2', 't2')}
            OR (
              date(t2.date) BETWEEN date('now') AND date('now','+2 day')
              AND NOT EXISTS (SELECT 1 FROM set_markets sm3 WHERE sm3.tournament_id = t2.id)
@@ -789,4 +798,5 @@ module.exports = {
   placeBet, recomputeOdds, getMarkets, getUserBets, houseBankrollCents, sideRates,
   seedDemoMarkets, advanceDemoBracket, clearDemoMarkets, getUpcoming,
   invalidateBankrollCache, getGameTracker,
+  unresolvedSetsSql, STALE_PENDING_DAYS,
 };

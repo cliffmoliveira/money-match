@@ -221,6 +221,16 @@ app.get('/api/past-results', async (req, res) => {
 // Endpoint: Get future tournaments
 app.get('/api/tournaments', async (req, res) => {
   try {
+    // A same-day tournament stays "upcoming" (t.date >= today) even after it
+    // finishes, so also exclude anything already fully resolved — has at
+    // least one settled/void set (was actually tracked) and nothing left
+    // unresolved (liveMarkets.unresolvedSetsSql) — so a finished same-day
+    // major doesn't linger as Home's featured "Next Up" hero or in this
+    // Futures-adjacent list once it belongs only in Past Tournaments.
+    const notFinished = (tournamentAlias) => `NOT (
+      EXISTS (SELECT 1 FROM set_markets sm_r WHERE sm_r.tournament_id = ${tournamentAlias}.id AND sm_r.state IN ('settled','void'))
+      AND NOT ${liveMarkets.unresolvedSetsSql('sm_u', tournamentAlias)}
+    )`;
     const query = `
       SELECT
         t.id,
@@ -232,6 +242,7 @@ app.get('/api/tournaments', async (req, res) => {
         (SELECT SUM(num_entrants) FROM tournament_games tg WHERE tg.tournament_id = t.id) AS numEntrants
       FROM tournaments t
       WHERE t.date >= DATE('now')
+        AND ${notFinished('t')}
       ORDER BY t.date ASC;
     `;
     const tournaments = await db.allAsync(query);
@@ -246,6 +257,7 @@ app.get('/api/tournaments', async (req, res) => {
       LEFT JOIN tournament_games tg ON tg.tournament_id = pgt.tournament_id AND tg.game_id = g.id
       JOIN tournaments t ON t.id = pgt.tournament_id
       WHERE t.date >= DATE('now')
+        AND ${notFinished('t')}
       GROUP BY pgt.tournament_id, g.id`);
     const gamesByTid = {};
     for (const r of gameRows) {
