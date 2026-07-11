@@ -1,0 +1,21 @@
+{
+  "manualId": "ewc-2026-ffcotw",
+  "tournament": {
+    "name": "Esports World Cup 2026: FATAL FURY: City of the Wolves",
+    "date": "2026-07-11T06:00:00.000Z",
+    "city": "Paris",
+    "country": "FR",
+    "logoUrl": "https://images.start.gg/images/tournament/918971/image-e07c0291f27d479306790098cdabeaae.jpg"
+  },
+  "game": "Fatal Fury: City of the Wolves",
+  "numEntrants": 8,
+  "sets": [
+    { "n": 1, "round": "Quarter-Final", "roundInt": 1, "p1": "REJECT | Laggia", "p2": "T1 | ZJZ", "p1Score": 5, "p2Score": 2, "at": "2026-07-11 09:00:00" },
+    { "n": 2, "round": "Quarter-Final", "roundInt": 1, "p1": "WBG PWS丨 | NaiWang", "p2": "VP | mi2ha4", "p1Score": 1, "p2Score": 5, "at": "2026-07-11 09:25:00" },
+    { "n": 3, "round": "Quarter-Final", "roundInt": 1, "p1": "NAVI | | DarkAngel", "p2": "ELITE | Reynald", "p1Score": 5, "p2Score": 4, "at": "2026-07-11 10:00:00" },
+    { "n": 4, "round": "Quarter-Final", "roundInt": 1, "p1": "VIT | K-TOP", "p2": "SS熊本 | Nemo", "p1Score": 0, "p2Score": 5, "at": "2026-07-11 10:25:00" },
+    { "n": 5, "round": "Semi-Final", "roundInt": 2, "p1": "REJECT | Laggia", "p2": "VP | mi2ha4", "p1Score": 4, "p2Score": 5, "at": "2026-07-11 11:00:00" },
+    { "n": 6, "round": "Semi-Final", "roundInt": 2, "p1": "NAVI | | DarkAngel", "p2": "SS熊本 | Nemo", "p1Score": 5, "p2Score": 3, "at": "2026-07-11 11:25:00" },
+    { "n": 7, "round": "Grand Final", "roundInt": 3, "p1": "VP | mi2ha4", "p2": "NAVI | | DarkAngel", "p1Score": 1, "p2Score": 5, "at": "2026-07-11 13:00:00" }
+  ]
+}

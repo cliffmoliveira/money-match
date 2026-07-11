@@ -1,4 +1,4 @@
-import React, { useRef, useState, useLayoutEffect, useCallback } from 'react';
+import React, { useRef, useState, useLayoutEffect, useCallback, useMemo } from 'react';
 import './Bracket.css';
 import { fm, fmAmount } from '../utils/money';
 import { splitPlayerName } from '../utils/playerName';
@@ -25,6 +25,40 @@ const EDGES = [
   ['LSF-0', 'LF-0'],
   ['LF-0', 'GF-0'],
 ];
+
+// Single-elimination support. Manually ingested brackets (e.g. the Esports
+// World Cup main stage, which isn't on start.gg — see
+// docs/manual-results-ingestion.md) have only winners-side rounds: positive
+// round_int, no "Winners"/"Losers" in the round text. Forcing those through
+// the Top 8 double-elim template piles every set into one column and renders
+// TBD skeletons for a losers bracket that doesn't exist, so build the
+// columns and connector edges from the data instead.
+function buildSingleElim(markets) {
+  const rounds = [...new Set(markets.map((m) => m.round_int))].sort((a, b) => a - b);
+  const columns = rounds.map((ri, idx) => {
+    const inRound = markets.filter((m) => m.round_int === ri);
+    const last = idx === rounds.length - 1;
+    // "GF" keeps the champion gold styling + connector midpoint logic working.
+    const label = inRound[0].round_text || (last ? 'Grand Final' : `Round ${ri}`);
+    return {
+      key: last ? 'GF' : `SE${ri}`,
+      side: last ? 'grand' : 'winners',
+      label: !last && inRound.length > 1 ? `${label}s` : label,
+      cap: inRound.length,
+      match: (m) => m.round_int === ri,
+    };
+  });
+  const edges = [];
+  for (let c = 0; c < columns.length - 1; c++) {
+    const a = columns[c];
+    const b = columns[c + 1];
+    for (let i = 0; i < a.cap; i++) {
+      const t = Math.floor(i / 2);
+      if (t < b.cap) edges.push([`${a.key}-${i}`, `${b.key}-${t}`]);
+    }
+  }
+  return { columns, edges };
+}
 
 // Map a market to a template column, primarily by round name (most reliable),
 // falling back to the round_int sign.
@@ -183,7 +217,11 @@ const Node = ({ market, slip, onPick, demoControls, registerRef, isChampionMatch
 };
 
 const Column = ({ col, markets, slip, onPick, demoControls, registerRef, bets }) => {
-  const nodes = markets.filter((m) => classify(m) === col.key).sort((a, b) => col.sortDesc ? b.id - a.id : a.id - b.id);
+  // Dynamic (single-elim) columns carry their own matcher; template columns
+  // classify by round name.
+  const nodes = markets
+    .filter((m) => (col.match ? col.match(m) : classify(m) === col.key))
+    .sort((a, b) => col.sortDesc ? b.id - a.id : a.id - b.id);
   // Render at least `cap` cells (TBD placeholders before markets exist), but more
   // if a column actually holds extra markets — notably the Grand Final + its
   // Reset, which both classify to GF and must both be shown.
@@ -229,6 +267,20 @@ const Bracket = ({ markets = [], slip = {}, onPick, demoControls, waiting = fals
   const [paths, setPaths] = useState([]);
   const [dims, setDims] = useState({ w: 0, h: 0 });
   const [scale, setScale] = useState(1);
+
+  // A bracket with only winners-side rounds is single-elim: render dynamic
+  // columns instead of the Top 8 double-elim template.
+  const singleElim = useMemo(() => {
+    const eligible =
+      markets.length > 0 &&
+      markets.every((m) => Number(m.round_int) > 0 && !/winners|losers/i.test(m.round_text || ''));
+    return eligible ? buildSingleElim(markets) : null;
+  }, [markets]);
+
+  // recompute() stays stable across renders (it's wired to a ResizeObserver),
+  // so it reads the active edge list through a ref.
+  const edgesRef = useRef(EDGES);
+  edgesRef.current = singleElim ? singleElim.edges : EDGES;
 
   const registerRef = useCallback((key, el) => {
     if (el) nodeRefs.current[key] = el;
@@ -281,7 +333,7 @@ const Bracket = ({ markets = [], slip = {}, onPick, demoControls, waiting = fals
     const isMobile = availW <= 820;
 
     const next = [];
-    for (const [from, to] of EDGES) {
+    for (const [from, to] of edgesRef.current) {
       const a = box(from), b = box(to);
       if (!a || !b) continue;
       const bMid = to === 'GF-0' && gfMid != null ? gfMid : b.mid;
@@ -336,8 +388,13 @@ const Bracket = ({ markets = [], slip = {}, onPick, demoControls, waiting = fals
   }, [recompute, markets]);
 
   const colFor = (key) => COLUMNS.find((c) => c.key === key);
-  const winners = ['WSF', 'WF'];
-  const losers = ['LR1', 'LR2', 'LSF', 'LF'];
+  // Single-elim: every pre-final round flows left-to-right in the winners
+  // area, the final takes the grand slot, and there is no losers bracket.
+  const winnerCols = singleElim
+    ? singleElim.columns.filter((c) => c.key !== 'GF')
+    : ['WSF', 'WF'].map(colFor);
+  const loserCols = singleElim ? [] : ['LR1', 'LR2', 'LSF', 'LF'].map(colFor);
+  const grandCol = singleElim ? singleElim.columns.find((c) => c.key === 'GF') : colFor('GF');
   const common = { markets, slip, onPick, demoControls, registerRef, bets };
 
   return (
@@ -356,14 +413,20 @@ const Bracket = ({ markets = [], slip = {}, onPick, demoControls, waiting = fals
         </svg>
         <div className="bracket-grid">
           <div className="bracket-winners">
-            {winners.map((k) => <Column key={k} col={colFor(k)} {...common} />)}
+            {winnerCols.map((c) => <Column key={c.key} col={c} {...common} />)}
+            {/* Single-elim reads left-to-right as one row, final included */}
+            {singleElim && <Column col={grandCol} {...common} />}
           </div>
-          <div className="bracket-grand">
-            <Column col={colFor('GF')} {...common} />
-          </div>
-          <div className="bracket-losers">
-            {losers.map((k) => <Column key={k} col={colFor(k)} {...common} />)}
-          </div>
+          {!singleElim && (
+            <div className="bracket-grand">
+              <Column col={grandCol} {...common} />
+            </div>
+          )}
+          {loserCols.length > 0 && (
+            <div className="bracket-losers">
+              {loserCols.map((c) => <Column key={c.key} col={c} {...common} />)}
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -586,7 +586,7 @@ const Home = () => {
                 )}
                 <div className="spotlight-games">
                   {(Object.values(t.games || {}) || []).slice(0, 4).map(g => (
-                    <span key={g.id} className="pill">{g.name}</span>
+                    <span key={g.game_id} className="pill">{g.game_name}</span>
                   ))}
                   {Object.values(t.games || {}).length > 4 && (
                     <span className="more-pill">+{Object.values(t.games || {}).length - 4} more</span>
