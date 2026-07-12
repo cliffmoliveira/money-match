@@ -152,8 +152,8 @@
   font-size: 9px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
   color: var(--muted);
 }
-.bnode-bet-label.won    { color: var(--win); }
-.bnode-bet-label.lost   { color: var(--faint); }
+.bnode-bet-label.won    { color: var(--gold); }
+.bnode-bet-label.lost   { color: var(--gold); }
 .bnode-bet-label.inplay { color: var(--gold); }
 .bnode-bet-label.pending { color: var(--muted); }
 .bnode-bet-value {
@@ -161,7 +161,7 @@
   color: var(--text);
 }
 .bnode-bet-result.won    .bnode-bet-value { color: var(--win); }
-.bnode-bet-result.lost   .bnode-bet-value { color: var(--faint); }
+.bnode-bet-result.lost   .bnode-bet-value { color: var(--live-text); }
 .bnode-bet-result.inplay .bnode-bet-value { color: var(--gold); }
 .bnode-bet-result.pending .bnode-bet-value { color: var(--muted); }
 
