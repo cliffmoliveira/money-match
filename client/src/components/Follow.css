@@ -20,12 +20,21 @@
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 11px 14px;
+  padding: 11px 38px 11px 14px;
   font-size: 14px;
   color: var(--text);
   font-family: 'Hanken Grotesk', sans-serif;
 }
 .follow-search-input:focus { outline: none; border-color: var(--gold); }
+.follow-search-clear {
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  width: 38px;
+  display: flex; align-items: center; justify-content: center;
+  background: none; border: none; cursor: pointer;
+  font-size: 22px; line-height: 1; color: var(--muted);
+}
+.follow-search-clear:hover { color: var(--text); }
 .follow-search-results {
   position: absolute;
   top: calc(100% + 6px);
@@ -35,7 +44,7 @@
   border-radius: 12px;
   padding: 6px;
   z-index: 5;
-  max-height: 320px;
+  max-height: min(320px, 50vh);
   overflow-y: auto;
 }
 .follow-search-row {

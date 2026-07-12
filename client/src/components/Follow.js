@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import './Follow.css';
 import { getTournamentLogoSources, getTournamentAlt, getTournamentLogoStyle } from '../utils/tournamentLogos';
 import { apiFetch } from '../utils/api';
@@ -76,6 +76,11 @@ const Follow = () => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [searching, setSearching] = useState(false);
+  // Decoupled from `query` so results can be dismissed (tap outside, Escape,
+  // the × button) without losing what was typed — re-focusing the input
+  // reopens the same results instead of forcing a re-search.
+  const [resultsOpen, setResultsOpen] = useState(false);
+  const searchRef = useRef(null);
 
   const [selectedId, setSelectedId] = useState(null);
   const [profile, setProfile] = useState(null);
@@ -110,6 +115,28 @@ const Follow = () => {
     }, 250);
     return () => { active = false; clearTimeout(id); };
   }, [query]);
+
+  // Dismiss the results dropdown on an outside tap/click or Escape — a
+  // document-level listener rather than the input's onBlur, since onBlur
+  // fires before a click on a result's Follow button registers and would
+  // close the dropdown out from under the tap.
+  useEffect(() => {
+    if (!resultsOpen) return;
+    const onPointerDown = (e) => {
+      if (searchRef.current && !searchRef.current.contains(e.target)) setResultsOpen(false);
+    };
+    const onKeyDown = (e) => { if (e.key === 'Escape') setResultsOpen(false); };
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('touchstart', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('touchstart', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [resultsOpen]);
+
+  const clearSearch = () => { setQuery(''); setResults([]); setResultsOpen(false); };
 
   // Toggling the same card closes it; picking a different one collapses the
   // old one and loads the new one in place.
@@ -154,15 +181,27 @@ const Follow = () => {
       <h1 className="follow-title">Follow</h1>
       <p className="follow-sub">Track competitors and see their record and how far they made it in each tournament.</p>
 
-      <div className="follow-search">
+      <div className="follow-search" ref={searchRef}>
         <input
           type="text"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => { setQuery(e.target.value); setResultsOpen(true); }}
+          onFocus={() => { if (query.trim()) setResultsOpen(true); }}
+          onKeyDown={(e) => { if (e.key === 'Escape') e.currentTarget.blur(); }}
           placeholder="Search competitors…"
           className="follow-search-input"
         />
-        {query.trim() && (
+        {query && (
+          <button
+            type="button"
+            className="follow-search-clear"
+            aria-label="Clear search"
+            onClick={clearSearch}
+          >
+            ×
+          </button>
+        )}
+        {query.trim() && resultsOpen && (
           <div className="follow-search-results">
             {searching && <div className="follow-muted">Searching…</div>}
             {!searching && results.length === 0 && <div className="follow-muted">No competitors found.</div>}
