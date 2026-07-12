@@ -136,25 +136,32 @@
 .bnode-bet-result {
   display: flex; align-items: center; justify-content: space-between;
   padding: 5px 9px;
-  background: linear-gradient(90deg, rgba(231,180,88,0.65) 0%, rgba(231,180,88,0.04) 100%);
   font-family: 'Saira', sans-serif;
 }
 .bnode-bet-result-bottom { border-bottom: 1px solid rgba(0,0,0,0.25); }
 .bnode-bet-result-top { border-top: 1px solid rgba(0,0,0,0.25); }
+/* Pending/in-play still-unresolved bets keep the gold "picked" treatment;
+   won/lost switch to the same colors as .bnode-row.win/.loss so a bet's
+   outcome reads identically to the player row it's paired with. */
+.bnode-bet-result.pending, .bnode-bet-result.inplay {
+  background: linear-gradient(90deg, rgba(231,180,88,0.65) 0%, rgba(231,180,88,0.04) 100%);
+}
+.bnode-bet-result.won  { background: linear-gradient(90deg, rgba(67,209,136,0.5) 0%, var(--win-tint) 100%); }
+.bnode-bet-result.lost { background: linear-gradient(90deg, rgba(107,114,128,0.4) 0%, rgba(107,114,128,0.08) 100%); }
 .bnode-bet-label {
   font-size: 9px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
   color: var(--muted);
 }
-.bnode-bet-label.won    { color: #4caf79; }
-.bnode-bet-label.lost   { color: #e05c5c; }
+.bnode-bet-label.won    { color: var(--win); }
+.bnode-bet-label.lost   { color: var(--faint); }
 .bnode-bet-label.inplay { color: var(--gold); }
 .bnode-bet-label.pending { color: var(--muted); }
 .bnode-bet-value {
   font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums;
   color: var(--text);
 }
-.bnode-bet-result.won    .bnode-bet-value { color: #4caf79; }
-.bnode-bet-result.lost   .bnode-bet-value { color: #e05c5c; }
+.bnode-bet-result.won    .bnode-bet-value { color: var(--win); }
+.bnode-bet-result.lost   .bnode-bet-value { color: var(--faint); }
 .bnode-bet-result.inplay .bnode-bet-value { color: var(--gold); }
 .bnode-bet-result.pending .bnode-bet-value { color: var(--muted); }
 
