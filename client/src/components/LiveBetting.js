@@ -60,11 +60,8 @@ const TrackerPanel = ({ tournamentId, gameId, top8Status, bracket, bracketBets =
   ];
   return (
     <>
-      <RoundPillStrip
-        rounds={pills}
-        selected={selected}
-        onSelect={(r) => setSelected(r.roundText)}
-        trailingAction={hasAnyPicks && (
+      {hasAnyPicks && (
+        <div className="live-tracker-toolbar">
           <button
             type="button"
             className={`live-pnl-toggle${showPnl ? ' active' : ''}`}
@@ -72,7 +69,12 @@ const TrackerPanel = ({ tournamentId, gameId, top8Status, bracket, bracketBets =
           >
             My picks
           </button>
-        )}
+        </div>
+      )}
+      <RoundPillStrip
+        rounds={pills}
+        selected={selected}
+        onSelect={(r) => setSelected(r.roundText)}
       />
       {selected === 'Outright' ? (
         <OutrightPanel
