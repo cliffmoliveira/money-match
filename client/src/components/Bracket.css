@@ -70,8 +70,13 @@
 .bnode-row:first-of-type { border-top: none; }
 .bnode-row:disabled { cursor: default; }
 .bnode-row:not(:disabled):hover { background: var(--surface); }
-.bnode-row.picked { background: var(--gold-grad); }
-.bnode-row.picked .bnode-name, .bnode-row.picked .bnode-odds { color: var(--on-gold); }
+/* Once a set settles, .win/.gf-win/.loss already convey the outcome (and
+   the WON/LOST bet-result bar conveys "this was your pick") - excluding
+   them here stops .picked's dark on-gold text from stranding itself on
+   the green win-tint background instead of the gold one it's meant for. */
+.bnode-row.picked:not(.win):not(.gf-win):not(.loss) { background: var(--gold-grad); }
+.bnode-row.picked:not(.win):not(.gf-win):not(.loss) .bnode-name,
+.bnode-row.picked:not(.win):not(.gf-win):not(.loss) .bnode-odds { color: var(--on-gold); }
 .bnode-row.win { background: var(--win-tint); font-weight: 700; }
 .bnode-row.gf-win { background: rgba(231,180,88,0.22); border-left: 3px solid var(--gold); font-weight: 700; }
 .bnode-row.gf-win .bnode-name { color: var(--gold); }
@@ -84,14 +89,14 @@
 .bnode-sponsor { font-size: 8px; font-weight: 700; color: var(--faint); text-transform: uppercase; letter-spacing: .04em; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; }
 .bnode-tag { overflow: hidden; text-overflow: ellipsis; line-height: 1.2; }
 .bnode-tag-p2 { color: var(--text); margin-top: 1px; }
-.bnode-row.picked .bnode-sponsor { color: var(--on-gold); }
+.bnode-row.picked:not(.win):not(.gf-win):not(.loss) .bnode-sponsor { color: var(--on-gold); }
 .bnode-row.loss .bnode-name { color: var(--faint); font-weight: 500; }
 .bnode-row.loss .bnode-tag-p2 { color: var(--faint); font-weight: 500; }
 .bnode-row.loss .bnode-score { color: var(--live-text); }
 .bnode-odds-stack { display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0; }
 .bnode-odds-label { font-size: 8px; font-weight: 700; color: var(--faint); text-transform: uppercase; letter-spacing: .04em; line-height: 1.15; }
 .bnode-odds { font-weight: 700; color: var(--gold); flex-shrink: 0; font-variant-numeric: tabular-nums; }
-.bnode-row.picked .bnode-odds-label { color: var(--on-gold); }
+.bnode-row.picked:not(.win):not(.gf-win):not(.loss) .bnode-odds-label { color: var(--on-gold); }
 .bnode-score { font-weight: 700; color: var(--win); flex-shrink: 0; font-variant-numeric: tabular-nums; }
 .bnode-score.live { color: var(--gold); }
 
