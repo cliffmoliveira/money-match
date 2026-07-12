@@ -130,10 +130,11 @@
   background: linear-gradient(90deg, rgba(231,180,88,0.65) 0%, rgba(231,180,88,0.04) 100%);
   font-family: 'Saira', sans-serif;
 }
-/* Hedged bets stack multiple result rows in one card - only the last one
-   should round to match the card's bottom edge. */
-.bnode-bet-result:not(:last-child) { border-bottom: 1px solid rgba(0,0,0,0.25); }
-.bnode-bet-result:last-child { border-radius: 0 0 8px 8px; }
+/* Each bet's result sits right under the player it's on, so a hedged bet's
+   two results are no longer adjacent siblings - :last-child can't tell
+   which one is visually last, so Bracket.js flags it explicitly. */
+.bnode-bet-result { border-bottom: 1px solid rgba(0,0,0,0.25); }
+.bnode-bet-result-last { border-bottom: none; border-radius: 0 0 8px 8px; }
 .bnode-bet-label {
   font-size: 9px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
   color: var(--muted);
