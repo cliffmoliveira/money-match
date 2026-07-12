@@ -24,6 +24,9 @@ yarn-error.log*
 # Backfill checkpoint cache
 scripts/.backfill-state.json
 
+# Legacy-player-merge plan (regenerated each run by plan-legacy-player-merges.js)
+scripts/.legacy-merge-plan.json
+
 # Database backups or local dev DBs
 *.sqlite
 *.db
