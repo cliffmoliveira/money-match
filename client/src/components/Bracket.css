@@ -153,7 +153,7 @@
   color: var(--muted);
 }
 .bnode-bet-label.won    { color: var(--gold); }
-.bnode-bet-label.lost   { color: var(--gold); }
+.bnode-bet-label.lost   { color: var(--faint); }
 .bnode-bet-label.inplay { color: var(--gold); }
 .bnode-bet-label.pending { color: var(--muted); }
 .bnode-bet-value {
