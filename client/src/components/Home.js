@@ -274,7 +274,7 @@ const Home = () => {
   const yourBets = [
     ...(liveBets || []).map((b) => ({
       key: `live-${b.id}`, kind: 'Live',
-      tournament: b.tournament_name, game: b.game_name, pick: b.picked_name,
+      tournament: b.tournament_name, logoUrl: b.tournament_logo_url, game: b.game_name, pick: b.picked_name,
       opponent: b.opp_name || null, roundText: b.round_text || null,
       stake: (b.amount_cents || 0) / 100,
       status: b.state === 'won' ? 'win' : b.state === 'lost' ? 'loss' : b.state === 'refunded' ? 'refunded' : 'pending',
@@ -509,7 +509,7 @@ const Home = () => {
                 <div key={b.key} className="bet-card">
                   <div className="bet-row bet-row-top">
                     <div className="bet-tournament">
-                      <TournamentLogo name={b.tournament} height={20} />
+                      <TournamentLogo name={b.tournament} logoUrl={b.logoUrl} height={20} />
                       <span className="bet-tournament-name">{b.tournament}</span>
                     </div>
                     {b.kind === 'Live'
