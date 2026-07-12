@@ -235,6 +235,7 @@ const Home = () => {
   const getPlayerName = (id) => players.find(p => p.id === id)?.name || id;
   const getTournamentName = (id) => allTournaments.find(t => t.id === id)?.name || id;
   const getTournamentDate = (id) => allTournaments.find(t => t.id === id)?.date || null;
+  const getTournamentLogoUrl = (id) => allTournaments.find(t => t.id === id)?.logoUrl || null;
 
   if (loading) {
     return <div className="home-container"><div className="skeleton">Loading…</div></div>;
@@ -290,7 +291,8 @@ const Home = () => {
       const date = getTournamentDate(b.tournament_id);
       return {
         key: `future-${b.id ?? i}`, kind: 'Futures',
-        tournament: getTournamentName(b.tournament_id), game: getGameName(b.game_id), pick: getPlayerName(b.player_id),
+        tournament: getTournamentName(b.tournament_id), logoUrl: getTournamentLogoUrl(b.tournament_id),
+        game: getGameName(b.game_id), pick: getPlayerName(b.player_id),
         stake: Number(b.amount || 0),
         status,
         result: null,

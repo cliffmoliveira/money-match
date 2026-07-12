@@ -285,7 +285,7 @@ app.get('/api/tournaments', async (req, res) => {
 
 app.get('/api/tournaments/all', async (req, res) => {
   try {
-    const tournaments = await db.allAsync('SELECT id, name, date FROM tournaments');
+    const tournaments = await db.allAsync('SELECT id, name, date, logo_url AS logoUrl FROM tournaments');
     res.json(tournaments);
   } catch (err) {
     console.error('Error fetching all tournaments:', err.message);
