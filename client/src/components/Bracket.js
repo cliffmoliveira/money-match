@@ -144,12 +144,16 @@ const Node = ({ market, slip, onPick, demoControls, registerRef, isChampionMatch
   const open = market.state === 'open';
   const closed = market.state === 'closed';
   const pending = market.state === 'pending';
-  const myBet = bets[market.id];
-  // A confirmed bet (myBet) no longer lives in `slip` — that cart empties on
-  // placement — so without also checking myBet.picked_player_id, the picked
-  // row's highlight vanished the moment a bet actually went through, leaving
-  // only the generic "PENDING $X FM x odds" bar with neither player marked.
-  const picked = (pid) => Boolean(slip[`${market.id}_${pid}`]) || (myBet && myBet.picked_player_id === pid);
+  // A market can carry more than one confirmed bet — hedging both sides of
+  // the same set is allowed — so this is every bet on THIS market, not just
+  // one.
+  const myBets = bets[market.id] || [];
+  // A confirmed bet no longer lives in `slip` — that cart empties on
+  // placement — so without also checking each bet's picked_player_id, the
+  // picked row's highlight vanished the moment a bet actually went through,
+  // leaving only the generic "PENDING $X FM x odds" bar with neither player
+  // marked.
+  const picked = (pid) => Boolean(slip[`${market.id}_${pid}`]) || myBets.some((b) => b.picked_player_id === pid);
   const isReset = (market.round_text || '').toLowerCase().includes('reset');
 
   const row = (pid, name, odds, score, isWin, isLoss) => (
@@ -190,12 +194,10 @@ const Node = ({ market, slip, onPick, demoControls, registerRef, isChampionMatch
         <div className="bnode-bethint">Tap a player to place a pick</div>
       )}
       {demoControls && demoControls(market)}
-      {market && (() => {
-        const b = myBet;
-        if (!b) return null;
+      {market && myBets.map((b) => {
         if (b.state === 'won') {
           return (
-            <div className="bnode-bet-result won">
+            <div key={b.id} className="bnode-bet-result won">
               <span className="bnode-bet-label won">WON</span>
               <span className="bnode-bet-value">+{fmAmount(b.payout_cents - b.amount_cents)} FM</span>
             </div>
@@ -203,7 +205,7 @@ const Node = ({ market, slip, onPick, demoControls, registerRef, isChampionMatch
         }
         if (b.state === 'lost') {
           return (
-            <div className="bnode-bet-result lost">
+            <div key={b.id} className="bnode-bet-result lost">
               <span className="bnode-bet-label lost">LOST</span>
               <span className="bnode-bet-value">−{fm(b.amount_cents)}</span>
             </div>
@@ -211,12 +213,12 @@ const Node = ({ market, slip, onPick, demoControls, registerRef, isChampionMatch
         }
         const inPlay = market.state === 'closed';
         return (
-          <div className={`bnode-bet-result ${inPlay ? 'inplay' : 'pending'}`}>
+          <div key={b.id} className={`bnode-bet-result ${inPlay ? 'inplay' : 'pending'}`}>
             <span className={`bnode-bet-label ${inPlay ? 'inplay' : 'pending'}`}>{inPlay ? 'IN PLAY' : 'PENDING'}</span>
             <span className="bnode-bet-value">{fm(b.amount_cents)} × {Number(b.locked_odds).toFixed(2)}</span>
           </div>
         );
-      })()}
+      })}
     </div>
   );
 };

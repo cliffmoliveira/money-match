@@ -490,7 +490,14 @@ const LiveBetting = () => {
                         slip={slip}
                         onPick={togglePick}
                         demoControls={demo ? renderDemoControls : null}
-                        bets={showPnl ? Object.fromEntries(activeGameBets.map((b) => [b.market_id, b])) : {}}
+                        // Grouped by market_id, not a single bet per market: a user can
+                        // pick both sides of the same set (hedging), and collapsing to
+                        // one bet-per-market silently dropped whichever bet lost the
+                        // Object.fromEntries "last write wins" collision.
+                        bets={showPnl ? activeGameBets.reduce((acc, b) => {
+                          (acc[b.market_id] ||= []).push(b);
+                          return acc;
+                        }, {}) : {}}
                       />
                     }
                   />
