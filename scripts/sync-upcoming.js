@@ -21,6 +21,7 @@ const db = require('../db/db');
 const { startgg } = require('../startggClient');
 const { fieldProbabilities } = require('../liveOdds');
 const { applyFuturesMetaSchema, upsertEntrantCount, upsertTournamentGame } = require('../futuresMeta');
+const { findOrCreatePlayerId } = require('./lib/players');
 
 const FIELD_PLAYER_NAME = 'The Field';
 // Futures open only within this many days of the event (seeding is finalized
@@ -158,7 +159,7 @@ query Entrants($slug: String!, $ids: [ID]) {
       phases {
         id phaseOrder
         seeds(query: { perPage: 16, page: 1 }) {
-          nodes { seedNum entrant { id name participants { images { type url } } } }
+          nodes { seedNum entrant { id name participants { images { type url } player { id } } } }
         }
       }
     }
@@ -170,10 +171,6 @@ function logoFrom(images = []) {
     || images.find((i) => i.type === 'banner')?.url
     || null;
 }
-
-// A participant's uploaded start.gg profile photo. Optional per player — many
-// entrants never upload one.
-const photoOf = (entrant) => entrant?.participants?.[0]?.images?.find((i) => i.type === 'profile')?.url || null;
 
 async function upsertTournament(t) {
   // Full timestamp for the DB column — start.gg's startAt carries the real
@@ -209,21 +206,9 @@ async function upsertGame(g) {
   return result.lastID;
 }
 
-async function upsertPlayer(entrant) {
-  const name = entrant?.name?.trim();
-  if (!name) return null;
-  const photoUrl = photoOf(entrant);
-  const existing = await db.getAsync('SELECT id FROM players WHERE startgg_id = ? OR name = ?', [entrant.id, name]);
-  if (existing) {
-    await db.runAsync(
-      'UPDATE players SET startgg_id = COALESCE(startgg_id, ?), photo_url = COALESCE(?, photo_url) WHERE id = ?',
-      [entrant.id, photoUrl, existing.id]
-    );
-    return existing.id;
-  }
-  const result = await db.runAsync('INSERT INTO players (name, country, startgg_id, photo_url) VALUES (?, ?, ?, ?)', [name, '', entrant.id, photoUrl]);
-  return result.lastID;
-}
+// findOrCreatePlayerId lives in ./lib/players — shared with every other
+// ingestion script (see that module's doc comment for why: Entrant.id isn't
+// a stable per-person identifier, Participant.player.id is).
 
 function topSeeds(entrants = [], top) {
   return [...entrants]
@@ -342,7 +327,7 @@ async function processTournament(slug, args) {
     const { players: probs, field } = fieldProbabilities(seedNodes.map((_, i) => i + 1));
 
     for (let i = 0; i < seedNodes.length; i++) {
-      const pid = await upsertPlayer(seedNodes[i].entrant);
+      const pid = await findOrCreatePlayerId(seedNodes[i].entrant);
       if (!pid) continue;
       await addEntrant(tournamentId, gameId, pid, {
         seedNum: seedNodes[i].seedNum,

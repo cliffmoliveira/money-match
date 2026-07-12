@@ -25,6 +25,7 @@ require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 const fs = require('fs');
 const db = require('../db/db');
 const { startgg } = require('../startggClient');
+const { findOrCreatePlayerId } = require('./lib/players');
 
 const STATE_FILE = path.join(__dirname, '.backfill-state.json');
 
@@ -74,7 +75,7 @@ query TournamentResults($slug: String!, $videogameIds: [ID]) {
       id name numEntrants state
       videogame { id name }
       standings(query: { perPage: 2, page: 1 }) {
-        nodes { placement entrant { id name participants { images { type url } } } }
+        nodes { placement entrant { id name participants { images { type url } player { id } } } }
       }
     }
   }
@@ -206,28 +207,9 @@ async function upsertGame(g) {
   return result.lastID;
 }
 
-// A participant's uploaded start.gg profile photo. Optional per player — many
-// entrants never upload one.
-const photoOf = (entrant) => entrant?.participants?.[0]?.images?.find((i) => i.type === 'profile')?.url || null;
-
-async function upsertPlayer(entrant) {
-  const name = entrant?.name?.trim();
-  if (!name) return null;
-  const photoUrl = photoOf(entrant);
-  const existing = await db.getAsync('SELECT id FROM players WHERE startgg_id = ? OR name = ?', [entrant.id, name]);
-  if (existing) {
-    await db.runAsync(
-      'UPDATE players SET startgg_id = COALESCE(startgg_id, ?), photo_url = COALESCE(?, photo_url) WHERE id = ?',
-      [entrant.id, photoUrl, existing.id]
-    );
-    return existing.id;
-  }
-  const result = await db.runAsync(
-    'INSERT INTO players (name, country, startgg_id, photo_url) VALUES (?, ?, ?, ?)',
-    [name, '', entrant.id, photoUrl]
-  );
-  return result.lastID;
-}
+// findOrCreatePlayerId lives in ./lib/players — shared with every other
+// ingestion script (see that module's doc comment for why: Entrant.id isn't
+// a stable per-person identifier, Participant.player.id is).
 
 // Best-effort: find the deciding Grand Finals set for a score. Standings
 // already give us winner/loser, so failures here just mean a 0-0 score.
@@ -265,8 +247,8 @@ async function recordResult(tournamentDbId, event, winner, runnerUp, dryRun) {
   }
 
   const gameDbId = await upsertGame(event.videogame);
-  const winnerDbId = await upsertPlayer(winner.entrant);
-  const loserDbId = await upsertPlayer(runnerUp.entrant);
+  const winnerDbId = await findOrCreatePlayerId(winner.entrant);
+  const loserDbId = await findOrCreatePlayerId(runnerUp.entrant);
   if (!winnerDbId || !loserDbId) return false;
 
   const score = await fetchGrandFinalsScore(event.id, winner.entrant.id);

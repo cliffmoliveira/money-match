@@ -1,5 +1,6 @@
 const db = require('./db/db');
 const { startgg } = require('./startggClient');
+const { findOrCreatePlayerId } = require('./scripts/lib/players');
 
 const GQL_TOURNAMENT_GF = `
 query TournamentGF($slug: String!) {
@@ -10,7 +11,7 @@ query TournamentGF($slug: String!) {
       videogame { id name }
       sets(perPage: 100, page: 1, sortType: STANDARD, filters: {state: 3}) {
         nodes { id fullRoundText completedAt winnerId
-          slots { entrant { id name participants { images { type url } } } standing { stats { score { value } } } }
+          slots { entrant { id name participants { images { type url } player { id } } } standing { stats { score { value } } } }
         }
       }
     }
@@ -58,37 +59,17 @@ async function upsertGame(g) {
   return row?.id;
 }
 
-// A participant's uploaded start.gg profile photo, same `type: "profile"`
-// convention already used for tournament/event logos elsewhere in this codebase.
-// Optional per player — many entrants never upload one.
-function photoOf(entrant) {
-  const images = entrant?.participants?.[0]?.images || [];
-  return images.find((i) => i.type === 'profile')?.url || null;
-}
-
-async function upsertPlayerByEntrant(entrant) {
-  const name = entrant?.name?.trim() || 'Unknown';
-  const id = entrant?.id || null;
-  const photoUrl = photoOf(entrant);
-  await db.runAsync(
-    `INSERT INTO players (name, country, startgg_id, photo_url)
-     SELECT ?, '', ?, ?
-     WHERE NOT EXISTS (SELECT 1 FROM players WHERE startgg_id = ? OR name = ?);
-     UPDATE players SET startgg_id = COALESCE(startgg_id, ?), photo_url = COALESCE(?, photo_url)
-     WHERE name = ? OR startgg_id = ?;`,
-    [name, id, photoUrl, id, name, id, photoUrl, name, id]
-  );
-  const row = await db.getAsync(`SELECT id FROM players WHERE startgg_id = ? OR name = ?`, [id, name]);
-  return row?.id;
-}
+// findOrCreatePlayerId lives in ./scripts/lib/players — shared with every
+// other ingestion script (see that module's doc comment for why: Entrant.id
+// isn't a stable per-person identifier, Participant.player.id is).
 
 async function upsertMatch(set, tournamentId, gameId) {
   const p0 = set.slots?.[0]?.entrant || { name: 'Unknown' };
   const p1 = set.slots?.[1]?.entrant || { name: 'Unknown' };
   const s0 = set.slots?.[0]?.standing?.stats?.score?.value ?? 0;
   const s1 = set.slots?.[1]?.standing?.stats?.score?.value ?? 0;
-  const p0Id = await upsertPlayerByEntrant(p0);
-  const p1Id = await upsertPlayerByEntrant(p1);
+  const p0Id = await findOrCreatePlayerId(p0);
+  const p1Id = await findOrCreatePlayerId(p1);
 
   const winnerIsP0 = set.winnerId === p0.id;
   const winnerId = winnerIsP0 ? p0Id : p1Id;
