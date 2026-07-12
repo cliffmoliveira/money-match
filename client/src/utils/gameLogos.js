@@ -197,6 +197,7 @@ export function getGameLogoSources(name) {
 const logoTreatmentMap = {
   'street-fighter-6': { filter: 'brightness(0) invert(1)' },
   'guilty-gear-strive': { filter: 'brightness(0) invert(1)' },
+  'beyblade-x': { filter: 'brightness(0) invert(1)' },
 };
 
 export function getGameLogoStyle(name, baseHeight) {
