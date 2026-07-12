@@ -104,6 +104,31 @@ test('Battle Arena Melbourne matches the real "BAM <N>: ..." listing title', () 
   assertRejects('Battle Arena Melbourne', 'Ramen Bowl Arena Melbourne #226');
 });
 
+test('Red Bull Kumite matches real editions', () => {
+  assertMatches('Red Bull Kumite', 'Red Bull Kumite 2025');
+  assertMatches('Red Bull Kumite', 'Red Bull Kumite 2025 London');
+});
+
+test('CEOtaku matches real editions and rejects "Road to"/"Pre-" satellites', () => {
+  assertMatches('CEOtaku', 'CEOtaku 2024');
+  assertMatches('CEOtaku', 'CEOtaku 2023');
+  assertRejects('CEOtaku', 'Clash at Coliseum #8 - Road to CEOtaku Edition');
+  assertRejects('CEOtaku', 'SF6 & Sailor Moon S / Pre-CEOtaku');
+});
+
+test('The Mixup matches the real "The Mixup <year> - Round <N>" listing title', () => {
+  assertMatches('The Mixup', 'The MIXUP 2025 - Round 7');
+});
+
+test('Tekken World Tour matches real editions', () => {
+  assertMatches('Tekken World Tour', 'TEKKEN World Tour 2025 Global Finals');
+});
+
+test('Ultimate Fighting Arena matches real editions', () => {
+  assertMatches('Ultimate Fighting Arena', 'ULTIMATE FIGHTING ARENA 2025');
+  assertMatches('Ultimate Fighting Arena', 'Ultimate Fighting Arena 2026');
+});
+
 test('every BRANDS entry has a non-empty search term and a RegExp pattern', () => {
   for (const b of BRANDS) {
     assert.ok(b.search && typeof b.search === 'string', `brand missing a search string: ${JSON.stringify(b)}`);
