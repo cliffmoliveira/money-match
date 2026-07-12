@@ -144,7 +144,12 @@ const Node = ({ market, slip, onPick, demoControls, registerRef, isChampionMatch
   const open = market.state === 'open';
   const closed = market.state === 'closed';
   const pending = market.state === 'pending';
-  const picked = (pid) => Boolean(slip[`${market.id}_${pid}`]);
+  const myBet = bets[market.id];
+  // A confirmed bet (myBet) no longer lives in `slip` — that cart empties on
+  // placement — so without also checking myBet.picked_player_id, the picked
+  // row's highlight vanished the moment a bet actually went through, leaving
+  // only the generic "PENDING $X FM x odds" bar with neither player marked.
+  const picked = (pid) => Boolean(slip[`${market.id}_${pid}`]) || (myBet && myBet.picked_player_id === pid);
   const isReset = (market.round_text || '').toLowerCase().includes('reset');
 
   const row = (pid, name, odds, score, isWin, isLoss) => (
@@ -186,7 +191,7 @@ const Node = ({ market, slip, onPick, demoControls, registerRef, isChampionMatch
       )}
       {demoControls && demoControls(market)}
       {market && (() => {
-        const b = bets[market.id];
+        const b = myBet;
         if (!b) return null;
         if (b.state === 'won') {
           return (
