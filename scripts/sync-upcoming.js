@@ -72,7 +72,13 @@ const BRANDS = [
   // (Genesis X, Genesis 9) and exclude the "Genesis Cup" online Tekken series.
   { search: 'Genesis',                 re: /^genesis\s+(x\b|\d|[ivxlcdm]+\b)/i },
   { search: 'Super Smash Con',         re: /^super\s+smash\s+con\b/i },
-  { search: 'Battle Arena Melbourne',  re: /^battle\s+arena\s+melbourne\b/i },
+  // NOT ^-anchored (unlike its siblings above): the organizers' own start.gg
+  // listing is titled "BAM <N>: Battle Arena Melbourne <N>" (confirmed for
+  // BAM 14/15/16), so an anchored match silently rejected every edition —
+  // start.gg's own name search found it fine, but our own re-filter then
+  // discarded it. "World Warrior"/"Esports World Cup" below already use this
+  // same anywhere-in-name shape for the identical reason (varying prefixes).
+  { search: 'Battle Arena Melbourne',  re: /battle\s+arena\s+melbourne\b/i },
   { search: 'Tekken World Tour',       re: /^tekken\s+world\s+tour\b/i },
   { search: 'Ultimate Fighting Arena', re: /^ultimate\s+fighting\s+arena\b/i },
   // Street Fighter 6 Capcom Pro Tour 2026 qualifiers. "World Warrior" is a
