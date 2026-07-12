@@ -476,6 +476,15 @@ async function getMarkets({ includeAll = false, pastOnly = false } = {}) {
              AND NOT EXISTS (SELECT 1 FROM set_markets sm3 WHERE sm3.tournament_id = t2.id)
            )
       )`;
+  // Past markets are view-only (settled, no odds/pools/bets — see the design
+  // spec's "historical markets are inert"), and the client never reads the
+  // odds/pool/timing/seeding columns for a settled row (verified against
+  // every client usage of each field). Past Tournaments alone can be an
+  // 8MB+ payload at this DB's size, so trim to just what's rendered instead
+  // of `m.*` — cuts both JSON-serialization cost and network transfer.
+  const pastMarketCols = `m.id, m.tournament_id, m.game_id, m.round_text, m.player1_id, m.player2_id,
+            m.state, m.winner_id, m.round_int, m.p1_score, m.p2_score`;
+  const marketCols = pastOnly ? pastMarketCols : 'm.*';
   // LEFT JOIN the player tables so half-filled (pending) nodes — where one slot
   // is still TBD (player id 0) — are still returned.
   //
@@ -483,7 +492,7 @@ async function getMarkets({ includeAll = false, pastOnly = false } = {}) {
   // via a pre-aggregated derived table and joined in, rather than as a
   // correlated SUM subquery that would otherwise re-run once per output row.
   return db.allAsync(
-    `SELECT m.*, t.name AS tournament_name, t.logo_url AS tournament_logo_url,
+    `SELECT ${marketCols}, t.name AS tournament_name, t.logo_url AS tournament_logo_url,
             t.date AS tournament_date, t.city AS tournament_city, t.country AS tournament_country,
             tge.num_entrants AS tournament_num_entrants,
             g.name AS game_name,
