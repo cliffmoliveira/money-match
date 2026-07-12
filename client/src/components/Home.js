@@ -515,7 +515,7 @@ const Home = () => {
                     {b.kind === 'Live'
                       ? (b.isLiveNow && <span className="bet-kind live">Live</span>)
                       : <span className="bet-kind">{b.kind}</span>}
-                    <div className={`bet-outcome ${b.status === 'win' ? 'win' : b.status === 'loss' ? 'loss' : 'pending'}`}>
+                    <div className={`bet-outcome ${b.status === 'win' ? 'win' : b.status === 'loss' ? 'loss' : b.status === 'refunded' ? 'refunded' : 'pending'}`}>
                       {b.status === 'win' ? 'Won' : b.status === 'loss' ? 'Lost' : b.status === 'refunded' ? 'Refunded' : 'Pending'}
                       {b.result != null && <span className="bet-result">{b.result >= 0 ? ' +' : ' −'}{fmAmount(Math.round(Math.abs(b.result) * 100))} FM</span>}
                     </div>
