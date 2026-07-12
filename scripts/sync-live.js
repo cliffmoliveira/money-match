@@ -85,6 +85,15 @@ query PhaseSets($eventId: ID!, $phaseId: ID!, $page: Int!, $perPage: Int!) {
 
 const SET_PAGE_SIZE = 50;
 const MAX_SET_PAGES = 6; // a Top 8 phase is small; cap to bound a pathological event
+// Fallback when a "final phase" isn't actually Top-8-sized — some events run
+// their whole bracket as a single un-split "Bracket" phase (no separate
+// pools/Top-8), so resolveFinalPhase's only candidate can be much bigger than
+// a real Top 8. Confirmed against BAM 16: Guilty Gear Strive, 2XKO, and
+// Ultimate Marvel vs Capcom 3 each blew the 1000-object complexity cap at
+// SET_PAGE_SIZE (1013-1111 actual) while every other event that day fit fine.
+// Keeps `seeds` (unlike history's trim) since this path prices real markets.
+const SET_PAGE_SIZE_FALLBACK = 15;
+const MAX_SET_PAGES_FALLBACK = 20; // ~300 sets, same ceiling as MAX_SET_PAGES*SET_PAGE_SIZE
 
 // Early rounds (Round 1/2 pools) at big multi-hundred-entrant events blow
 // Start.gg's 1000-object query complexity cap at PHASE_SETS' full field
@@ -421,17 +430,35 @@ async function processHistorySets(tRow, gameId, roundGroups = []) {
 }
 
 /**
- * Pull every set in one phase (paginated). The finals phase is small, but page
- * through it so a Top 8 with a deep losers bracket is never truncated.
+ * Pull every set in one phase (paginated). The finals phase is usually small,
+ * but not always — an event with no separate pools/Top-8 split runs its
+ * entire bracket as one "final" phase, which can be big enough to blow
+ * Start.gg's query complexity cap at SET_PAGE_SIZE. On that specific error,
+ * drop to SET_PAGE_SIZE_FALLBACK and restart this phase's pagination rather
+ * than aborting the whole tournament (see SET_PAGE_SIZE_FALLBACK's comment).
  */
 async function fetchPhaseSets(eventId, phaseId) {
   const all = [];
-  for (let page = 1; page <= MAX_SET_PAGES; page++) {
-    const data = await ggRetry(PHASE_SETS, { eventId, phaseId, page, perPage: SET_PAGE_SIZE });
+  let perPage = SET_PAGE_SIZE;
+  let maxPages = MAX_SET_PAGES;
+  for (let page = 1; page <= maxPages; page++) {
+    let data;
+    try {
+      data = await ggRetry(PHASE_SETS, { eventId, phaseId, page, perPage });
+    } catch (err) {
+      if (perPage === SET_PAGE_SIZE && /query complexity/i.test(err.message)) {
+        perPage = SET_PAGE_SIZE_FALLBACK;
+        maxPages = MAX_SET_PAGES_FALLBACK;
+        all.length = 0;
+        page = 0;
+        continue;
+      }
+      throw err;
+    }
     const conn = data?.event?.sets;
     const nodes = conn?.nodes || [];
     all.push(...nodes);
-    if (nodes.length < SET_PAGE_SIZE || page >= (conn?.pageInfo?.totalPages ?? 1)) break;
+    if (nodes.length < perPage || page >= (conn?.pageInfo?.totalPages ?? 1)) break;
   }
   return all;
 }
@@ -483,7 +510,17 @@ async function fetchActiveEvents(startggId, events = null) {
     const phases = ev.phases || [];
     if (phases.length === 0) continue;
     const finalPhase = resolveFinalPhase(phases);
-    const nodes = await fetchPhaseSets(ev.id, finalPhase.id);
+    // One event's fetch failing (even after fetchPhaseSets' own fallback)
+    // must not take the other 20+ events at the same tournament down with it
+    // — a single oversized side-bracket previously aborted the whole
+    // tournament's sync. Skip just this event and let it retry next poll.
+    let nodes;
+    try {
+      nodes = await fetchPhaseSets(ev.id, finalPhase.id);
+    } catch (err) {
+      console.error(`[sync-live] "${ev.name}" (event ${ev.id}) final phase fetch failed, skipping this event: ${err.message}`);
+      continue;
+    }
     out.push({ id: ev.id, name: ev.name, videogame: ev.videogame, sets: { nodes } });
   }
   return out;
