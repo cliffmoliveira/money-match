@@ -145,6 +145,18 @@ function isPoolsPhase(name) {
   return /pool/i.test(name || '');
 }
 
+// A tournament can run more than one start.gg *event* for the same videogame
+// - e.g. a real qualifier bracket plus an unofficial "Side Event" for the
+// same game. Both would otherwise map to our single (tournament, game_id)
+// bracket and get merged into one nonsensical view - confirmed against
+// "Only The Best 2026", where TEKKEN 8's already-finished "Side Event
+// Sunday" Grand Final showed up next to a still-live Winners Semis set from
+// the real "TWT Challenger - Saturday" event. Skip these entirely rather
+// than trying to track two brackets under one game.
+function isSideEvent(name) {
+  return /side\s+event|community\s+event/i.test(name || '');
+}
+
 // Resolves an event's TRUE final phase. Start.gg's own phaseOrder doesn't
 // always track chronological/structural order — a later-created "Top 16"
 // consolidation phase can end up with a HIGHER phaseOrder than the phase
@@ -507,6 +519,7 @@ async function fetchActiveEvents(startggId, events = null) {
   const evs = events ?? (await fetchTournamentEvents(startggId));
   const out = [];
   for (const ev of evs) {
+    if (isSideEvent(ev.name)) continue;
     const phases = ev.phases || [];
     if (phases.length === 0) continue;
     const finalPhase = resolveFinalPhase(phases);
@@ -539,6 +552,7 @@ async function fetchHistoryPhases(startggId, events = null) {
   const evs = events ?? (await fetchTournamentEvents(startggId));
   const out = [];
   for (const ev of evs) {
+    if (isSideEvent(ev.name)) continue;
     const phases = ev.phases || [];
     if (phases.length < 2) continue; // nothing before the final phase to track
     const finalPhase = resolveFinalPhase(phases);
@@ -616,7 +630,7 @@ async function syncLive({ all = false, tournamentIds = null } = {}) {
 
 module.exports = {
   syncLive, processTournamentEvents, fetchActiveEvents, selectTop8Sets, isTop8Round,
-  isPoolsPhase, resolveFinalPhase, classifyRoundStatus, groupSetsIntoRounds, fetchHistoryPhases, processHistorySets,
+  isPoolsPhase, isSideEvent, resolveFinalPhase, classifyRoundStatus, groupSetsIntoRounds, fetchHistoryPhases, processHistorySets,
 };
 
 if (require.main === module) {

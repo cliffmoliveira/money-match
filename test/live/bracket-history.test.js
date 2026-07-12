@@ -43,6 +43,19 @@ test('isPoolsPhase matches common pools phase names, case-insensitively', () => 
   assert.equal(syncLive.isPoolsPhase(''), false);
 });
 
+test('isSideEvent matches side/community events and rejects the real bracket, case-insensitively', () => {
+  // Real-world case: "Only The Best 2026" ran both of these for TEKKEN 8 -
+  // the tracker used to merge them into one nonsensical bracket (a finished
+  // Grand Final next to a still-live Winners Semis set) since it only keyed
+  // sets by (tournament, game), not by event.
+  assert.equal(syncLive.isSideEvent('TEKKEN 8 - Side Event Sunday'), true);
+  assert.equal(syncLive.isSideEvent('side event'), true);
+  assert.equal(syncLive.isSideEvent('Community Event: Melee Doubles'), true);
+  assert.equal(syncLive.isSideEvent('TEKKEN 8 - TWT Challenger - Saturday'), false);
+  assert.equal(syncLive.isSideEvent('Street Fighter 6'), false);
+  assert.equal(syncLive.isSideEvent(undefined), false);
+});
+
 test('resolveFinalPhase prefers a phase literally named "Top 8" over the highest phaseOrder', () => {
   // Real-world quirk: a later-created "Top 16" consolidation phase can end
   // up with a higher phaseOrder than the phase actually named "Top 8", even
