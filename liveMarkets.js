@@ -445,21 +445,28 @@ async function getMarkets({ includeAll = false, pastOnly = false } = {}) {
   // "over" the moment its Grand Final settles, not at midnight, while a
   // multi-day event stays "current" past its start date as long as later
   // rounds are pending.
+  // Both branches pre-resolve the qualifying tournament ids against the small
+  // `tournaments` table (a couple hundred rows) rather than correlating a
+  // NOT EXISTS/EXISTS check to `t`/`m` directly — that shape re-evaluates the
+  // subquery once per OUTPUT ROW (thousands of set_markets rows and growing),
+  // instead of once per tournament. Same reasoning as the comment this
+  // replaces, now applied to pastOnly too (it previously used the slower
+  // per-row shape and was measurably the slowest query on the page).
   const where = includeAll
     ? `1=1`
     : pastOnly
-    // Mirrors the "current" bucket's exclusion below so a tournament is never
-    // in both: is_live=0, has at least one settled set (so brand-new/never-
-    // tracked tournaments don't qualify), and nothing left unresolved.
-    ? `t.is_live = 0
-       AND strftime('%Y', t.date) = '2026'
-       AND m.state = 'settled'
-       AND NOT ${unresolvedSetsSql('sm6', 't')}`
-    // Scoped to `tournaments` (a couple hundred rows) rather than an OR/EXISTS
-    // directly against `m` — that shape can't use m's tournament_id index, so
-    // SQLite full-scans every set_markets row (thousands, growing) to evaluate
-    // it. Pre-resolving the qualifying tournament ids here keeps the scan on
-    // the small table and lets the outer query stay an indexed lookup.
+    // Mirrors the "current" bucket's tournament-id resolution below so a
+    // tournament is never in both: is_live=0, has at least one settled set
+    // (so brand-new/never-tracked tournaments don't qualify), and nothing
+    // left unresolved.
+    ? `m.tournament_id IN (
+        SELECT t2.id FROM tournaments t2
+        WHERE t2.is_live = 0
+          AND strftime('%Y', t2.date) = '2026'
+          AND EXISTS (SELECT 1 FROM set_markets sm5 WHERE sm5.tournament_id = t2.id AND sm5.state = 'settled')
+          AND NOT ${unresolvedSetsSql('sm6', 't2')}
+      )
+      AND m.state = 'settled'`
     : `m.tournament_id IN (
         SELECT id FROM tournaments t2
         WHERE t2.is_live = 1
@@ -471,10 +478,14 @@ async function getMarkets({ includeAll = false, pastOnly = false } = {}) {
       )`;
   // LEFT JOIN the player tables so half-filled (pending) nodes — where one slot
   // is still TBD (player id 0) — are still returned.
+  //
+  // tournament_num_entrants: a per-tournament constant, so it's computed once
+  // via a pre-aggregated derived table and joined in, rather than as a
+  // correlated SUM subquery that would otherwise re-run once per output row.
   return db.allAsync(
     `SELECT m.*, t.name AS tournament_name, t.logo_url AS tournament_logo_url,
             t.date AS tournament_date, t.city AS tournament_city, t.country AS tournament_country,
-            (SELECT SUM(num_entrants) FROM tournament_games tg WHERE tg.tournament_id = t.id) AS tournament_num_entrants,
+            tge.num_entrants AS tournament_num_entrants,
             g.name AS game_name,
             p1.name AS player1_name, p2.name AS player2_name
      FROM set_markets m
@@ -482,6 +493,8 @@ async function getMarkets({ includeAll = false, pastOnly = false } = {}) {
      JOIN games g ON g.id = m.game_id
      LEFT JOIN players p1 ON p1.id = m.player1_id
      LEFT JOIN players p2 ON p2.id = m.player2_id
+     LEFT JOIN (SELECT tournament_id, SUM(num_entrants) AS num_entrants FROM tournament_games GROUP BY tournament_id) tge
+       ON tge.tournament_id = t.id
      WHERE ${where} AND m.state != 'void'
      ORDER BY (m.state='open') DESC, (m.state='closed') DESC, m.id DESC`
   );

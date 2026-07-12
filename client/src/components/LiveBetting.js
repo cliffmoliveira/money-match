@@ -140,18 +140,16 @@ const LiveBetting = () => {
 
   const refresh = useCallback(async () => {
     try {
-      const [mRes, wRes, bRes, uRes, pmRes] = await Promise.all([
+      const [mRes, wRes, bRes, uRes] = await Promise.all([
         fetch('/api/live/markets'),
         apiFetch(`/api/wallet?userId=${userId}`),
         apiFetch(`/api/live/bets?userId=${userId}`),
         fetch('/api/live/upcoming'),
-        fetch('/api/live/past-markets'),
       ]);
       if (mRes.ok) setMarkets(await mRes.json());
       if (wRes.ok) setBalanceCents((await wRes.json()).balanceCents);
       if (bRes.ok) setMyBets(await bRes.json());
       if (uRes.ok) { const u = await uRes.json(); setUpcoming(Array.isArray(u) ? u : []); }
-      if (pmRes.ok) setPastMarkets(await pmRes.json());
       setError(null);
     } catch (err) {
       setError('Failed to load live markets.');
@@ -159,6 +157,22 @@ const LiveBetting = () => {
       setLoading(false);
     }
   }, [userId]);
+
+  // Past Tournaments is settled/historical data — every finished set ever
+  // recorded, a multi-MB payload — so it doesn't belong on the same 6s cadence
+  // as live odds. Fetched once on mount and refreshed on a much longer
+  // interval; a newly-finished tournament shows up within PAST_POLL_MS instead
+  // of instantly, which is an acceptable trade for not re-downloading the
+  // entire past-results history several times a minute.
+  const PAST_POLL_MS = 3 * 60 * 1000;
+  const refreshPast = useCallback(async () => {
+    try {
+      const pmRes = await fetch('/api/live/past-markets');
+      if (pmRes.ok) setPastMarkets(await pmRes.json());
+    } catch {
+      /* non-fatal — Past Tournaments just keeps showing its last-loaded state */
+    }
+  }, []);
 
   // Auto-expand on first load: live tournaments first, else all, else upcoming
   const hasAutoExpanded = useRef(false);
@@ -179,6 +193,12 @@ const LiveBetting = () => {
     const id = setInterval(refresh, POLL_MS);
     return () => clearInterval(id);
   }, [refresh]);
+
+  useEffect(() => {
+    refreshPast();
+    const id = setInterval(refreshPast, PAST_POLL_MS);
+    return () => clearInterval(id);
+  }, [refreshPast]);
 
   // Tap a player to add them to the slip; tap the same player again to remove
   // them. Toggling means deselecting always clears the highlight.
