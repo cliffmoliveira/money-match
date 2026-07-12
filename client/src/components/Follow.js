@@ -225,10 +225,10 @@ const Follow = () => {
                     ) : (
                       <div className="follow-detail-rows">
                         {profile.tournaments.map((t) => (
-                          <div key={`${t.tournamentId}-${t.gameName}`} className="follow-detail-row">
+                          <div key={`${t.tournamentId}-${t.gameName}-${t.partner || 'solo'}`} className="follow-detail-row">
                             <TournamentLogo name={t.tournamentName} />
                             <span className="follow-row-name">{t.tournamentName}</span>
-                            <span className="follow-row-game">{t.gameName}</span>
+                            <span className="follow-row-game">{t.gameName}{t.partner ? ` · w/ ${t.partner}` : ''}</span>
                             <span className={`follow-row-result${
                               t.result === 'Champion' ? ' champion'
                                 : t.result === 'No result recorded' ? ' none' : ''

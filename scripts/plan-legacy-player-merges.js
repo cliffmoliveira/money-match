@@ -37,21 +37,11 @@ const fs = require('fs');
 const path = require('path');
 const db = require('../db/db');
 const { startgg } = require('../startggClient');
+const { isTeamPairing } = require('../playerName');
 
 const PLAN_FILE = path.join(__dirname, '.legacy-merge-plan.json');
 const REQ_DELAY_MS = 900;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-// Mirrors client/src/utils/playerName.js's splitPlayerName exactly: a name
-// with no "|" and a "/" whose left segment isn't Japanese/CJK is a 2v2 team
-// pairing ("Player1 / Player2"), not a sponsor+tag. See the exclusion
-// comment below for why these are never merge candidates.
-const hasJapanese = (s) => /[぀-ヿ一-鿿＀-￯]/.test(s);
-function isTeamPairing(name) {
-  if (!name || name.includes('|')) return false;
-  const si = name.indexOf('/');
-  return si !== -1 && !hasJapanese(name.slice(0, si));
-}
 
 async function ggRetry(query, vars) {
   for (let attempt = 1; ; attempt++) {
