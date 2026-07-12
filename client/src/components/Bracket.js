@@ -180,19 +180,22 @@ const Node = ({ market, slip, onPick, demoControls, registerRef, isChampionMatch
   const p1Win = settled && market.winner_id === market.player1_id;
   const p2Win = settled && market.winner_id === market.player2_id;
 
-  // Each bet's result attaches directly above the player it was placed on,
-  // instead of every result for the match piling up in one block below both
-  // rows — a hedged bet on the bottom player used to render right next to
-  // the top player's result with nothing tying either one to who it's for.
+  // Each bet's result sits on the outside of the match, next to the player
+  // it was placed on — player1's above his row, player2's below his — so
+  // the two rows themselves stay adjacent in the middle, visually paired
+  // against each other, with each bet bracketing outward from its player.
   // .bnode has overflow:hidden, so no corner-rounding bookkeeping is needed
   // here — the card clips every child to its own border-radius already.
   const player1Bets = myBets.filter((b) => b.picked_player_id === market.player1_id);
   const player2Bets = myBets.filter((b) => b.picked_player_id === market.player2_id);
 
-  const betResultRow = (b) => {
+  // `edge` is which side of the result touches its player's row, so the
+  // divider border lands between them instead of at the card's outer edge.
+  const betResultRow = (b, edge) => {
+    const edgeCls = edge === 'below' ? ' bnode-bet-result-top' : ' bnode-bet-result-bottom';
     if (b.state === 'won') {
       return (
-        <div key={b.id} className="bnode-bet-result won">
+        <div key={b.id} className={`bnode-bet-result won${edgeCls}`}>
           <span className="bnode-bet-label won">WON</span>
           <span className="bnode-bet-value">+{fmAmount(b.payout_cents - b.amount_cents)} FM</span>
         </div>
@@ -200,7 +203,7 @@ const Node = ({ market, slip, onPick, demoControls, registerRef, isChampionMatch
     }
     if (b.state === 'lost') {
       return (
-        <div key={b.id} className="bnode-bet-result lost">
+        <div key={b.id} className={`bnode-bet-result lost${edgeCls}`}>
           <span className="bnode-bet-label lost">LOST</span>
           <span className="bnode-bet-value">−{fm(b.amount_cents)}</span>
         </div>
@@ -208,7 +211,7 @@ const Node = ({ market, slip, onPick, demoControls, registerRef, isChampionMatch
     }
     const inPlay = market.state === 'closed';
     return (
-      <div key={b.id} className={`bnode-bet-result ${inPlay ? 'inplay' : 'pending'}`}>
+      <div key={b.id} className={`bnode-bet-result ${inPlay ? 'inplay' : 'pending'}${edgeCls}`}>
         <span className={`bnode-bet-label ${inPlay ? 'inplay' : 'pending'}`}>{inPlay ? 'IN PLAY' : 'PENDING'}</span>
         <span className="bnode-bet-value">{fm(b.amount_cents)} × {Number(b.locked_odds).toFixed(2)}</span>
       </div>
@@ -223,10 +226,10 @@ const Node = ({ market, slip, onPick, demoControls, registerRef, isChampionMatch
           {pending && <span className="bnode-wait">WAITING</span>}
         </div>
       )}
-      {market && player1Bets.map(betResultRow)}
+      {market && player1Bets.map((b) => betResultRow(b, 'above'))}
       {row(market.player1_id, market.player1_name, market.p1_live_odds, market.p1_score, p1Win, p2Win)}
-      {market && player2Bets.map(betResultRow)}
       {row(market.player2_id, market.player2_name, market.p2_live_odds, market.p2_score, p2Win, p1Win)}
+      {market && player2Bets.map((b) => betResultRow(b, 'below'))}
       {open && !picked(market.player1_id) && !picked(market.player2_id) && (
         <div className="bnode-bethint">Tap a player to place a pick</div>
       )}

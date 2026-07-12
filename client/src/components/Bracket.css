@@ -123,15 +123,19 @@
   font-size: 10px; color: var(--muted); text-align: center; letter-spacing: .02em;
 }
 
-/* Per-match bet result overlay - sits directly above the player it's on,
-   separated from that row by its own bottom border. .bnode has
-   overflow:hidden, so no corner-rounding bookkeeping is needed here. */
+/* Per-match bet result overlay - sits on the outside of the match, next to
+   the player it's on (player1's above his row, player2's below his), so the
+   two rows stay adjacent in the middle. .bnode has overflow:hidden, so no
+   corner-rounding bookkeeping is needed here. The divider border always
+   faces the row it's paired with, never the card's outer edge. */
 .bnode-bet-result {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 5px 9px; border-bottom: 1px solid rgba(0,0,0,0.25);
+  padding: 5px 9px;
   background: linear-gradient(90deg, rgba(231,180,88,0.65) 0%, rgba(231,180,88,0.04) 100%);
   font-family: 'Saira', sans-serif;
 }
+.bnode-bet-result-bottom { border-bottom: 1px solid rgba(0,0,0,0.25); }
+.bnode-bet-result-top { border-top: 1px solid rgba(0,0,0,0.25); }
 .bnode-bet-label {
   font-size: 9px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase;
   color: var(--muted);
