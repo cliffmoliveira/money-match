@@ -206,3 +206,32 @@ test('processTournamentEvents backfills a still-TBD slot on a pre-existing pendi
   const sin = await db.getAsync(`SELECT id FROM players WHERE startgg_id = 'e-sin'`);
   assert.equal(market.player2_id, sin.id);
 });
+
+test('isGameFullyResolved skips a game once every set is settled, but not while any are still open/closed/pending', async () => {
+  // A big multi-game major re-fetching every event's phases on every 60s
+  // cycle is enough call volume on its own to blow through Start.gg's rate
+  // limit - confirmed live on "Only The Best 2026" (20+ events), where a
+  // Melty Blood Grand Final sat stuck 'open' for ~6 hours despite a healthy
+  // poller, while unrelated games in the same tournament had long since
+  // settled and had nothing left to say. Games with nothing left unresolved
+  // should be skippable so the rate-limit budget goes to what's still live.
+  const gameRes = await db.runAsync(`INSERT INTO games (name, startgg_id) VALUES ('Street Fighter 6', 'g-sf6')`);
+  const gameId = gameRes.lastID;
+
+  // Never synced at all - no rows yet - must not be treated as "resolved".
+  assert.equal(await sync.isGameFullyResolved(1, 'g-sf6'), false);
+
+  await db.runAsync(
+    `INSERT INTO set_markets (tournament_id, game_id, startgg_set_id, round_text, player1_id, player2_id, state)
+     VALUES (1, ?, 's1', 'Grand Final', 1, 2, 'open')`,
+    [gameId]
+  );
+  assert.equal(await sync.isGameFullyResolved(1, 'g-sf6'), false, 'an open set means still bettable, not resolved');
+
+  await db.runAsync(`UPDATE set_markets SET state='settled' WHERE startgg_set_id='s1'`);
+  assert.equal(await sync.isGameFullyResolved(1, 'g-sf6'), true, 'every set settled means nothing left that could change');
+
+  // A different tournament tracking the same videogame must not be affected
+  // by tournament 1's resolved state.
+  assert.equal(await sync.isGameFullyResolved(2, 'g-sf6'), false);
+});
