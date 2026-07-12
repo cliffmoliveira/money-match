@@ -161,3 +161,48 @@ test('processTournamentEvents settles a just-finished match before advancing its
   const grandFinal = await db.getAsync(`SELECT * FROM set_markets WHERE startgg_set_id = 'grand-final'`);
   assert.equal(grandFinal.player2_id, endingWalkerId, 'EndingWalker must advance into Grand Final in the same cycle their Losers Final settles');
 });
+
+test('processTournamentEvents backfills a still-TBD slot on a pre-existing pending market once start.gg reports the set in progress (state 2)', async () => {
+  // Reproduces a real production bug found on "Only The Best 2026"'s TEKKEN 8
+  // bracket: Losers Final was created earlier as 'pending' with only Meo-IL's
+  // slot known (the state===1 path, waiting on the Losers Semi-Final feeder).
+  // Once Sin won that feeder and Start.gg moved Losers Final to state 2 (in
+  // progress, both entrants now real), the state===2 "existing market"
+  // branch called closeMarket directly without ever re-filling the TBD slot.
+  // closeMarket only transitions 'open'/'closed' rows, so it silently
+  // no-op'd on the still-'pending' row, leaving Sin's slot stuck on the TBD
+  // sentinel and the bracket showing "WAITING ... TBD" even while the real
+  // match was actively being played.
+  const gameRes = await db.runAsync(`INSERT INTO games (name, startgg_id) VALUES ('TEKKEN 8', 'g1')`);
+  const gameId = gameRes.lastID;
+  const meoIlRes = await db.runAsync(`INSERT INTO players (name, startgg_id) VALUES ('NIP | Meo-IL', 'e-meoil')`);
+  const meoIlId = meoIlRes.lastID;
+
+  await db.runAsync(
+    `INSERT INTO set_markets (tournament_id, game_id, startgg_set_id, round_text, player1_id, player2_id, state)
+     VALUES (1, ?, 'losers-final', 'Losers Final', ?, 0, 'pending')`,
+    [gameId, meoIlId]
+  );
+
+  const events = [{
+    videogame: { id: 'g1', name: 'TEKKEN 8' },
+    sets: {
+      nodes: [{
+        id: 'losers-final', state: 2, fullRoundText: 'Losers Final', round: 5,
+        slots: [
+          { entrant: { id: 'e-meoil', name: 'NIP | Meo-IL', seeds: [{ seedNum: 3 }] }, standing: { stats: { score: { value: 0 } } } },
+          { entrant: { id: 'e-sin', name: 'FOX | Sin', seeds: [{ seedNum: 4 }] }, standing: { stats: { score: { value: 0 } } } },
+        ],
+      }],
+    },
+  }];
+
+  const stats = await sync.processTournamentEvents({ id: 1 }, events);
+  assert.equal(stats.closed, 1);
+
+  const market = await db.getAsync(`SELECT * FROM set_markets WHERE startgg_set_id = 'losers-final'`);
+  assert.equal(market.state, 'closed');
+  assert.notEqual(market.player2_id, 0, 'Sin must be backfilled into the TBD slot, not left as the sentinel');
+  const sin = await db.getAsync(`SELECT id FROM players WHERE startgg_id = 'e-sin'`);
+  assert.equal(market.player2_id, sin.id);
+});

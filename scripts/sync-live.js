@@ -327,10 +327,18 @@ async function processTournamentEvents(tRow, events = []) {
         // Live scores from Start.gg — updated on every poll while the set is in progress.
         const p1s = scoreOf(set.slots[0]);
         const p2s = scoreOf(set.slots[1]);
-        if (!activeExisting && e0?.id && e1?.id) {
-          // Set went in-progress before we ever saw it fully populated (poller
-          // missed the state-1 window). Create the market and immediately close
-          // it so the match appears in the bracket with the LIVE badge.
+        if (e0?.id && e1?.id) {
+          // Always re-fill both slots before closing, even when a market row
+          // already exists — it may have been created earlier as 'pending'
+          // with only one slot known (this same set at state 1, waiting on
+          // its feeder match), and closeMarket only transitions 'open'/
+          // 'closed' rows, silently no-oping on a still-'pending' one.
+          // Confirmed live: "Only The Best 2026"'s TEKKEN 8 Losers Final
+          // stayed stuck showing TBD for its second slot even after Start.gg
+          // filled it in and moved the set to state 2, because this branch
+          // never called fillBracketSlot again once the market row already
+          // existed. fillBracketSlot itself is idempotent for an
+          // already-correct slot, so re-filling slot 1 here is harmless.
           const phaseGroupId = set.phaseGroup?.id != null ? String(set.phaseGroup.id) : null;
           const p0 = await findOrCreatePlayerId(e0);
           const p1 = await findOrCreatePlayerId(e1);
@@ -342,6 +350,8 @@ async function processTournamentEvents(tRow, events = []) {
             stats.closed++;
           }
         } else if (activeExisting) {
+          // One slot is still genuinely TBD (start.gg hasn't reported the
+          // other entrant yet) — nothing to fill, just close what we have.
           await lm.closeMarket(activeExisting.id, p1s, p2s);
           stats.closed++;
         }
