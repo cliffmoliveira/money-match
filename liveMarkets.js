@@ -432,6 +432,39 @@ async function placeBet({ userId, marketId, playerId, amountCents }) {
   });
 }
 
+/**
+ * Cancel a still-open pick and refund its stake. Only while the market is
+ * still 'open' — the set hasn't started, so pulling the stake back out is
+ * exactly the inverse of placeBet (undo the pool contribution, reprice).
+ * Once a set is 'closed'/'settled' the bet is locked in like any other
+ * sportsbook: no cancelling after the match has started.
+ */
+async function cancelBet(userId, betId) {
+  return withWriteTx(async () => {
+    const bet = await db.getAsync('SELECT * FROM set_bets WHERE id = ?', [betId]);
+    if (!bet) { const e = new Error('Bet not found'); e.code = 'NOT_FOUND'; throw e; }
+    if (bet.user_id !== userId) { const e = new Error('Not your bet'); e.code = 'FORBIDDEN'; throw e; }
+    if (bet.state !== 'placed') { const e = new Error('Bet is no longer cancellable'); e.code = 'NOT_CANCELLABLE'; throw e; }
+
+    const market = await db.getAsync('SELECT * FROM set_markets WHERE id = ?', [bet.market_id]);
+    if (!market || market.state !== 'open') {
+      const e = new Error('This set has already started'); e.code = 'MARKET_LOCKED'; throw e;
+    }
+
+    await wallet.applyCredit(userId, bet.amount_cents, 'refund', { type: 'set_bet', id: bet.id });
+    await db.runAsync(`UPDATE set_bets SET state='refunded', payout_cents=? WHERE id=?`, [bet.amount_cents, bet.id]);
+
+    const poolCol = bet.picked_player_id === market.player1_id ? 'p1_pool_cents' : 'p2_pool_cents';
+    await db.runAsync(`UPDATE set_markets SET ${poolCol} = MAX(0, ${poolCol} - ?) WHERE id = ?`, [bet.amount_cents, market.id]);
+
+    const updated = await db.getAsync('SELECT * FROM set_markets WHERE id = ?', [market.id]);
+    const odds = await recomputeOdds(updated);
+    invalidateBankrollCache(); // defensive, matches voidMarket/refundOrphanedVoidBets
+    const balanceCents = await wallet.getBalance(userId);
+    return { odds, balanceCents };
+  });
+}
+
 // ---- Queries (for the API/frontend) ----
 
 /**
@@ -817,7 +850,7 @@ async function getGameTracker(tournamentId, gameId) {
 module.exports = {
   ensureOpenMarket, fillBracketSlot, closeMarket, settleMarket, voidMarket,
   refundOrphanedVoidBets,
-  placeBet, recomputeOdds, getMarkets, getUserBets, houseBankrollCents, sideRates,
+  placeBet, cancelBet, recomputeOdds, getMarkets, getUserBets, houseBankrollCents, sideRates,
   seedDemoMarkets, advanceDemoBracket, clearDemoMarkets, getUpcoming,
   invalidateBankrollCache, getGameTracker,
   unresolvedSetsSql, STALE_PENDING_DAYS,

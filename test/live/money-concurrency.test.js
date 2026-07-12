@@ -202,3 +202,53 @@ test('clearDemoMarkets atomically reverses net wallet impact and removes rows', 
   assert.equal((await db.getAsync('SELECT COUNT(*) AS c FROM set_bets')).c, 0);
   await assertLedgerReconciles([1]);
 });
+
+test('cancelBet refunds the stake, reverses the pool, and reconciles the ledger', async () => {
+  await addUser(1);
+  const marketId = await openMarket();
+  const { betId } = await lm.placeBet({ userId: 1, marketId, playerId: P1, amountCents: 1000 });
+  assert.equal(await balance(1), START - 1000);
+  const beforeCancel = await db.getAsync('SELECT p1_pool_cents FROM set_markets WHERE id = ?', [marketId]);
+  assert.equal(beforeCancel.p1_pool_cents, 1000);
+
+  await lm.cancelBet(1, betId);
+
+  assert.equal(await balance(1), START, 'stake must be fully refunded');
+  await assertLedgerReconciles([1]);
+  const bet = await db.getAsync('SELECT state, payout_cents FROM set_bets WHERE id = ?', [betId]);
+  assert.equal(bet.state, 'refunded');
+  assert.equal(bet.payout_cents, 1000);
+  const market = await db.getAsync('SELECT p1_pool_cents FROM set_markets WHERE id = ?', [marketId]);
+  assert.equal(market.p1_pool_cents, 0, "the cancelled stake's pool contribution must be reversed");
+});
+
+test('cancelBet refuses once the set has closed (started) even though the bet is still "placed"', async () => {
+  await addUser(1);
+  const marketId = await openMarket();
+  const { betId } = await lm.placeBet({ userId: 1, marketId, playerId: P1, amountCents: 1000 });
+  await lm.closeMarket(marketId, 1, 0); // set starts - betting locks, but the bet itself is still 'placed' until settlement
+
+  await assert.rejects(() => lm.cancelBet(1, betId), (err) => err.code === 'MARKET_LOCKED');
+  assert.equal(await balance(1), START - 1000, 'stake must stay locked in once the set has started');
+});
+
+test('cancelBet refuses a bet that belongs to someone else', async () => {
+  await addUser(1);
+  await addUser(2);
+  const marketId = await openMarket();
+  const { betId } = await lm.placeBet({ userId: 1, marketId, playerId: P1, amountCents: 1000 });
+
+  await assert.rejects(() => lm.cancelBet(2, betId), (err) => err.code === 'FORBIDDEN');
+  assert.equal(await balance(1), START - 1000, "another user's cancel attempt must not touch the real owner's stake");
+});
+
+test('cancelBet refuses a bet that has already been settled', async () => {
+  await addUser(1);
+  const marketId = await openMarket();
+  const { betId } = await lm.placeBet({ userId: 1, marketId, playerId: P1, amountCents: 1000 });
+  await lm.settleMarket(marketId, P1, 2, 0);
+  const balanceAfterWin = await balance(1);
+
+  await assert.rejects(() => lm.cancelBet(1, betId), (err) => err.code === 'NOT_CANCELLABLE');
+  assert.equal(await balance(1), balanceAfterWin, 'a settled payout must never be touched by a cancel attempt');
+});

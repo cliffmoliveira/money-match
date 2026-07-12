@@ -919,6 +919,24 @@ app.post('/api/live/bets', requireAuth, async (req, res) => {
   }
 });
 
+app.delete('/api/live/bets/:id', requireAuth, async (req, res) => {
+  const userId = req.userId;
+  try {
+    const result = await liveMarkets.cancelBet(Number(userId), Number(req.params.id));
+    res.json(result);
+  } catch (err) {
+    const map = {
+      NOT_FOUND: [404, 'Pick not found'],
+      FORBIDDEN: [403, 'Not your pick'],
+      NOT_CANCELLABLE: [409, 'Pick has already been settled or refunded'],
+      MARKET_LOCKED: [409, 'This set has already started'],
+    };
+    const [code, msg] = map[err.code] || [500, 'Failed to cancel pick'];
+    if (code === 500) console.error('Error cancelling live bet:', err.message);
+    res.status(code).json({ error: msg });
+  }
+});
+
 // Sync endpoints
 app.post('/api/sync/startgg/tournament', async (req, res) => {
   try {

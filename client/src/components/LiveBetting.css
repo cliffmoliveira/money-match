@@ -385,7 +385,8 @@
 .live-mybets-pick { font-family: 'Saira', sans-serif; font-weight: 600; color: var(--text); font-size: 14px; }
 .live-mybets-odds { color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; }
 .live-mybets-meta { color: var(--faint); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.live-mybets-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+.live-mybets-right { display: flex; flex-direction: row; align-items: center; gap: 8px; flex-shrink: 0; }
+.live-mybets-right-stack { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
 .live-mybets-status {
   font-family: 'Saira', sans-serif; font-size: 10px; font-weight: 700;
   padding: 2px 7px; border-radius: 5px; letter-spacing: .05em;
@@ -395,6 +396,19 @@
 .live-mybets-status.lost { background: var(--live-tint); color: var(--live-text); }
 .live-mybets-status.refunded { background: var(--surface); color: var(--muted); }
 .live-mybets-amount { font-family: 'Saira', sans-serif; font-size: 14px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+.live-mybets-cancel {
+  width: 22px; height: 22px; flex-shrink: 0; border-radius: 50%;
+  background: transparent; border: 1px solid var(--border);
+  color: var(--faint); font-size: 14px; line-height: 1; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: color .15s, border-color .15s, background .15s;
+}
+.live-mybets-cancel:hover:not(:disabled) { color: var(--live-text); border-color: var(--live-text); background: var(--live-tint); }
+.live-mybets-cancel:disabled { opacity: .5; cursor: default; }
+.live-mybets-cancel-error {
+  margin: 0; padding: 8px 18px; font-size: 12px; color: var(--live-text);
+  background: var(--live-tint); border-bottom: 1px solid var(--border-soft);
+}
 
 
 @media (max-width: 600px) {

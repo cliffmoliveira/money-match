@@ -125,6 +125,8 @@ const LiveBetting = () => {
   const [activeTabs, setActiveTabs] = useState({});     // { [tName]: tabKey }
   const [expandedTourneys, setExpandedTourneys] = useState(new Set());
   const [showPnl, setShowPnl] = useState(false);
+  const [cancellingId, setCancellingId] = useState(null);
+  const [cancelError, setCancelError] = useState(null);
   const toggleTourney = (tName) => setExpandedTourneys((prev) => {
     const next = new Set(prev);
     next.has(tName) ? next.delete(tName) : next.add(tName);
@@ -273,6 +275,26 @@ const LiveBetting = () => {
     }
   };
 
+  // Only while the set hasn't started — cancelling is the exact inverse of
+  // placing (refund the stake, undo the pool contribution), which only
+  // makes sense before the market locks.
+  const cancelBet = async (betId) => {
+    setCancellingId(betId);
+    setCancelError(null);
+    try {
+      const res = await apiFetch(`/api/live/bets/${betId}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || res.statusText);
+      }
+      await refresh();
+    } catch (err) {
+      setCancelError(err.message);
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
   // Demo tools: seed markets and simulate set outcomes (dev convenience).
   const demoAction = async (path, body) => {
     try {
@@ -372,10 +394,14 @@ const LiveBetting = () => {
     return (
       <aside className="live-mybets">
         <div className="live-mybets-header">My Picks ({myBets.length})</div>
+        {cancelError && <p className="live-mybets-cancel-error">{cancelError}</p>}
         <ul className="live-mybets-list">
           {myBets.map((b) => {
             const st = STATUS[b.state] || STATUS.placed;
             const opp = b.picked_name === b.player1_name ? b.player2_name : b.player1_name;
+            // Cancelling only makes sense before the set has started - once
+            // it's closed/settled the stake is locked in like any other pick.
+            const cancellable = b.state === 'placed' && b.market_state === 'open';
             return (
               <li key={b.id} className="live-mybets-item">
                 <div className="live-mybets-info">
@@ -385,14 +411,28 @@ const LiveBetting = () => {
                   <span className="live-mybets-meta">vs {opp} · {b.round_text || b.game_name}</span>
                 </div>
                 <div className="live-mybets-right">
-                  <span className={`live-mybets-status ${st.cls}`}>{st.label}</span>
-                  <span className="live-mybets-amount">
-                    {b.state === 'won'
-                      ? signed(b.payout_cents - b.amount_cents)
-                      : b.state === 'lost'
-                      ? `−${fmt(b.amount_cents)}`
-                      : fmt(b.amount_cents)}
-                  </span>
+                  <div className="live-mybets-right-stack">
+                    <span className={`live-mybets-status ${st.cls}`}>{st.label}</span>
+                    <span className="live-mybets-amount">
+                      {b.state === 'won'
+                        ? signed(b.payout_cents - b.amount_cents)
+                        : b.state === 'lost'
+                        ? `−${fmt(b.amount_cents)}`
+                        : fmt(b.amount_cents)}
+                    </span>
+                  </div>
+                  {cancellable && (
+                    <button
+                      type="button"
+                      className="live-mybets-cancel"
+                      disabled={cancellingId === b.id}
+                      onClick={() => cancelBet(b.id)}
+                      aria-label="Cancel pick"
+                      title="Cancel pick"
+                    >
+                      {cancellingId === b.id ? '…' : '×'}
+                    </button>
+                  )}
                 </div>
               </li>
             );

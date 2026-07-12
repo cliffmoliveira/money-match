@@ -146,8 +146,9 @@ const Node = ({ market, slip, onPick, demoControls, registerRef, isChampionMatch
   const pending = market.state === 'pending';
   // A market can carry more than one confirmed bet — hedging both sides of
   // the same set is allowed — so this is every bet on THIS market, not just
-  // one.
-  const myBets = bets[market.id] || [];
+  // one. A cancelled bet ('refunded' via the still-open cancel path) is
+  // treated as if it never happened — no pick highlight, no result row.
+  const myBets = (bets[market.id] || []).filter((b) => b.state !== 'refunded');
   // A confirmed bet no longer lives in `slip` — that cart empties on
   // placement — so without also checking each bet's picked_player_id, the
   // picked row's highlight vanished the moment a bet actually went through,
