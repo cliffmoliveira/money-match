@@ -3,6 +3,24 @@ import './Follow.css';
 import { getTournamentLogoSources, getTournamentAlt, getTournamentLogoStyle } from '../utils/tournamentLogos';
 import { apiFetch } from '../utils/api';
 import { formatTournamentDateTime } from '../utils/tournamentDate';
+import { splitPlayerName } from '../utils/playerName';
+
+// Stored player names carry the sponsor as ingested from start.gg ("WBG RB |
+// MenaRD"), and that prefix can change release to release without the person
+// behind it changing — see splitPlayerName's own doc comment. Lead with the
+// gamerTag (what a follower actually recognizes) and show the sponsor only
+// as a small label above it, same convention as Bracket.js's PlayerName /
+// Home.js's BetPlayerName, so a sponsor swap doesn't reshuffle what's
+// prominent in someone's Follow list.
+const FollowPlayerName = ({ name, tagClassName, sponsorClassName }) => {
+  const { sponsor, tag } = splitPlayerName(name);
+  return (
+    <span className="follow-name-stack">
+      {sponsor && <span className={sponsorClassName}>{sponsor}</span>}
+      <span className={tagClassName}>{tag}</span>
+    </span>
+  );
+};
 
 // Person outline shown when a player has no start.gg profile photo uploaded,
 // or their photo fails to load. Mirrors Navbar's account-menu fallback.
@@ -153,7 +171,7 @@ const Follow = () => {
                 <span className="follow-search-identity">
                   <PlayerAvatar url={p.photoUrl} size={26} />
                   <span className="follow-search-text">
-                    <span className="follow-search-name">{p.name}</span>
+                    <FollowPlayerName name={p.name} tagClassName="follow-search-name" sponsorClassName="follow-search-sponsor" />
                     <span className="follow-search-activity">{p.latestActivity || 'No tracked history yet'}</span>
                   </span>
                 </span>
@@ -182,7 +200,7 @@ const Follow = () => {
                 <div className="follow-card-main">
                   <span className="follow-card-identity">
                     <PlayerAvatar url={p.photoUrl} />
-                    <span className="follow-card-name">{p.name}</span>
+                    <FollowPlayerName name={p.name} tagClassName="follow-card-name" sponsorClassName="follow-card-sponsor" />
                   </span>
                   <span className="follow-card-record">{recordLine(p.record)}</span>
                   <span className="follow-card-chevron" aria-hidden="true" />

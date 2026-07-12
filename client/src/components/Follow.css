@@ -48,6 +48,19 @@
 .follow-search-name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .follow-search-activity { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/* Sponsor/tag stack — sponsor small and faint above the gamerTag, same
+   convention as Bracket.js's .bnode-name-stack, so the tag stays the
+   prominent, stable thing a follower recognizes even if the sponsor changes. */
+.follow-name-stack { display: flex; flex-direction: column; justify-content: center; min-width: 0; }
+.follow-search-sponsor {
+  font-size: 8px; font-weight: 700; color: var(--muted); text-transform: uppercase;
+  letter-spacing: .04em; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.follow-card-sponsor {
+  font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase;
+  letter-spacing: .04em; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
 .follow-avatar { border-radius: 50%; object-fit: cover; flex-shrink: 0; }
 .follow-avatar-fallback {
   display: flex; align-items: center; justify-content: center;
