@@ -187,6 +187,17 @@ const logoFileBySlug = {
   'asuka-120-limitover-burning-fest': 'asuka-120-limitover-burning-fest.png',
   'duck-game': 'duck-game.png',
   'street-fighter-v-champion-edition': 'street-fighter-v-champion-edition.png',
+  // All In Together 2026 additions (remaining games)
+  'persona-4-arena-ultimax': 'persona-4-arena-ultimax.png',
+  'lethal-league-blaze': 'lethal-league-blaze.png',
+  'bishoujo-senshi-sailor-moon-s-juugai-rantou-shuyaku-soudatsusen': 'Bishoujo-Senshi-Sailor-Moon-S-Juugai-Rantou-Shuyaku-Soudatsusen.png',
+  'injustice-2': 'injustice-2.png',
+  'injustice-gods-among-us': 'injustice-gods-among-us.png',
+  'mortal-kombat-11': 'mortal-kombat-11.png',
+  // DB name is "Mortal Kombat 9"; shipped filename has no "9" - mapped as shipped.
+  'mortal-kombat-9': 'mortal-kombat.png',
+  'mortal-kombat-xl': 'mortal-kombat-xl.png',
+  'windjammers-2': 'windjammers-2.png',
 };
 
 export function getGameLogoSources(name) {
