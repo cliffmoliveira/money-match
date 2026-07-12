@@ -70,7 +70,14 @@ const BRANDS = [
   { search: 'Texas Showdown',          re: /^texas\s+showdown\b/i },
   // Require a number/roman-numeral/X after "Genesis" to match the Smash major
   // (Genesis X, Genesis 9) and exclude the "Genesis Cup" online Tekken series.
-  { search: 'Genesis',                 re: /^genesis\s+(x\b|\d|[ivxlcdm]+\b)/i },
+  // "x\d*\b" (not "x\b"): the real listing titles are "Genesis X2"/"Genesis
+  // X3" — X directly followed by the edition number, no space — which a
+  // bare "x\b" never matches (no word boundary between "X" and "2"). Found
+  // by the regression suite in test/sync/brands.test.js: both editions are
+  // already in our DB with real startgg_ids from a past broad backfill, but
+  // the CURRENT regex couldn't have discovered either one via the daily
+  // sync — same silent-miss shape as the Battle Arena Melbourne bug.
+  { search: 'Genesis',                 re: /^genesis\s+(x\d*\b|\d|[ivxlcdm]+\b)/i },
   { search: 'Super Smash Con',         re: /^super\s+smash\s+con\b/i },
   // NOT ^-anchored (unlike its siblings above): the organizers' own start.gg
   // listing is titled "BAM <N>: Battle Arena Melbourne <N>" (confirmed for
@@ -373,7 +380,21 @@ async function findBrandTournaments(query, after, before) {
       }
       for (const t of nodes) {
         if (!t.slug || seen.has(t.slug)) continue;
-        if (!brand.re.test(normalizeName(t.name))) continue;
+        if (!brand.re.test(normalizeName(t.name))) {
+          // Silent rejections here are invisible by construction — this is
+          // exactly how Battle Arena Melbourne went unmatched for 3 straight
+          // editions (BAM 14/15/16): start.gg's own search found it every
+          // time, our ^-anchored regex just never said so out loud. Flag the
+          // specific, actionable case — the candidate plainly contains the
+          // brand's own search phrase, so a human should look at why the
+          // regex didn't match, rather than assume it's a correctly-
+          // rejected decoy (most rejections ARE decoys, e.g. "Genesis Cup"
+          // for the "Genesis" search, and those stay silent on purpose).
+          if (normalizeName(t.name).toLowerCase().includes(brand.search.toLowerCase())) {
+            console.warn(`[sync-upcoming] possible missed major: "${t.name}" [${t.slug}] contains brand search "${brand.search}" but its regex didn't match — check BRANDS' pattern for this brand.`);
+          }
+          continue;
+        }
         // Skip the "... Community Tournaments" companion pages start.gg spins up
         // for side/legacy games at a major — the main bracket is the real event.
         if (/\bcommunity tournaments?\b/i.test(t.name)) continue;
@@ -455,7 +476,7 @@ async function syncRecentResults({ days = 30, minEntrants = 0 } = {}) {
   return { tournaments: withData, matches: totalMatches };
 }
 
-module.exports = { syncUpcoming, syncRecentResults, processTournament, pickTopSeeds, GAME_IDS };
+module.exports = { syncUpcoming, syncRecentResults, processTournament, pickTopSeeds, GAME_IDS, BRANDS, normalizeName };
 
 // CLI: `node scripts/sync-upcoming.js [--months N] [--top N] [--dry-run] [--results]`
 if (require.main === module) {
