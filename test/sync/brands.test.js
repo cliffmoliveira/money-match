@@ -104,6 +104,13 @@ test('Battle Arena Melbourne matches the real "BAM <N>: ..." listing title', () 
   assertRejects('Battle Arena Melbourne', 'Ramen Bowl Arena Melbourne #226');
 });
 
+test('Only The Best matches all 3 real editions and requires a year', () => {
+  assertMatches('Only The Best', 'Only The Best 2026');
+  assertMatches('Only The Best', 'Only The Best 2025');
+  assertMatches('Only The Best', 'Only The Best 2024');
+  assertRejects('Only The Best', 'Only The Best: Online Qualifier');
+});
+
 test('Red Bull Kumite matches real editions', () => {
   assertMatches('Red Bull Kumite', 'Red Bull Kumite 2025');
   assertMatches('Red Bull Kumite', 'Red Bull Kumite 2025 London');

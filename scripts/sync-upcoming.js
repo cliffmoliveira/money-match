@@ -94,6 +94,12 @@ const BRANDS = [
   // are ~90 globally. Esports World Cup is a Premier major.
   { search: 'World Warrior',           re: /world\s+warrior/i },
   { search: 'Esports World Cup',       re: /esports\s+world\s+cup/i },
+  // Annual Italian major (Napoli/Torino), consistently "Only The Best <year>"
+  // for 3 straight editions (2024-2026) - confirmed a gap, not a bug: it was
+  // simply never added to BRANDS, so the daily sync never looked for it at
+  // all (unlike Battle Arena Melbourne/Genesis, whose regexes existed but
+  // silently rejected the real listing title).
+  { search: 'Only The Best',           re: /^only\s+the\s+best\s+\d{4}\b/i },
 ];
 
 // Strip a leading "The " so "The Mixup 2026" matches /^mixup\b/.
