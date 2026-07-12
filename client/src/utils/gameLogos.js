@@ -47,6 +47,18 @@ export const gameSlugMap = {
   'SAMURAI SHODOWN': 'samurai-shodown',
   'Samurai Shodown': 'samurai-shodown',
   'Samurai Shodown 2019': 'samurai-shodown',
+  // BAM 16 backfill additions (auto-created games rows, see below)
+  'Pokkén Tournament DX': 'pokken-tournament-dx', // accented "é" won't auto-slugify to "e"
+  'M.U.G.E.N': 'mugen', // dots collapse to "m-u-g-e-n" under auto-slugify; force the real filename
+  // Two DB rows exist for this game (id 9 "Soulcalibur VI", legacy/no startgg_id;
+  // id 108 "SOULCALIBUR VI", auto-created by the BAM 16 backfill with a real
+  // startgg_id) — both names auto-slugify to the same "soulcalibur-vi", so one
+  // entry covers both without needing to merge the rows.
+  'SOULCALIBUR VI': 'soulcalibur-vi',
+  'Soulcalibur VI': 'soulcalibur-vi',
+  // Filename has two typos vs the correct slug ("choundokyuu" for "choudokyuu",
+  // "nazu" for "nazo") — mapped as shipped rather than renaming the asset.
+  'Touhou Hisoutensoku: Choudokyuu Ginyoru no Nazo wo Oe': 'touhou-hisoutensoku-choundokyuu-ginyoru-no-nazu',
 };
 
 // Per-game visual tuning (very wide logos, etc.) by slug
@@ -147,6 +159,12 @@ const logoFileBySlug = {
   'super-smash-bros': 'super-smash-bros.webp',
   'super-street-fighter-ii-x': 'super-street-fighter-ii-x.png',
   'ultra-street-fighter-iv': 'ultra-street-fighter-iv.png',
+  // BAM 16 backfill additions
+  'dead-or-alive-6': 'dead-or-alive-6.png',
+  'pokken-tournament-dx': 'pokken-tournament-dx.png',
+  'soulcalibur-vi': 'soulcalibur-vi.png',
+  'touhou-hisoutensoku-choundokyuu-ginyoru-no-nazu': 'touhou-hisoutensoku-choundokyuu-ginyoru-no-nazu.png',
+  'mugen': 'mugen.gif',
 };
 
 export function getGameLogoSources(name) {
