@@ -165,6 +165,28 @@ const logoFileBySlug = {
   'soulcalibur-vi': 'soulcalibur-vi.png',
   'touhou-hisoutensoku-choundokyuu-ginyoru-no-nazu': 'touhou-hisoutensoku-choundokyuu-ginyoru-no-nazu.png',
   'mugen': 'mugen.gif',
+  // All In Together 2026 additions
+  'tekken-tag-tournament-2': 'tekken-tag-tournament-2.png',
+  'heavenly-parasite': 'Heavenly-Parasite.webp',
+  'tmnt-x-justice-league-turbo': 'tmnt-x-justice-league-turbo.png',
+  'chaos-code-new-sign-of-catastrophe': 'chaos-code-new-sign-of-catastrophe.png',
+  'daemon-bride': 'daemon-bride.png',
+  'e-s-laf': "e's-laf++.png", // "E's Laf++" auto-slugifies to this
+  'nickelodeon-all-star-brawl-2': 'nickelodeon-all-star-brawl-2.png',
+  'waku-waku-7': 'Waku-Waku-7.png',
+  'them-s-fightin-herds': "them's-fightin'-herds.png", // "Them's Fightin' Herds" auto-slugifies to this
+  'idol-showdown': 'idol-showdown.png',
+  'scramble-heart-city': 'scramble-heart-city.png',
+  'bloody-roar-extreme': 'bloody-roar-extreme.png',
+  'project-justice': 'project-justice.png',
+  'soulcalibur-ii': 'soulcalibur-ii.png',
+  'blazblue-cross-tag-battle': 'blazblue-cross-tag-battle.png',
+  // Renamed from the shipped "Asuka-120%-Limited-BURNING-Fest.png": the raw
+  // "%" broke as a URL escape character (getGameLogoSources doesn't encode
+  // filenames), and "Limited" was a typo for the DB name's "LimitOver".
+  'asuka-120-limitover-burning-fest': 'asuka-120-limitover-burning-fest.png',
+  'duck-game': 'duck-game.png',
+  'street-fighter-v-champion-edition': 'street-fighter-v-champion-edition.png',
 };
 
 export function getGameLogoSources(name) {
