@@ -83,6 +83,7 @@
 .bnode-row.gf-win .bnode-score { color: var(--gold); }
 .bnode-row.loss { color: var(--faint); }
 
+.bnode-trophy { font-size: 13px; flex-shrink: 0; line-height: 1; }
 .bnode-name { font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Sponsor/team shown small above the gamer tag (the main name). */
 .bnode-name-stack { display: flex; flex-direction: column; justify-content: center; min-width: 0; }
