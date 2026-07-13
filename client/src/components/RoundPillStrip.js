@@ -14,15 +14,29 @@ const RoundPillStrip = ({ rounds, selected, onSelect }) => {
   // wherever it was — the newly-selected pill was "active" but off-screen
   // until the user manually scrolled to find it. Scroll it into view
   // whenever the selection changes, not just on manual pill clicks.
+  //
+  // Deliberately NOT Element.scrollIntoView(): it walks every scrollable
+  // ancestor, not just this strip's own horizontal one — with no
+  // vertically-scrollable container in between, that ancestor is the page
+  // itself. The live page re-renders every tournament's TrackerPanel on
+  // each ~6s poll cycle regardless of which one is on screen, so a
+  // scrollIntoView call from an off-screen tournament's pill strip was
+  // yanking the whole page's scroll position back to it — confirmed live,
+  // reported as "the window auto-scrolls up after a few seconds" while
+  // looking at a completely different tournament further down the page.
+  // Only ever touch this container's own scrollLeft.
   useEffect(() => {
-    // 'instant', not 'smooth': the live page re-renders this on every poll
-    // cycle (new pills array reference each time), and each render re-runs
-    // this effect — a smooth scroll gets cancelled and restarted by the next
-    // one before it ever finishes animating, so scrollLeft never actually
-    // moves. Confirmed live: 'smooth' left the strip stuck at scrollLeft 0
-    // indefinitely; a plain instant jump has no animation to interrupt.
-    selectedRef.current?.scrollIntoView({ behavior: 'instant', inline: 'nearest', block: 'nearest' });
-  }, [selected, rounds]);
+    const container = stripRef.current;
+    const btn = selectedRef.current;
+    if (!container || !btn) return;
+    const containerRect = container.getBoundingClientRect();
+    const btnRect = btn.getBoundingClientRect();
+    if (btnRect.left < containerRect.left) {
+      container.scrollLeft -= containerRect.left - btnRect.left;
+    } else if (btnRect.right > containerRect.right) {
+      container.scrollLeft += btnRect.right - containerRect.right;
+    }
+  }, [selected, rounds, stripRef]);
 
   return (
     <div className="wr-round-pills-wrap">
