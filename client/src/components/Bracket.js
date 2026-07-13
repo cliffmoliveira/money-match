@@ -164,8 +164,10 @@ const Node = ({ market, slip, onPick, demoControls, registerRef, isChampionMatch
       disabled={!open || !name}
       onClick={() => open && name && onPick(market, pid)}
     >
-      {isWin && isChampionMatch && <span className="bnode-trophy" aria-hidden="true">🏆</span>}
-      <span className={`bnode-name bnode-name-stack ${name ? '' : 'tbd'}`} title={name || undefined}><PlayerName name={name} /></span>
+      <span className="bnode-name-group">
+        {isWin && isChampionMatch && <span className="bnode-trophy" aria-hidden="true">🏆</span>}
+        <span className={`bnode-name bnode-name-stack ${name ? '' : 'tbd'}`} title={name || undefined}><PlayerName name={name} /></span>
+      </span>
       {settled
         ? <span className="bnode-score">{score}</span>
         : closed
