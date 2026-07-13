@@ -264,17 +264,20 @@ body { background: var(--bg); color: var(--text); }
 /* Error state with a manual retry */
 .error-state { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 48px 20px; text-align: center; }
 .error-state .error-message { margin: 0; }
-.champion-winner { font-family: 'Saira', sans-serif; font-size: 19px; font-weight: 700; margin-bottom: 3px; }
-.champion-winner-trophy { width: 16px; height: 16px; color: var(--gold); display: inline-block; vertical-align: -2px; margin-right: 6px; }
+/* flex + align-items: flex-end, not inline text: the sponsor tag now stacks
+   above the name (default .bet-player-name-stack column layout), so the
+   trophy needs to align with the bottom (name) line, not the vertical
+   center of the whole two-line block. */
+.champion-winner { display: flex; align-items: flex-end; gap: 6px; font-family: 'Saira', sans-serif; font-size: 19px; font-weight: 700; margin-bottom: 3px; }
+.champion-winner-trophy { width: 16px; height: 16px; color: var(--gold); flex-shrink: 0; margin-bottom: 2px; }
 .champion-meta { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; color: var(--text-muted); margin-bottom: 14px; }
 .champion-tournament { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%; min-width: 0; }
 .champion-score { background: var(--surface); color: #C9CCD3; border: 1px solid var(--border-soft); border-radius: 8px; padding: 5px 11px; font-size: 12px; font-weight: 500; text-align: left; font-variant-numeric: tabular-nums; align-self: flex-start; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .champion-score b, .champion-score .score { font-family: 'Saira', sans-serif; color: var(--win); }
 
-/* Winner/loser sponsor tags — same stacking component as Your Picks, laid
-   out inline (sponsor immediately before the tag) to fit these single-line
-   card rows instead of the vertical stack used in the picks cards. */
-.champion-winner .bet-player-name-stack,
+/* Loser's sponsor tag stays inline (sponsor immediately before the tag) to
+   fit the compact score pill; the winner's uses the default column stack
+   (sponsor above name) instead — see .champion-winner below. */
 .champion-score .bet-player-name-stack {
   display: inline-flex; flex-direction: row; align-items: baseline; gap: 4px; vertical-align: baseline;
 }
