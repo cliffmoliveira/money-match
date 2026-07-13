@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { getGameLogoSources, getGameAlt, getGameLogoStyle } from '../utils/gameLogos';
 import useScrollEdges from '../utils/useScrollEdges';
+import TrophyIcon from './TrophyIcon';
 
 // Game logo for tab strips; walks the asset candidates and falls back to the
 // game name as text if none load.
@@ -48,7 +49,7 @@ const GameTabStrip = ({ tabs, activeKey, onSelect }) => {
             )}
             <div className="live-tab-logo"><GameLogo name={tab.gameName} height={32} /></div>
             {tab.isSettled && tab.winner && (
-              <span className="live-tab-winner"><span className="live-tab-winner-star">★</span> {tab.winner}</span>
+              <span className="live-tab-winner"><TrophyIcon className="live-tab-winner-star" /> {tab.winner}</span>
             )}
           </button>
         ))}

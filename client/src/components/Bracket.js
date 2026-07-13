@@ -2,6 +2,7 @@ import React, { useRef, useState, useLayoutEffect, useCallback, useMemo } from '
 import './Bracket.css';
 import { fm, fmAmount } from '../utils/money';
 import { splitPlayerName } from '../utils/playerName';
+import TrophyIcon from './TrophyIcon';
 
 // Fixed Top 8 double-elim template. Each column has a known capacity so empty
 // positions render as TBD until their set is created.
@@ -165,11 +166,7 @@ const Node = ({ market, slip, onPick, demoControls, registerRef, isChampionMatch
       onClick={() => open && name && onPick(market, pid)}
     >
       <span className="bnode-name-group">
-        {isWin && isChampionMatch && (
-          <svg className="bnode-trophy" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M17 4V2H7v2H2v3c0 2.76 2.24 5 5 5h.17c.5 2.34 2.32 4.16 4.66 4.62V21H8v2h8v-2h-3.83v-2.38c2.34-.46 4.16-2.28 4.66-4.62H17c2.76 0 5-2.24 5-5V4h-5zM4 7V6h3v3.82C5.16 9.4 4 8.3 4 7zm16 0c0 1.3-1.16 2.4-3 2.82V6h3v1z" />
-          </svg>
-        )}
+        {isWin && isChampionMatch && <TrophyIcon className="bnode-trophy" />}
         <span className={`bnode-name bnode-name-stack ${name ? '' : 'tbd'}`} title={name || undefined}><PlayerName name={name} /></span>
       </span>
       {settled
