@@ -83,11 +83,16 @@
 .bnode-row.gf-win .bnode-score { color: var(--gold); }
 .bnode-row.loss { color: var(--faint); }
 
-.bnode-name-group { display: flex; align-items: center; gap: 4px; min-width: 0; }
-.bnode-trophy {
-  font-size: 15px; flex-shrink: 0; line-height: 1;
-  filter: brightness(1.3) saturate(1.4) drop-shadow(0 0 3px rgba(231,180,88,0.6));
-}
+/* flex-end, not center: the sponsor tag above the name makes the stack's
+   vertical center sit higher than the name itself, leaving the trophy
+   floating above "DarkAngel" instead of level with it. */
+.bnode-name-group { display: flex; align-items: flex-end; gap: 4px; min-width: 0; }
+/* An SVG icon, not the 🏆 emoji: an emoji glyph bakes in its own fixed
+   colors and can't be recolored via CSS, so "brightness" could only ever be
+   approximated by filter tricks — never an exact match to the gold name
+   text next to it. This is filled with currentColor so it's exactly --gold,
+   the same color as the champion's name. */
+.bnode-trophy { width: 15px; height: 15px; flex-shrink: 0; color: var(--gold); }
 .bnode-name { font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* Sponsor/team shown small above the gamer tag (the main name). */
 .bnode-name-stack { display: flex; flex-direction: column; justify-content: center; min-width: 0; }
