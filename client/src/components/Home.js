@@ -10,6 +10,7 @@ import { apiFetch } from '../utils/api';
 import ExhibitionSection from './ExhibitionSection';
 import { splitPlayerName } from '../utils/playerName';
 import { formatTournamentDateTime } from '../utils/tournamentDate';
+import TrophyIcon from './TrophyIcon';
 
 // Hoisted to module scope so their component identity is stable across Home
 // re-renders — defining them inside the parent recreates the type every render,
@@ -618,7 +619,7 @@ const Home = () => {
                 <TournamentLogo name={c.tournament} logoUrl={c.logoUrl} height={40} />
                 <GameLogo name={c.game} height={28} />
               </div>
-              <div className="champion-winner"><BetPlayerName name={c.winner} /></div>
+              <div className="champion-winner"><TrophyIcon className="champion-winner-trophy" /><BetPlayerName name={c.winner} /></div>
               <div className="champion-meta">
                 <span className="champion-tournament">{c.tournament}</span>
                 <span className="champion-date">{formatTournamentDateTime(c.date)}</span>
