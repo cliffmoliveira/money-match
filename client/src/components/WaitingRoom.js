@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import './WaitingRoom.css';
 import Bracket from './Bracket';
 import Countdown from './Countdown';
@@ -10,6 +10,7 @@ import OutrightSlipDrawer from './OutrightSlipDrawer';
 import useOutrightPicks from '../utils/useOutrightPicks';
 import { getTournamentLogoSources, getTournamentAlt, getTournamentLogoStyle } from '../utils/tournamentLogos';
 import { parseTournamentDate } from '../utils/tournamentDate';
+import { pickDefaultRoundText } from '../utils/pickDefaultRound';
 
 // Small logo helper that walks the asset candidates and falls back to text,
 // mirroring the pattern in Home.js / LiveBetting.js.
@@ -41,6 +42,9 @@ const WaitingRoom = ({ tournament, games = [], headerless = false }) => {
   // (e.g. their Round of 16 result) behind a view that no longer exists.
   const [activeView, setActiveView] = useState('outright');
   const [selectedRound, setSelectedRound] = useState('Outright');
+  // True once the user taps a pill, so the one-time auto-select (below) never
+  // yanks them off a round they chose. Reset on every game switch.
+  const userNavRef = useRef(false);
   const openGame = (id) => { setActiveGame(id); setActiveView('outright'); setSelectedRound('Outright'); };
   const selectRound = (round) => {
     if (round.roundText === 'Outright') { setActiveView('outright'); setSelectedRound('Outright'); return; }
@@ -57,6 +61,7 @@ const WaitingRoom = ({ tournament, games = [], headerless = false }) => {
   useEffect(() => {
     if (!activeGame || !tournament?.id) { setHistoryRounds([]); setTrackerResults([]); setTrackerStillAlive([]); return; }
     let active = true;
+    userNavRef.current = false;
     fetch(`/api/game/${tournament.id}/${activeGame}/tracker`)
       .then((r) => (r.ok ? r.json() : { rounds: [], results: [], stillAlive: [] }))
       .then((data) => {
@@ -64,11 +69,28 @@ const WaitingRoom = ({ tournament, games = [], headerless = false }) => {
         setHistoryRounds(data.rounds || []);
         setTrackerResults(data.results || []);
         setTrackerStillAlive(data.stillAlive || []);
+        // Open on the live round (or the last completed one) rather than always
+        // landing on Outright — unless the user already navigated while loading.
+        // Top 8 hasn't started in this pre-Top-8 view (always 'next'), so this
+        // only ever lands on a real in-progress/completed history round or,
+        // for a not-yet-started tournament, stays on Outright.
+        if (!userNavRef.current) {
+          const built = [
+            { roundText: 'Outright', status: outright.locked ? 'locked' : 'open' },
+            ...(data.rounds || []),
+            { roundText: 'Top 8', status: 'next' },
+          ];
+          const chosenText = pickDefaultRoundText(built);
+          selectRound(built.find((p) => p.roundText === chosenText) || built[0]);
+        }
       })
       .catch(() => {
         if (active) { setHistoryRounds([]); setTrackerResults([]); setTrackerStillAlive([]); }
       });
     return () => { active = false; };
+    // outright.locked is only read for the initial auto-select; excluded so a
+    // later lock flip doesn't refetch + reset the user's chosen round.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeGame, tournament?.id]);
 
   const outright = useOutrightPicks(tournament?.id, activeGame);
@@ -123,7 +145,7 @@ const WaitingRoom = ({ tournament, games = [], headerless = false }) => {
             activeKey={activeGame}
             onSelect={openGame}
           />
-          <RoundPillStrip rounds={pills} selected={selectedRound} onSelect={selectRound} />
+          <RoundPillStrip rounds={pills} selected={selectedRound} onSelect={(r) => { userNavRef.current = true; selectRound(r); }} />
 
           {activeView === 'outright' && (
             <OutrightPanel

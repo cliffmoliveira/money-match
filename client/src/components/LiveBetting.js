@@ -15,6 +15,7 @@ import { fm as fmt, fmSigned as signed, fmAmount } from '../utils/money';
 import { apiFetch } from '../utils/api';
 import TournamentFilterBar from './TournamentFilterBar';
 import { formatTournamentDateTime, parseTournamentDate } from '../utils/tournamentDate';
+import { pickDefaultRoundText } from '../utils/pickDefaultRound';
 
 const POLL_MS = 6000; // refresh markets/odds/pick'em every 6s while the Live page is open
 
@@ -30,6 +31,10 @@ const TrackerPanel = ({ tournamentId, gameId, top8Status, bracket, bracketBets =
   const [results, setResults] = useState([]);
   const [stillAlive, setStillAlive] = useState([]);
   const [selected, setSelected] = useState('Top 8');
+  // True once the user taps a pill, so the one-time auto-select (below) never
+  // yanks them off a round they chose. Reset whenever the game/tournament
+  // changes — a fresh game gets its own default.
+  const userNavRef = useRef(false);
   const outright = useOutrightPicks(tournamentId, gameId);
   // Single toggle governs highlighting in both the bracket (WON/LOST/IN PLAY
   // badges, wired by the caller via `bracket`'s own `bets` prop) and the
@@ -40,6 +45,9 @@ const TrackerPanel = ({ tournamentId, gameId, top8Status, bracket, bracketBets =
   useEffect(() => {
     if (!tournamentId || !gameId) { setRounds([]); setResults([]); setStillAlive([]); return; }
     let active = true;
+    userNavRef.current = false;
+    // Interim while the tracker loads: Top 8 shows the (game-correct) bracket
+    // rather than stale round data from the previously-viewed game.
     setSelected('Top 8');
     fetch(`/api/game/${tournamentId}/${gameId}/tracker`)
       .then((r) => (r.ok ? r.json() : { rounds: [], results: [], stillAlive: [] }))
@@ -48,9 +56,22 @@ const TrackerPanel = ({ tournamentId, gameId, top8Status, bracket, bracketBets =
         setRounds(data.rounds || []);
         setResults(data.results || []);
         setStillAlive(data.stillAlive || []);
+        // Land on the live round (or the last completed one) instead of always
+        // defaulting to Top 8 — unless the user already navigated while loading.
+        if (!userNavRef.current) {
+          const built = [
+            { roundText: 'Outright', status: outright.locked ? 'locked' : 'open' },
+            ...(data.rounds || []),
+            { roundText: 'Top 8', status: top8Status },
+          ];
+          setSelected(pickDefaultRoundText(built));
+        }
       })
       .catch(() => { if (active) { setRounds([]); setResults([]); setStillAlive([]); } });
     return () => { active = false; };
+    // top8Status/outright.locked are only read for the initial auto-select and
+    // intentionally excluded so a later status flip doesn't refetch + reset.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tournamentId, gameId]);
 
   const pills = [
@@ -63,7 +84,7 @@ const TrackerPanel = ({ tournamentId, gameId, top8Status, bracket, bracketBets =
       <RoundPillStrip
         rounds={pills}
         selected={selected}
-        onSelect={(r) => setSelected(r.roundText)}
+        onSelect={(r) => { userNavRef.current = true; setSelected(r.roundText); }}
       />
       {hasAnyPicks && (
         <div className="live-tracker-toolbar">
