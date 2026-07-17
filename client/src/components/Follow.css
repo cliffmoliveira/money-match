@@ -17,6 +17,12 @@
 .follow-search { position: relative; margin-bottom: 24px; }
 .follow-search-input {
   width: 100%;
+  /* Without border-box, width:100% is the CONTENT box, so the 52px of
+     horizontal padding + 2px border push the input ~54px past its container.
+     On a narrow phone that overflows the viewport horizontally, which expands
+     the layout viewport and shoves the position:fixed bottom tab bar
+     off-screen (the app has no global box-sizing reset). */
+  box-sizing: border-box;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 10px;
