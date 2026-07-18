@@ -129,7 +129,7 @@
   padding: 9px 12px; font-size: 13px;
 }
 .follow-row-name { font-weight: 700; }
-.follow-row-game { color: var(--muted); }
+.follow-row-game { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); }
 .follow-row-result {
   font-family: 'Saira', sans-serif; font-weight: 700; font-size: 11px;
   color: var(--text); background: var(--card); border: 1px solid var(--border);

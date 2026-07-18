@@ -4,6 +4,7 @@ import { getTournamentLogoSources, getTournamentAlt, getTournamentLogoStyle } fr
 import { apiFetch } from '../utils/api';
 import { formatTournamentDateTime } from '../utils/tournamentDate';
 import { splitPlayerName } from '../utils/playerName';
+import { GameLogo } from './GameTabStrip';
 
 // Stored player names carry the sponsor as ingested from start.gg ("WBG RB |
 // MenaRD"), and that prefix can change release to release without the person
@@ -267,7 +268,10 @@ const Follow = () => {
                           <div key={`${t.tournamentId}-${t.gameName}-${t.partner || 'solo'}`} className="follow-detail-row">
                             <TournamentLogo name={t.tournamentName} />
                             <span className="follow-row-name">{t.tournamentName}</span>
-                            <span className="follow-row-game">{t.gameName}{t.partner ? ` · w/ ${t.partner}` : ''}</span>
+                            <span className="follow-row-game">
+                              <GameLogo name={t.gameName} height={16} />
+                              {t.partner ? ` · w/ ${t.partner}` : ''}
+                            </span>
                             <span className={`follow-row-result${
                               t.result === 'Champion' ? ' champion'
                                 : t.result === 'No result recorded' ? ' none' : ''
