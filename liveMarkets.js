@@ -133,44 +133,16 @@ async function fillBracketSlot({
 }) {
   if (!playerId) return;
   // Everything below reads and writes set_markets/set_bets across several
-  // statements (void a preview, maybe reopen a void market, fill a slot, maybe
-  // open it) — running it as one withWriteTx transaction serializes it against
+  // statements (maybe reopen a void market, fill a slot, maybe open it) —
+  // running it as one withWriteTx transaction serializes it against
   // placeBet/settleMarket/voidMarket on the same global mutex, so a bet can
   // never land in the gap between two of these steps (the gap that let a stray
   // 'placed' bet survive a market being reused — see refundOrphanedVoidBets).
+  //
+  // Note: this no longer voids stale preview_* projections itself — that's
+  // resolveStalePreviews()'s job, called by the caller once BOTH real slots
+  // are known (see its own doc comment for why the timing matters here).
   return withWriteTx(async () => {
-
-  // Void any lingering preview_* projection for this player in this tournament
-  // now that their real set is known. Projected markets have synthetic set IDs;
-  // keeping them open alongside the real set creates duplicate bracket cards.
-  if (!startggSetId.startsWith('preview_')) {
-    const stalePreviews = await db.allAsync(
-      `SELECT id FROM set_markets
-       WHERE tournament_id = ? AND startgg_set_id LIKE 'preview_%'
-         AND state NOT IN ('settled','void')
-         AND (player1_id = ? OR player2_id = ?)`,
-      [tournamentId, playerId, playerId]
-    );
-    for (const { id: previewId } of stalePreviews) {
-      // Refund any bet still 'placed' on this preview before voiding it — same
-      // reason as the void-market-reuse refund below: a bet must never survive
-      // the market it was placed on being replaced by the real set, or it sits
-      // forever as an un-refunded 'placed' bet graded against nothing.
-      const stray = await db.allAsync(`SELECT * FROM set_bets WHERE market_id = ? AND state = 'placed'`, [previewId]);
-      for (const bet of stray) {
-        await wallet.applyCredit(bet.user_id, bet.amount_cents, 'refund', { type: 'set_bet', id: bet.id });
-        await db.runAsync(`UPDATE set_bets SET state='refunded', payout_cents=? WHERE id=?`, [bet.amount_cents, bet.id]);
-      }
-      if (stray.length) invalidateBankrollCache();
-    }
-    await db.runAsync(
-      `UPDATE set_markets SET state='void'
-       WHERE tournament_id = ? AND startgg_set_id LIKE 'preview_%'
-         AND state NOT IN ('settled','void')
-         AND (player1_id = ? OR player2_id = ?)`,
-      [tournamentId, playerId, playerId]
-    );
-  }
 
   // Don't advance a player who still has an active (open/closed) match in this
   // tournament. Start.gg pre-populates next-round slots based on seeding before
@@ -240,6 +212,73 @@ async function fillBracketSlot({
     );
   }
   });
+}
+
+/**
+ * Void one preview_* market, refunding every bet still 'placed' on it first —
+ * a bet must never survive the market it was placed on being replaced by a
+ * real one, or it sits forever as an un-refunded 'placed' bet graded against
+ * nothing. Returns the refunded bets so the caller can try to carry them
+ * over onto the real market that superseded this preview.
+ */
+async function refundPreviewMarket(previewId) {
+  return withWriteTx(async () => {
+    const stray = await db.allAsync(`SELECT * FROM set_bets WHERE market_id = ? AND state = 'placed'`, [previewId]);
+    for (const bet of stray) {
+      await wallet.applyCredit(bet.user_id, bet.amount_cents, 'refund', { type: 'set_bet', id: bet.id });
+      await db.runAsync(`UPDATE set_bets SET state='refunded', payout_cents=? WHERE id=?`, [bet.amount_cents, bet.id]);
+    }
+    if (stray.length) invalidateBankrollCache();
+    await db.runAsync(`UPDATE set_markets SET state='void' WHERE id = ? AND state NOT IN ('settled','void')`, [previewId]);
+    return stray;
+  });
+}
+
+/**
+ * Void any lingering preview_* projection(s) for these players in this
+ * tournament now that a real set is known, refunding every bet still
+ * 'placed' on them first (refundPreviewMarket) — then, if the real market
+ * (startggSetId) already exists and is open with both real players seated,
+ * try to carry each refunded pick over onto it at today's live odds, via the
+ * same placeBet() every other bet goes through, instead of leaving a correct
+ * early pick to just vanish into a refund.
+ *
+ * Must run AFTER fillBracketSlot has filled BOTH real slots — that's the
+ * caller's job, not fillBracketSlot's own, single-slot-at-a-time calls.
+ * Voiding a preview before the real market exists (or while it's still
+ * missing its second slot, still 'pending') leaves nothing open to restore
+ * onto, so an attempt made from inside fillBracketSlot itself could never
+ * succeed. A carry-over attempt that fails for any reason (real market not
+ * open yet, the preview's projected opponent turned out wrong so the pick
+ * isn't even in this market, economy limits) simply leaves the refund as the
+ * final outcome — a user's stake is never at risk either way.
+ */
+async function resolveStalePreviews({ tournamentId, startggSetId, playerIds }) {
+  const ids = (playerIds || []).filter(Boolean);
+  if (!ids.length) return;
+  const previews = await db.allAsync(
+    `SELECT DISTINCT id FROM set_markets
+     WHERE tournament_id = ? AND startgg_set_id LIKE 'preview_%'
+       AND state NOT IN ('settled','void')
+       AND (${ids.map(() => '(player1_id = ? OR player2_id = ?)').join(' OR ')})`,
+    [tournamentId, ...ids.flatMap((id) => [id, id])]
+  );
+  if (!previews.length) return;
+
+  const realMarket = await db.getAsync('SELECT id, state FROM set_markets WHERE startgg_set_id = ?', [startggSetId]);
+
+  for (const { id: previewId } of previews) {
+    const refunded = await refundPreviewMarket(previewId);
+    if (!realMarket || realMarket.state !== 'open') continue; // nothing open yet to restore onto
+    for (const bet of refunded) {
+      try {
+        await placeBet({ userId: bet.user_id, marketId: realMarket.id, playerId: bet.picked_player_id, amountCents: bet.amount_cents });
+      } catch (_) {
+        // Wrong projected opponent (BAD_PLAYER), market closed since the read
+        // above, over an economy limit, etc. — the refund already landed.
+      }
+    }
+  }
 }
 
 /** Set in progress -> stop taking bets. Optionally write mid-match scores (updates on every poll). */
@@ -868,7 +907,7 @@ async function getGameTracker(tournamentId, gameId) {
 
 module.exports = {
   ensureOpenMarket, fillBracketSlot, closeMarket, settleMarket, voidMarket,
-  refundOrphanedVoidBets,
+  refundOrphanedVoidBets, resolveStalePreviews,
   placeBet, cancelBet, recomputeOdds, getMarkets, getUserBets, houseBankrollCents, sideRates,
   seedDemoMarkets, advanceDemoBracket, clearDemoMarkets, getUpcoming,
   invalidateBankrollCache, getGameTracker,

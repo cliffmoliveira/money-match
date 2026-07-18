@@ -307,6 +307,11 @@ async function processTournamentEvents(tRow, events = []) {
           if (p0 && p1) {
             await lm.fillBracketSlot({ tournamentId: tRow.id, gameId, startggSetId: setId, roundText: set.fullRoundText, roundInt: set.round ?? null, phaseGroupId, slot: 1, playerId: p0, seed: seedOf(e0) });
             await lm.fillBracketSlot({ tournamentId: tRow.id, gameId, startggSetId: setId, roundText: set.fullRoundText, roundInt: set.round ?? null, phaseGroupId, slot: 2, playerId: p1, seed: seedOf(e1) });
+            // Both real slots are known now - resolve any stale preview_*
+            // projection for either player before the market moves past
+            // 'open' (settleMarket below), since that's the only window a
+            // carried-over pick could still land in.
+            await lm.resolveStalePreviews({ tournamentId: tRow.id, startggSetId: setId, playerIds: [p0, p1] });
             const fresh = await db.getAsync('SELECT id, state FROM set_markets WHERE startgg_set_id = ?', [setId]);
             if (fresh && fresh.state !== 'settled') {
               const winnerEntrant = set.winnerId === e0.id ? e0 : e1;
@@ -345,6 +350,10 @@ async function processTournamentEvents(tRow, events = []) {
           if (p0 && p1) {
             await lm.fillBracketSlot({ tournamentId: tRow.id, gameId, startggSetId: setId, roundText: set.fullRoundText, roundInt: set.round ?? null, phaseGroupId, slot: 1, playerId: p0, seed: seedOf(e0) });
             await lm.fillBracketSlot({ tournamentId: tRow.id, gameId, startggSetId: setId, roundText: set.fullRoundText, roundInt: set.round ?? null, phaseGroupId, slot: 2, playerId: p1, seed: seedOf(e1) });
+            // Same reasoning as the state===3 branch above: resolve stale
+            // previews while the market is still 'open', before closeMarket
+            // locks betting.
+            await lm.resolveStalePreviews({ tournamentId: tRow.id, startggSetId: setId, playerIds: [p0, p1] });
             const fresh = await db.getAsync('SELECT id, state FROM set_markets WHERE startgg_set_id = ?', [setId]);
             if (fresh) await lm.closeMarket(fresh.id, p1s, p2s);
             stats.closed++;
@@ -363,6 +372,7 @@ async function processTournamentEvents(tRow, events = []) {
         // A set with one entrant (the other still TBD) becomes a pending node.
         const phaseGroupId = set.phaseGroup?.id != null ? String(set.phaseGroup.id) : null;
         let filled = 0;
+        const filledPlayerIds = [];
         for (let i = 0; i < 2; i++) {
           const e = set.slots?.[i]?.entrant;
           if (!e?.id) continue;
@@ -374,6 +384,14 @@ async function processTournamentEvents(tRow, events = []) {
             slot: i + 1, playerId: pid, seed: seedOf(e),
           });
           filled++;
+          filledPlayerIds.push(pid);
+        }
+        if (filledPlayerIds.length) {
+          // Resolves (and, when both slots are real and the market is
+          // already open, restores) stale preview_* projections for whichever
+          // player(s) are known so far — a no-op fallback to refund-only when
+          // only one slot is filled here (the market can't be 'open' yet).
+          await lm.resolveStalePreviews({ tournamentId: tRow.id, startggSetId: setId, playerIds: filledPlayerIds });
         }
         if (!existing && filled > 0) stats.opened++;
       }

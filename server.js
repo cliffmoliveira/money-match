@@ -1059,7 +1059,16 @@ function scheduleLiveSync() {
   const run = async () => {
     if (running) return; // never let a slow cycle stack on top of the previous one
     running = true;
-    try { await syncLive({}); }
+    try {
+      await syncLive({});
+      // Same idempotent repair as the boot-time call below, but running every
+      // cycle instead of only at startup — a bet stranded 'placed' on an
+      // already-void market (see liveMarkets.refundOrphanedVoidBets) now
+      // self-heals within one poll interval instead of waiting on the next
+      // deploy/restart to pick it up.
+      const { refunded, totalCents } = await liveMarkets.refundOrphanedVoidBets();
+      if (refunded) console.log(`[live-sync] refunded ${refunded} orphaned void-market bet(s), ${(totalCents / 100).toFixed(2)} FM total`);
+    }
     catch (err) { console.error('Live sync error:', err.message); }
     finally {
       running = false;
@@ -1179,10 +1188,10 @@ economy.applyEconomySchema()
   .then(() => exhibitions.applyExhibitionsSchema())
   .catch((err) => console.error('Schema init failed:', err.message))
   .finally(async () => {
-    // One-time repair: refund any set_bets stranded 'placed' on an
-    // already-void market (see liveMarkets.refundOrphanedVoidBets). Runs
-    // through the same wallet ledger + write-mutex path as every other money
-    // operation, so it's safe to run on every boot — idempotent once clean.
+    // Repair any set_bets stranded 'placed' on an already-void market (see
+    // liveMarkets.refundOrphanedVoidBets) before the first request is served.
+    // scheduleLiveSync() re-runs this same call every poll cycle afterward, so
+    // this boot call only matters for the gap before the first cycle finishes.
     try {
       const { refunded, totalCents } = await liveMarkets.refundOrphanedVoidBets();
       if (refunded) console.log(`[boot] refunded ${refunded} orphaned void-market bet(s), ${(totalCents / 100).toFixed(2)} FM total`);

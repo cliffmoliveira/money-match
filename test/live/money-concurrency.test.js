@@ -253,16 +253,11 @@ test('cancelBet refuses a bet that has already been settled', async () => {
   assert.equal(await balance(1), balanceAfterWin, 'a settled payout must never be touched by a cancel attempt');
 });
 
-test('fillBracketSlot refunds a placed bet when it voids a stale preview_* projection', async () => {
-  // Reproduces a real production bug: before start.gg assigns a real numeric
-  // set ID, the sync projects a "preview_*" placeholder market so users can
-  // bet on a matchup ahead of time. Once the real set ID is known, the
-  // preview row gets voided in favor of a brand-new market row (a different
-  // id) — but any bet still 'placed' on the preview was never refunded, so it
-  // sat forever as 'placed' on a dead market: invisible to "My Picks" (which
-  // only matches bets against the currently-displayed market id) and stuck
-  // reading "Pending" on the Home page forever.
-  await addUser(1);
+// Sets up a preview_* market (the pre-real-set-ID placeholder the sync
+// projects so users can bet on a matchup before start.gg assigns a real
+// numeric set ID) with one bet placed on it, and returns enough to drive
+// resolveStalePreviews against it.
+async function openPreviewWithBet(userId, pickPlayerId, amountCents = 1000) {
   const preview = await db.runAsync(
     `INSERT INTO set_markets (tournament_id, game_id, startgg_set_id, player1_id, player2_id,
        state, p1_prob, p2_prob, seed_k_cents, p1_live_odds, p2_live_odds)
@@ -270,19 +265,91 @@ test('fillBracketSlot refunds a placed bet when it voids a stale preview_* proje
     [P1, P2]
   );
   const previewId = preview.lastID;
-  const { betId } = await lm.placeBet({ userId: 1, marketId: previewId, playerId: P1, amountCents: 1000 });
+  const { betId } = await lm.placeBet({ userId, marketId: previewId, playerId: pickPlayerId, amountCents });
+  return { previewId, betId };
+}
+
+test('resolveStalePreviews carries a placed bet over onto the real market when it is already open with both real players', async () => {
+  // Reproduces a real production bug: once start.gg assigns a real numeric
+  // set ID, the sync voids the earlier preview_* placeholder in favor of the
+  // real market row (a different id) — but any bet still 'placed' on the
+  // preview was never refunded, so it sat forever as 'placed' on a dead
+  // market: invisible to "My Picks" (which only matches bets against the
+  // currently-displayed market id) and stuck reading "Pending" on Home
+  // forever. Now that the real market is known (both real players seated,
+  // 'open'), the pick should carry over instead of just being refunded.
+  await addUser(1);
+  const { previewId, betId } = await openPreviewWithBet(1, P1, 1000);
   assert.equal(await balance(1), START - 1000);
 
-  await lm.fillBracketSlot({
-    tournamentId: 1, gameId: 1, startggSetId: 'real-set-1', roundText: 'Winners Semi-Final',
-    slot: 1, playerId: P1,
-  });
+  const realMarketId = await openMarket(); // startgg_set_id 'm-1', P1 vs P2, open
+
+  await lm.resolveStalePreviews({ tournamentId: 1, startggSetId: 'm-1', playerIds: [P1, P2] });
+
+  const previewMarket = await db.getAsync('SELECT state FROM set_markets WHERE id = ?', [previewId]);
+  assert.equal(previewMarket.state, 'void');
+  const oldBet = await db.getAsync('SELECT state, payout_cents FROM set_bets WHERE id = ?', [betId]);
+  assert.equal(oldBet.state, 'refunded', 'the original preview bet is refunded, not left stuck as placed');
+  assert.equal(oldBet.payout_cents, 1000);
+
+  const restored = await db.getAsync(
+    `SELECT * FROM set_bets WHERE market_id = ? AND user_id = 1 AND state = 'placed'`, [realMarketId]
+  );
+  assert.ok(restored, 'an equivalent bet must exist on the real market');
+  assert.equal(restored.picked_player_id, P1);
+  assert.equal(restored.amount_cents, 1000);
+  assert.equal(await balance(1), START - 1000, 'net effect is the same stake now riding on the real market, not a free refund');
+  await assertLedgerReconciles([1]);
+});
+
+test('resolveStalePreviews falls back to a plain refund when the picked player is not actually in the real market', async () => {
+  await addUser(1);
+  // Preview projected P1 vs P2; the user picked P2. By the time the real
+  // bracket resolved, P2 had actually been eliminated by a third player
+  // elsewhere, so the real match is P1 vs someone the preview never
+  // projected - P2's pick has nobody to carry over onto.
+  const { previewId, betId } = await openPreviewWithBet(1, P2, 1000);
+
+  const OTHER = 999;
+  await addUser(OTHER);
+  const realMarketId = await db.runAsync(
+    `INSERT INTO set_markets (tournament_id, game_id, startgg_set_id, player1_id, player2_id,
+       state, p1_prob, p2_prob, seed_k_cents, p1_live_odds, p2_live_odds)
+     VALUES (1, 1, 'm-real', ?, ?, 'open', 0.5, 0.5, 0, 1.9, 1.9)`,
+    [P1, OTHER]
+  ).then((r) => r.lastID);
+
+  await lm.resolveStalePreviews({ tournamentId: 1, startggSetId: 'm-real', playerIds: [P1] });
 
   const previewMarket = await db.getAsync('SELECT state FROM set_markets WHERE id = ?', [previewId]);
   assert.equal(previewMarket.state, 'void');
   const bet = await db.getAsync('SELECT state, payout_cents FROM set_bets WHERE id = ?', [betId]);
-  assert.equal(bet.state, 'refunded', 'a bet on a voided preview market must be refunded, not left stuck as placed');
+  assert.equal(bet.state, 'refunded');
   assert.equal(bet.payout_cents, 1000);
-  assert.equal(await balance(1), START, 'stake must be fully refunded');
+  assert.equal(await balance(1), START, 'refunded in full since the picked player was never actually in this market');
+  const carried = await db.getAsync(`SELECT * FROM set_bets WHERE market_id = ? AND user_id = 1`, [realMarketId]);
+  assert.equal(carried, undefined, 'nothing should be placed on a market the bet was never actually eligible for');
+  await assertLedgerReconciles([1]);
+});
+
+test('resolveStalePreviews refunds without restoring when the real market is not open yet', async () => {
+  await addUser(1);
+  const { previewId, betId } = await openPreviewWithBet(1, P1, 1000);
+
+  // Only one real slot known so far - market exists but is still 'pending'.
+  const pendingId = await db.runAsync(
+    `INSERT INTO set_markets (tournament_id, game_id, startgg_set_id, player1_id, player2_id,
+       state, p1_prob, p2_prob, seed_k_cents, p1_live_odds, p2_live_odds)
+     VALUES (1, 1, 'm-pending', ?, 0, 'pending', 0.5, 0.5, 0, 0, 0)`,
+    [P1]
+  ).then((r) => r.lastID);
+
+  await lm.resolveStalePreviews({ tournamentId: 1, startggSetId: 'm-pending', playerIds: [P1] });
+
+  const bet = await db.getAsync('SELECT state, payout_cents FROM set_bets WHERE id = ?', [betId]);
+  assert.equal(bet.state, 'refunded');
+  assert.equal(await balance(1), START);
+  const onPending = await db.getAsync(`SELECT * FROM set_bets WHERE market_id = ?`, [pendingId]);
+  assert.equal(onPending, undefined, 'must never place a bet on a not-yet-open market');
   await assertLedgerReconciles([1]);
 });
