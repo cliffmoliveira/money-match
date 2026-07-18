@@ -30,6 +30,7 @@ before(async () => {
     ref_type TEXT, ref_id INTEGER, created_at TEXT DEFAULT (datetime('now')))`);
   await db.runAsync(`CREATE TABLE players (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, country TEXT, startgg_id TEXT, photo_url TEXT)`);
   await db.runAsync(`CREATE TABLE games (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, startgg_id TEXT)`);
+  await db.runAsync(`CREATE TABLE tournaments (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, date TEXT, is_live INTEGER NOT NULL DEFAULT 0, startgg_id TEXT)`);
   await db.runAsync(`CREATE TABLE set_markets (
     id INTEGER PRIMARY KEY AUTOINCREMENT, tournament_id INTEGER, game_id INTEGER, startgg_set_id TEXT,
     round_text TEXT, round_int INTEGER, phase_group_id TEXT,
@@ -50,6 +51,7 @@ beforeEach(async () => {
   await db.runAsync('DELETE FROM set_markets');
   await db.runAsync('DELETE FROM players');
   await db.runAsync('DELETE FROM games');
+  await db.runAsync('DELETE FROM tournaments');
   await db.runAsync('DELETE FROM wallet_transactions');
   await db.runAsync('DELETE FROM users');
   lm.invalidateBankrollCache();
@@ -234,4 +236,46 @@ test('isGameFullyResolved skips a game once every set is settled, but not while 
   // A different tournament tracking the same videogame must not be affected
   // by tournament 1's resolved state.
   assert.equal(await sync.isGameFullyResolved(2, 'g-sf6'), false);
+});
+
+test('getActiveTournaments keeps polling a tournament with genuinely unresolved sets past its date window', async () => {
+  // Reproduces a real production bug found on "BR Kumite - World Warrior
+  // 2026 - Brazil 3": nothing in the regular discovery pipeline ever sets
+  // is_live=1 for an ordinary tournament - the date-window clause is the
+  // ENTIRE activation mechanism, and it slides with "now", not with the
+  // tournament's own date. Once "now" passed date+2, this tournament fell
+  // out of tracking completely even though its Losers Quarter-Final was
+  // still sitting 'closed' (genuinely in progress) - it sat un-polled for
+  // the next day and a half.
+  const gameRes = await db.runAsync(`INSERT INTO games (name, startgg_id) VALUES ('Street Fighter 6', 'g-sf6')`);
+  const gameId = gameRes.lastID;
+
+  // Dated 4 days ago - well outside the -1/+2 day window - with is_live=0,
+  // exactly like an ordinary tournament the daily pipeline never flags live.
+  const staleRes = await db.runAsync(
+    `INSERT INTO tournaments (name, date, is_live, startgg_id) VALUES ('BR Kumite - World Warrior 2026 - Brazil 3', date('now','-4 days'), 0, 'sg-brkumite')`
+  );
+  const staleId = staleRes.lastID;
+  // A real, still-in-progress set (Losers Quarter-Final, 'closed' = live).
+  await db.runAsync(
+    `INSERT INTO set_markets (tournament_id, game_id, startgg_set_id, round_text, player1_id, player2_id, state)
+     VALUES (?, ?, 'lqf-1', 'Losers Quarter-Final', 1, 2, 'closed')`,
+    [staleId, gameId]
+  );
+
+  // Control: a genuinely finished tournament from the same era must NOT be
+  // swept back in just for being old - only real unresolved sets do that.
+  const finishedRes = await db.runAsync(
+    `INSERT INTO tournaments (name, date, is_live, startgg_id) VALUES ('Finished Old Major', date('now','-10 days'), 0, 'sg-finished')`
+  );
+  await db.runAsync(
+    `INSERT INTO set_markets (tournament_id, game_id, startgg_set_id, round_text, player1_id, player2_id, state, winner_id)
+     VALUES (?, ?, 'gf-1', 'Grand Final', 1, 2, 'settled', 1)`,
+    [finishedRes.lastID, gameId]
+  );
+
+  const active = await sync.getActiveTournaments();
+  const activeIds = active.map((t) => t.id);
+  assert.ok(activeIds.includes(staleId), 'a tournament with a genuinely unresolved set must stay active regardless of how old its date is');
+  assert.ok(!activeIds.includes(finishedRes.lastID), 'a fully-settled old tournament must not be swept back into active polling');
 });

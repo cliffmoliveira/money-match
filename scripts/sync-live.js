@@ -606,11 +606,25 @@ async function fetchHistoryPhases(startggId, events = null, tournamentId = null)
   return out;
 }
 
+// An ordinary (non-manually-flagged) tournament is only ever picked up here
+// via the date window below — nothing in the regular discovery pipeline ever
+// sets is_live=1 for it. That window slides with "now", not with the
+// tournament's own date, so once "now" passes date+2 the tournament falls out
+// of tracking entirely regardless of whether it's actually still running.
+// Confirmed live: "BR Kumite - World Warrior 2026 - Brazil 3" (date Jul 15)
+// had a Losers Quarter-Final still sitting 'closed' (genuinely in progress)
+// on Jul 16, but fell out of the -1/+2 day window as of Jul 17 and sat
+// completely un-polled for the next day and a half. Also including any
+// tournament with real unresolved sets (liveMarkets.unresolvedSetsSql, the
+// same shared "is this actually over" definition used everywhere else) means
+// a bracket that simply runs long never gets silently abandoned mid-event.
 async function getActiveTournaments() {
   return db.allAsync(
-    `SELECT id, name, startgg_id FROM tournaments
+    `SELECT id, name, startgg_id FROM tournaments t
      WHERE startgg_id IS NOT NULL
-       AND (is_live = 1 OR date(date) BETWEEN date('now','-1 day') AND date('now','+2 day'))`
+       AND (is_live = 1
+            OR date(date) BETWEEN date('now','-1 day') AND date('now','+2 day')
+            OR ${lm.unresolvedSetsSql('sm', 't')})`
   );
 }
 
@@ -672,6 +686,7 @@ async function syncLive({ all = false, tournamentIds = null } = {}) {
 module.exports = {
   syncLive, processTournamentEvents, fetchActiveEvents, selectTop8Sets, isTop8Round,
   isPoolsPhase, isSideEvent, isGameFullyResolved, resolveFinalPhase, classifyRoundStatus, groupSetsIntoRounds, fetchHistoryPhases, processHistorySets,
+  getActiveTournaments,
 };
 
 if (require.main === module) {
