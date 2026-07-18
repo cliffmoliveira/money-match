@@ -144,6 +144,25 @@ async function fillBracketSlot({
   // now that their real set is known. Projected markets have synthetic set IDs;
   // keeping them open alongside the real set creates duplicate bracket cards.
   if (!startggSetId.startsWith('preview_')) {
+    const stalePreviews = await db.allAsync(
+      `SELECT id FROM set_markets
+       WHERE tournament_id = ? AND startgg_set_id LIKE 'preview_%'
+         AND state NOT IN ('settled','void')
+         AND (player1_id = ? OR player2_id = ?)`,
+      [tournamentId, playerId, playerId]
+    );
+    for (const { id: previewId } of stalePreviews) {
+      // Refund any bet still 'placed' on this preview before voiding it — same
+      // reason as the void-market-reuse refund below: a bet must never survive
+      // the market it was placed on being replaced by the real set, or it sits
+      // forever as an un-refunded 'placed' bet graded against nothing.
+      const stray = await db.allAsync(`SELECT * FROM set_bets WHERE market_id = ? AND state = 'placed'`, [previewId]);
+      for (const bet of stray) {
+        await wallet.applyCredit(bet.user_id, bet.amount_cents, 'refund', { type: 'set_bet', id: bet.id });
+        await db.runAsync(`UPDATE set_bets SET state='refunded', payout_cents=? WHERE id=?`, [bet.amount_cents, bet.id]);
+      }
+      if (stray.length) invalidateBankrollCache();
+    }
     await db.runAsync(
       `UPDATE set_markets SET state='void'
        WHERE tournament_id = ? AND startgg_set_id LIKE 'preview_%'

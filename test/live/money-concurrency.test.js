@@ -252,3 +252,37 @@ test('cancelBet refuses a bet that has already been settled', async () => {
   await assert.rejects(() => lm.cancelBet(1, betId), (err) => err.code === 'NOT_CANCELLABLE');
   assert.equal(await balance(1), balanceAfterWin, 'a settled payout must never be touched by a cancel attempt');
 });
+
+test('fillBracketSlot refunds a placed bet when it voids a stale preview_* projection', async () => {
+  // Reproduces a real production bug: before start.gg assigns a real numeric
+  // set ID, the sync projects a "preview_*" placeholder market so users can
+  // bet on a matchup ahead of time. Once the real set ID is known, the
+  // preview row gets voided in favor of a brand-new market row (a different
+  // id) — but any bet still 'placed' on the preview was never refunded, so it
+  // sat forever as 'placed' on a dead market: invisible to "My Picks" (which
+  // only matches bets against the currently-displayed market id) and stuck
+  // reading "Pending" on the Home page forever.
+  await addUser(1);
+  const preview = await db.runAsync(
+    `INSERT INTO set_markets (tournament_id, game_id, startgg_set_id, player1_id, player2_id,
+       state, p1_prob, p2_prob, seed_k_cents, p1_live_odds, p2_live_odds)
+     VALUES (1, 1, 'preview_1_1_0', ?, ?, 'open', 0.5, 0.5, 0, 1.9, 1.9)`,
+    [P1, P2]
+  );
+  const previewId = preview.lastID;
+  const { betId } = await lm.placeBet({ userId: 1, marketId: previewId, playerId: P1, amountCents: 1000 });
+  assert.equal(await balance(1), START - 1000);
+
+  await lm.fillBracketSlot({
+    tournamentId: 1, gameId: 1, startggSetId: 'real-set-1', roundText: 'Winners Semi-Final',
+    slot: 1, playerId: P1,
+  });
+
+  const previewMarket = await db.getAsync('SELECT state FROM set_markets WHERE id = ?', [previewId]);
+  assert.equal(previewMarket.state, 'void');
+  const bet = await db.getAsync('SELECT state, payout_cents FROM set_bets WHERE id = ?', [betId]);
+  assert.equal(bet.state, 'refunded', 'a bet on a voided preview market must be refunded, not left stuck as placed');
+  assert.equal(bet.payout_cents, 1000);
+  assert.equal(await balance(1), START, 'stake must be fully refunded');
+  await assertLedgerReconciles([1]);
+});
