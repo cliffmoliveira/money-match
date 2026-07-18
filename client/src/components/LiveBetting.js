@@ -689,8 +689,21 @@ const LiveBetting = () => {
 
           // Once a tournament's Top 8 bracket actually has real markets, it
           // gets its own pill further down via renderPills(groups) - showing
-          // it again here too would duplicate it on the page.
-          const upcomingNotYetMarketed = upcoming.filter((item) => !groups[item.tournament.name]);
+          // it again here too would duplicate it on the page. `groups` only
+          // covers CURRENT (unresolved) markets though - a tournament whose
+          // bracket already fully settled today has zero current markets
+          // (so `groups` doesn't exclude it) but does have real entries in
+          // pastMarkets, AND getUpcoming()'s own "date(date) >= date('now')"
+          // clause still returns it since its date hasn't passed yet. Without
+          // also checking pastTournaments, isHappeningNow's date-only check
+          // (below) then wrongly buckets an already-finished tournament into
+          // "Happening Now" while it correctly also shows in Past Tournaments
+          // - confirmed live: "Versus Masters - World Warrior 2026 - Asia
+          // Southeast 3" appeared in both sections simultaneously.
+          const pastTournamentNames = new Set(pastTournaments);
+          const upcomingNotYetMarketed = upcoming.filter(
+            (item) => !groups[item.tournament.name] && !pastTournamentNames.has(item.tournament.name)
+          );
 
           // upcoming is sorted furthest-date-first (see getUpcoming()'s
           // `ORDER BY date(date) DESC`). Split into what's live right now
