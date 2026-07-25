@@ -564,7 +564,13 @@ async function getMarkets({ includeAll = false, pastOnly = false } = {}) {
            OR ${unresolvedSetsSql('sm2', 't2')}
            OR (
              date(t2.date) BETWEEN date('now') AND date('now','+2 day')
-             AND NOT EXISTS (SELECT 1 FROM set_markets sm3 WHERE sm3.tournament_id = t2.id)
+             -- Excludes preview_* rows for the same reason isGameFullyResolved
+             -- does (scripts/sync-live.js): an early seeding projection voided
+             -- before the real bracket ever ran isn't evidence this
+             -- tournament has been tracked, and without the exclusion this
+             -- upcoming tournament would wrongly drop out of "current" the
+             -- moment its first (still-projected) preview market appears.
+             AND NOT EXISTS (SELECT 1 FROM set_markets sm3 WHERE sm3.tournament_id = t2.id AND sm3.startgg_set_id NOT LIKE 'preview_%')
            )
       )`;
   // Past markets are view-only (settled, no odds/pools/bets — see the design
