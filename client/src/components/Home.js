@@ -360,7 +360,7 @@ const Home = () => {
                     </div>
                   )}
                   <div className="lh-set-logos">
-                    <GameLogo name={m.game_name} height={36} />
+                    <div className="game-logo-box"><GameLogo name={m.game_name} height={36} /></div>
                     {m.round_text && <span className="live-hero-meta">{m.round_text}</span>}
                   </div>
                 </div>

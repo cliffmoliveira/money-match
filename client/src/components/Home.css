@@ -142,11 +142,19 @@ body { background: var(--bg); color: var(--text); }
 .lh-set-header { display: flex; flex-direction: column; align-items: stretch; gap: 6px; margin-bottom: 12px; width: 100%; }
 .lh-set-tournament {
   display: flex; align-items: center; gap: 6px; min-width: 0;
-  font-family: 'Saira', sans-serif; font-size: 11px; font-weight: 600; color: var(--muted);
+  font-family: 'Saira', sans-serif; font-size: 11px; font-weight: 600; color: var(--text);
 }
 .lh-set-tournament img { flex: none; opacity: 0.85; }
 .lh-set-tournament-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lh-set-logos { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+/* Fixed-height, clipped box around the game logo — several logos (e.g.
+   Samurai Shodown) carry a negative marginTop/marginBottom in gameLogos.js
+   to crop their own excess transparent padding for OTHER contexts (compact
+   table rows, tab strips). Left unclipped here, that negative margin also
+   eats into this card's spacing below the logo, crowding it against the
+   player rows. Containing it keeps every game's logo the same visual size
+   in this card regardless of what margin hacks it needs elsewhere. */
+.lh-set-logos .game-logo-box { height: 36px; display: flex; align-items: center; overflow: hidden; }
 .live-hero-meta { font-family: 'Saira', sans-serif; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
 .live-hero-match { display: flex; flex-direction: column; gap: 8px; }
 .lh-player {
