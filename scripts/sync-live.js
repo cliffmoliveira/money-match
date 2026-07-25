@@ -552,11 +552,25 @@ async function isGameFullyResolved(tournamentId, startggVideogameId) {
   const game = await db.getAsync('SELECT id FROM games WHERE startgg_id = ?', [String(startggVideogameId)]);
   if (!game) return false;
   const unresolved = await db.getAsync(
-    `SELECT 1 FROM set_markets WHERE tournament_id = ? AND game_id = ? AND state IN ('open','closed','pending') LIMIT 1`,
+    `SELECT 1 FROM set_markets WHERE tournament_id = ? AND game_id = ? AND state IN ('open','closed','pending')
+       AND startgg_set_id NOT LIKE 'preview_%' LIMIT 1`,
     [tournamentId, game.id]
   );
   if (unresolved) return false;
-  const any = await db.getAsync('SELECT 1 FROM set_markets WHERE tournament_id = ? AND game_id = ? LIMIT 1', [tournamentId, game.id]);
+  // Excludes preview_* rows: a projected matchup market that got voided the
+  // moment the real bracket appeared elsewhere (fillBracketSlot's preview
+  // cleanup) is not evidence the game's real Top 8/finals ever ran. Without
+  // this, a game whose ONLY markets were ever void previews reads as "has a
+  // row, nothing unresolved" -> permanently marked fully resolved, and this
+  // function's caller (fetchActiveEvents) stops fetching its real bracket
+  // data forever - even though its actual finals haven't started yet.
+  // Confirmed live at VSFighting XIV: 13 of ~15 non-Tekken/Marvel-Tokon games
+  // never got real markets because each one's only set_markets rows were
+  // void previews, tripping this exact false positive every poll cycle.
+  const any = await db.getAsync(
+    `SELECT 1 FROM set_markets WHERE tournament_id = ? AND game_id = ? AND startgg_set_id NOT LIKE 'preview_%' LIMIT 1`,
+    [tournamentId, game.id]
+  );
   return Boolean(any);
 }
 

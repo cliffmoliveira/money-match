@@ -238,6 +238,38 @@ test('isGameFullyResolved skips a game once every set is settled, but not while 
   assert.equal(await sync.isGameFullyResolved(2, 'g-sf6'), false);
 });
 
+test('isGameFullyResolved is not tripped by a preview_* market being the only row that ever existed', async () => {
+  // Reproduces a real production bug found at VSFighting XIV (26 concurrent
+  // events): 13 of ~15 non-headline games never got real Top-8 markets even
+  // hours after their finals started airing on stream. Each one's only
+  // set_markets row was a preview_* projection that fillBracketSlot's own
+  // preview cleanup (or db.js's boot sweep) voided the moment a real bracket
+  // was seen elsewhere - which used to satisfy the old "has a row, nothing
+  // unresolved" check and permanently mark the game fully resolved before its
+  // actual finals had even started, silently stopping fetchActiveEvents /
+  // fetchHistoryPhases from ever fetching that game's real bracket again.
+  const gameRes = await db.runAsync(`INSERT INTO games (name, startgg_id) VALUES ('Guilty Gear: Strive', 'g-ggst')`);
+  const gameId = gameRes.lastID;
+
+  await db.runAsync(
+    `INSERT INTO set_markets (tournament_id, game_id, startgg_set_id, round_text, player1_id, player2_id, state)
+     VALUES (1, ?, 'preview_123_3_0', 'Winners Final', 1, 2, 'void')`,
+    [gameId]
+  );
+  assert.equal(
+    await sync.isGameFullyResolved(1, 'g-ggst'), false,
+    'a voided preview projection is not evidence the real bracket ever ran - must keep polling'
+  );
+
+  // Once a REAL market for this game exists and settles, resolution is genuine.
+  await db.runAsync(
+    `INSERT INTO set_markets (tournament_id, game_id, startgg_set_id, round_text, player1_id, player2_id, state)
+     VALUES (1, ?, 'real-set-1', 'Grand Final', 1, 2, 'settled')`,
+    [gameId]
+  );
+  assert.equal(await sync.isGameFullyResolved(1, 'g-ggst'), true);
+});
+
 test('getActiveTournaments keeps polling a tournament with genuinely unresolved sets past its date window', async () => {
   // Reproduces a real production bug found on "BR Kumite - World Warrior
   // 2026 - Brazil 3": nothing in the regular discovery pipeline ever sets
