@@ -352,7 +352,10 @@ const Home = () => {
                   </span>
                 )}
                 <div className="lh-set-header">
-                  <GameLogo name={m.game_name} height={36} />
+                  <div className="lh-set-logos">
+                    <TournamentLogo name={m.tournament_name} logoUrl={m.tournament_logo_url} height={18} />
+                    <GameLogo name={m.game_name} height={36} />
+                  </div>
                   {m.round_text && <span className="live-hero-meta">{m.round_text}</span>}
                 </div>
                 <div className="live-hero-match">
