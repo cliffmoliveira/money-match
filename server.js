@@ -1073,6 +1073,10 @@ function scheduleLiveSync() {
       // deploy/restart to pick it up.
       const { refunded, totalCents } = await liveMarkets.refundOrphanedVoidBets();
       if (refunded) console.log(`[live-sync] refunded ${refunded} orphaned void-market bet(s), ${(totalCents / 100).toFixed(2)} FM total`);
+      // Tripwire for the isGameFullyResolved preview-market bug class (see
+      // db.js): only logs when it finds something, so a healthy cycle stays
+      // quiet instead of repeating "nothing found" every minute.
+      db.diagnosePreviewOnlyGames('[live-sync]');
     }
     catch (err) { console.error('Live sync error:', err.message); }
     finally {

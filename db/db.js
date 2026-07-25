@@ -263,6 +263,49 @@ try {
   }
 } catch (_) { /* table may not exist yet on a fresh DB */ }
 
+// READ-ONLY diagnostic, round 3: a (tournament, game) pair whose ONLY
+// set_markets rows are preview_* projections (seeding-based placeholders
+// voided the moment a real bracket appears elsewhere) and has zero real
+// markets, for a tournament that started within the last 3 days. Surfaces
+// the exact shape of a real production bug found at VSFighting XIV: 13 of
+// ~15 non-headline games at a 26-event major never got real Top-8 markets
+// because isGameFullyResolved wrongly treated a voided preview as proof the
+// real bracket had already run, permanently stopping the poller from ever
+// fetching that game's real data again (fixed in scripts/sync-live.js, but
+// this stays as a tripwire for any future variant of the same shape). Logged
+// only — callable again per live-sync cycle via db.diagnosePreviewOnlyGames,
+// not just at boot, so it surfaces within a minute instead of the next deploy.
+db.diagnosePreviewOnlyGames = function diagnosePreviewOnlyGames(logPrefix = '[boot]') {
+  try {
+    const stuck = db.prepare(
+      `SELECT t.id AS tournament_id, t.name AS tournament_name, t.date,
+              g.id AS game_id, g.name AS game_name, COUNT(*) AS preview_count
+       FROM set_markets sm
+       JOIN tournaments t ON t.id = sm.tournament_id
+       JOIN games g ON g.id = sm.game_id
+       WHERE sm.startgg_set_id LIKE 'preview_%'
+         AND date(t.date) BETWEEN date('now', '-3 day') AND date('now')
+         AND NOT EXISTS (
+           SELECT 1 FROM set_markets sm2
+           WHERE sm2.tournament_id = sm.tournament_id AND sm2.game_id = sm.game_id
+             AND sm2.startgg_set_id NOT LIKE 'preview_%'
+         )
+       GROUP BY t.id, g.id
+       ORDER BY t.date DESC, g.name`
+    ).all();
+    if (stuck.length) {
+      console.log(`${logPrefix}[diagnostic] ${stuck.length} game(s) with only preview_* markets (no real bracket data yet) at a tournament started within the last 3 days:`);
+      for (const row of stuck) {
+        console.log(`${logPrefix}[diagnostic]   "${row.tournament_name}" (${row.date}) — ${row.game_name}: ${row.preview_count} preview market(s), 0 real`);
+      }
+    }
+    return stuck;
+  } catch (_) {
+    return []; // table may not exist yet on a fresh DB
+  }
+};
+db.diagnosePreviewOnlyGames();
+
 // Cache prepared statements by SQL text. SQLite auto-reprepares on schema
 // changes, so cached statements stay valid across migrations.
 const stmtCache = new Map();
