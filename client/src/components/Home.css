@@ -139,10 +139,14 @@ body { background: var(--bg); color: var(--text); }
   background: var(--live-text); flex-shrink: 0;
   animation: liveTabPulse 1.8s ease-in-out infinite;
 }
-.lh-set-header { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; margin-bottom: 12px; width: 100%; }
-.lh-set-header .live-hero-meta { align-self: flex-end; }
-.lh-set-logos { display: flex; align-items: center; gap: 8px; }
-.lh-set-logos img:first-child { opacity: 0.85; }
+.lh-set-header { display: flex; flex-direction: column; align-items: stretch; gap: 6px; margin-bottom: 12px; width: 100%; }
+.lh-set-tournament {
+  display: flex; align-items: center; gap: 6px; min-width: 0;
+  font-family: 'Saira', sans-serif; font-size: 11px; font-weight: 600; color: var(--muted);
+}
+.lh-set-tournament img { flex: none; opacity: 0.85; }
+.lh-set-tournament-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lh-set-logos { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .live-hero-meta { font-family: 'Saira', sans-serif; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
 .live-hero-match { display: flex; flex-direction: column; gap: 8px; }
 .lh-player {
