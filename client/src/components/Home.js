@@ -38,16 +38,17 @@ const TournamentLogo = ({ name, logoUrl, height = 24 }) => {
 
 const GameLogo = ({ name, height = 24, customStyles = {} }) => {
   const [index, setIndex] = useState(0);
+  const [failed, setFailed] = useState(false);
   if (!name) return null;
   const candidates = Object.values(getGameLogoSources(name)).filter(Boolean);
   const src = candidates[index];
-  if (!src) return <span>{name}</span>;
+  if (failed || !src) return <span>{name}</span>;
   return (
     <img
       src={src}
       alt={getGameAlt(name)}
       style={getGameLogoStyle(name, height, customStyles)}
-      onError={() => { if (index + 1 < candidates.length) setIndex(index + 1); }}
+      onError={() => (index + 1 < candidates.length ? setIndex(index + 1) : setFailed(true))}
     />
   );
 };

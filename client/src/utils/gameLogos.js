@@ -198,6 +198,7 @@ const logoFileBySlug = {
   'mortal-kombat-9': 'mortal-kombat.png',
   'mortal-kombat-xl': 'mortal-kombat-xl.png',
   'windjammers-2': 'windjammers-2.png',
+  'marvel-tokon-fighting-souls': 'marvel-tokon-fighting-souls.png',
 };
 
 export function getGameLogoSources(name) {
