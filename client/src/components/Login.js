@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import './Login.css';
 import logo from '../assets/images/hit_confirmed.png';
 import PasswordInput from './PasswordInput';
@@ -9,6 +9,11 @@ const Login = ({ setIsLoggedIn }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  // apiFetch redirects here with ?expired=1 when it catches a 401 from a
+  // token we thought was still valid (see client/src/utils/api.js) - explain
+  // why they landed back on the login screen instead of leaving it a mystery.
+  const [searchParams] = useSearchParams();
+  const sessionExpired = searchParams.get('expired') === '1';
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -48,6 +53,10 @@ const Login = ({ setIsLoggedIn }) => {
         <button type="button" className="active">Log in</button>
         <button type="button" onClick={() => navigate('/signup')}>Sign up</button>
       </div>
+
+      {sessionExpired && (
+        <p className="error-message">Your session expired — please log in again.</p>
+      )}
 
       <form onSubmit={handleLogin}>
         <label htmlFor="login-email">Email</label>

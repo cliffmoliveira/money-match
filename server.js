@@ -78,7 +78,12 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password.' });
     }
 
-    const token = jwt.sign({ id: user.id }, secretKey, { expiresIn: '1h' });
+    // 30d, not 1h: there's no refresh-token flow, so a short expiry just meant
+    // any tab left open past an hour silently started 401ing on every request
+    // while the UI still showed "logged in" (see apiFetch's 401 handling for
+    // the other half of the fix - it now catches an actually-expired token
+    // and bounces to a clean re-login instead of a stuck, broken session).
+    const token = jwt.sign({ id: user.id }, secretKey, { expiresIn: '30d' });
 
     res.status(200).json({
       message: 'Login successful',
