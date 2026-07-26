@@ -54,19 +54,46 @@ async function findOrCreatePlayerId(entrant) {
   if (!name) return null;
   const photoUrl = photoOf(entrant);
   const lookupId = stableIdFor(entrant);
-  const existing = await db.getAsync('SELECT id FROM players WHERE startgg_id = ? OR name = ?', [lookupId, name]);
-  if (existing) {
-    // Unconditional overwrite (not COALESCE): a row's startgg_id may still
-    // carry a stale, pre-fix entrant-id value from before this module
-    // existed. Overwriting lets it self-heal to the correct stable id the
-    // next time this player is touched by any sync script, instead of
-    // COALESCE permanently locking in whatever value was written first.
+
+  // Exact startgg_id match — already the row's own primary identity, so
+  // there's nothing to self-heal.
+  if (lookupId != null) {
+    const byId = await db.getAsync('SELECT id FROM players WHERE startgg_id = ?', [lookupId]);
+    if (byId) {
+      if (photoUrl) await db.runAsync('UPDATE players SET photo_url = COALESCE(?, photo_url) WHERE id = ?', [photoUrl, byId.id]);
+      return byId.id;
+    }
+  }
+
+  // Known alias: a DIFFERENT start.gg account manually confirmed (via
+  // merge-same-person-player.js) to be the same real person as an existing
+  // row. Never overwrite the row's primary startgg_id here — that would
+  // silently evict whichever id is currently primary and just move the
+  // problem to the next sync under that account instead of fixing it.
+  if (lookupId != null) {
+    const viaAlias = await db.getAsync(
+      `SELECT p.id FROM player_startgg_aliases a JOIN players p ON p.id = a.player_id WHERE a.startgg_id = ?`,
+      [lookupId]
+    );
+    if (viaAlias) {
+      if (photoUrl) await db.runAsync('UPDATE players SET photo_url = COALESCE(?, photo_url) WHERE id = ?', [photoUrl, viaAlias.id]);
+      return viaAlias.id;
+    }
+  }
+
+  // Exact name match: a row whose startgg_id is stale/null/a pre-fix
+  // entrant-id value self-heals to the current stable id. Unconditional
+  // overwrite (not COALESCE) so it always converges, rather than
+  // permanently locking in whatever value was written first.
+  const byName = await db.getAsync('SELECT id FROM players WHERE name = ?', [name]);
+  if (byName) {
     await db.runAsync(
       'UPDATE players SET startgg_id = ?, photo_url = COALESCE(?, photo_url) WHERE id = ?',
-      [lookupId, photoUrl, existing.id]
+      [lookupId, photoUrl, byName.id]
     );
-    return existing.id;
+    return byName.id;
   }
+
   const res = await db.runAsync(
     'INSERT INTO players (name, country, startgg_id, photo_url) VALUES (?, ?, ?, ?)',
     [name, '', lookupId, photoUrl]

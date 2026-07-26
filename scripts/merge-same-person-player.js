@@ -14,9 +14,9 @@
 // needs a human to confirm the two rows really are the same person before
 // merging, hence --confirm-same-person is mandatory rather than inferred.
 //
-// This does NOT prevent recurrence: a future sync for either startgg_id
-// will recreate a fresh duplicate row, since the surviving row keeps only
-// one startgg_id/name. Re-run this script if that happens again.
+// Records the merged-away id in player_startgg_aliases so a future sync
+// under that same account converges back onto the surviving row instead of
+// recreating the duplicate (see scripts/lib/players.js's alias lookup).
 //
 // Usage:
 //   node scripts/merge-same-person-player.js <fromId> <intoId> --confirm-same-person [--dry-run]
@@ -96,10 +96,20 @@ async function main() {
     }
     await db.runAsync('DELETE FROM follows WHERE player_id = ?', [fromId]);
 
+    // Repoint any aliases that already pointed at the row being removed
+    // (fromId itself was a previous merge target) before recording fromId's
+    // own startgg_id as a new alias of the surviving row.
+    await db.runAsync('UPDATE player_startgg_aliases SET player_id = ? WHERE player_id = ?', [intoId, fromId]);
+    if (from.startgg_id != null) {
+      await db.runAsync('INSERT OR IGNORE INTO player_startgg_aliases (player_id, startgg_id) VALUES (?, ?)', [intoId, from.startgg_id]);
+    }
+
     await db.runAsync('DELETE FROM players WHERE id = ?', [fromId]);
     await db.runAsync('COMMIT');
     console.log(`Done. Player ${fromId} merged into ${intoId} and removed.`);
-    console.log(`Note: player ${intoId} still only has startgg_id=${into.startgg_id} on file — a future sync under startgg_id=${from.startgg_id} or the exact name "${from.name}" will recreate a fresh duplicate, not self-heal into this row.`);
+    if (from.startgg_id != null) {
+      console.log(`Recorded startgg_id=${from.startgg_id} as an alias of ${intoId} — a future sync under that account now converges here instead of recreating the duplicate.`);
+    }
   } catch (err) {
     await db.runAsync('ROLLBACK');
     throw err;

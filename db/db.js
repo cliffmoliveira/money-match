@@ -99,6 +99,25 @@ try {
   db.exec(`CREATE INDEX IF NOT EXISTS idx_bracket_history_tournament ON bracket_history(tournament_id, updated_at)`);
 } catch (e) { console.error('[boot] bracket_history table setup failed:', e.message); }
 
+// Records that a start.gg id belongs to the SAME real person as an
+// already-tracked player, but under a DIFFERENT start.gg account - see
+// scripts/merge-same-person-player.js. players.startgg_id can only ever
+// hold one id (it's the stable participants[].player.id for one account -
+// see scripts/lib/players.js), so without this, a future sync under the
+// abandoned account would just recreate the duplicate the merge tool
+// removed (confirmed happening to xiaohai: two real start.gg accounts,
+// "FALCONS | xiaohai" and "Falcons丨Xiaohai" with a CJK separator, no
+// shared id or exact name to unify them automatically).
+try {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS player_startgg_aliases (
+      player_id INTEGER NOT NULL REFERENCES players(id),
+      startgg_id INTEGER NOT NULL UNIQUE,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+} catch (e) { console.error('[boot] player_startgg_aliases table setup failed:', e.message); }
+
 // players.photo_url: start.gg entrant profile photo, backfilled during
 // ingestion (sync-live.js, sync-upcoming.js, backfill-top8-2026.js,
 // syncStartgg.js, backfill-results.js). Guarded by a column-exists check
