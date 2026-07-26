@@ -1077,6 +1077,9 @@ function scheduleLiveSync() {
       // db.js): only logs when it finds something, so a healthy cycle stays
       // quiet instead of repeating "nothing found" every minute.
       db.diagnosePreviewOnlyGames('[live-sync]');
+      // Tripwire for a side-event/minigame merging into a real bracket (see
+      // db.js) — same quiet-unless-found behavior.
+      db.diagnoseMultiEventGames('[live-sync]');
     }
     catch (err) { console.error('Live sync error:', err.message); }
     finally {

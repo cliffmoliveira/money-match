@@ -129,7 +129,7 @@ async function ensureOpenMarket({
  */
 async function fillBracketSlot({
   tournamentId, gameId, startggSetId, roundText, roundInt = null, phaseGroupId = null,
-  slot, playerId, seed = null,
+  slot, playerId, seed = null, startggEventId = null, startggEventName = null,
 }) {
   if (!playerId) return;
   // Everything below reads and writes set_markets/set_bets across several
@@ -162,11 +162,13 @@ async function fillBracketSlot({
     await db.runAsync(
       `INSERT INTO set_markets
          (tournament_id, game_id, startgg_set_id, round_text, round_int, phase_group_id,
-          player1_id, player2_id, p1_seed, p2_seed, state, p1_prob, p2_prob, seed_k_cents, p1_live_odds, p2_live_odds)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0.5, 0.5, ?, 0, 0)`,
+          player1_id, player2_id, p1_seed, p2_seed, state, p1_prob, p2_prob, seed_k_cents, p1_live_odds, p2_live_odds,
+          startgg_event_id, startgg_event_name)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 0.5, 0.5, ?, 0, 0, ?, ?)`,
       [tournamentId, gameId, startggSetId, roundText || null, roundInt, phaseGroupId,
        slot === 1 ? playerId : TBD, slot === 2 ? playerId : TBD,
-       slot === 1 ? seed : null, slot === 2 ? seed : null, effectiveSubsidyCents(0)]
+       slot === 1 ? seed : null, slot === 2 ? seed : null, effectiveSubsidyCents(0),
+       startggEventId != null ? String(startggEventId) : null, startggEventName || null]
     );
     return;
   }
@@ -195,7 +197,12 @@ async function fillBracketSlot({
 
   const idCol = slot === 1 ? 'player1_id' : 'player2_id';
   const seedCol = slot === 1 ? 'p1_seed' : 'p2_seed';
-  await db.runAsync(`UPDATE set_markets SET ${idCol} = ?, ${seedCol} = ? WHERE id = ?`, [playerId, seed, existing.id]);
+  await db.runAsync(
+    `UPDATE set_markets SET ${idCol} = ?, ${seedCol} = ?,
+       startgg_event_id = COALESCE(?, startgg_event_id), startgg_event_name = COALESCE(?, startgg_event_name)
+     WHERE id = ?`,
+    [playerId, seed, startggEventId != null ? String(startggEventId) : null, startggEventName || null, existing.id]
+  );
 
   // Both slots real and still pending -> price it and open for betting.
   const m = await db.getAsync('SELECT * FROM set_markets WHERE id = ?', [existing.id]);

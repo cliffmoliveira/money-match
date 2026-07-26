@@ -120,6 +120,61 @@ try {
   }
 } catch (e) { console.error('[boot] players_games_tournaments.placement setup failed:', e.message); }
 
+// set_markets.startgg_event_id / startgg_event_name: which start.gg EVENT a
+// market's set actually came from. Existing columns (tournament_id, game_id)
+// key by videogame, not event - two different events at the same tournament
+// can share a videogame (a real competitive bracket plus a same-game bonus
+// minigame/side-activity), and without an event-level key their sets get
+// silently merged into one bracket view. isSideEvent() name-matches known
+// offenders (confirmed twice: "Side Event Sunday", then "Tekken Ball" at
+// VSFighting XIV), but that only ever catches a pattern after someone
+// notices the merge. Persisting the real event lets diagnosePreviewOnlyGames'
+// sibling check below catch ANY future same-videogame-different-event merge
+// on sight, regardless of what the event happens to be named.
+try {
+  const cols = db.prepare("PRAGMA table_info(set_markets)").all();
+  if (cols.length && !cols.some((c) => c.name === 'startgg_event_id')) {
+    db.exec('ALTER TABLE set_markets ADD COLUMN startgg_event_id TEXT');
+    db.exec('ALTER TABLE set_markets ADD COLUMN startgg_event_name TEXT');
+    console.log('[boot] set_markets.startgg_event_id / startgg_event_name added');
+  }
+} catch (e) { console.error('[boot] set_markets.startgg_event_id setup failed:', e.message); }
+
+// READ-ONLY diagnostic, round 4: a (tournament, game) pair whose real
+// (non-preview, non-void) set_markets rows carry startgg_event_id from more
+// than one distinct start.gg event. Only rows written after this migration
+// carry an event id, so this can't see pre-existing merges (like the
+// VSFighting XIV Tekken Ball one, already cleaned up by hand) - it's a
+// forward-looking tripwire for the next one. Logged only, callable per
+// live-sync cycle the same way as diagnosePreviewOnlyGames.
+db.diagnoseMultiEventGames = function diagnoseMultiEventGames(logPrefix = '[boot]') {
+  try {
+    const rows = db.prepare(
+      `SELECT t.name AS tournament_name, t.date, g.name AS game_name,
+              GROUP_CONCAT(DISTINCT sm.startgg_event_name) AS event_names,
+              COUNT(DISTINCT sm.startgg_event_id) AS event_count
+       FROM set_markets sm
+       JOIN tournaments t ON t.id = sm.tournament_id
+       JOIN games g ON g.id = sm.game_id
+       WHERE sm.startgg_set_id NOT LIKE 'preview_%' AND sm.state != 'void'
+         AND sm.startgg_event_id IS NOT NULL
+       GROUP BY t.id, g.id
+       HAVING event_count > 1
+       ORDER BY t.date DESC, g.name`
+    ).all();
+    if (rows.length) {
+      console.log(`${logPrefix}[diagnostic] ${rows.length} game(s) whose real markets span more than one start.gg event (likely a side-event/minigame merge):`);
+      for (const row of rows) {
+        console.log(`${logPrefix}[diagnostic]   "${row.tournament_name}" (${row.date}) — ${row.game_name}: ${row.event_count} events (${row.event_names})`);
+      }
+    }
+    return rows;
+  } catch (_) {
+    return []; // table may not exist yet on a fresh DB
+  }
+};
+db.diagnoseMultiEventGames();
+
 // Ensure "KOF XV & SAMSHO at EVO 2026 BYOC" (Start.gg id 881081) exists so the
 // live poller picks it up. Idempotent — no-op if already present.
 try {

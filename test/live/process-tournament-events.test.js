@@ -39,7 +39,8 @@ before(async () => {
     p1_live_odds REAL, p2_live_odds REAL,
     p1_pool_cents INTEGER NOT NULL DEFAULT 0, p2_pool_cents INTEGER NOT NULL DEFAULT 0,
     winner_id INTEGER, p1_score INTEGER NOT NULL DEFAULT 0, p2_score INTEGER NOT NULL DEFAULT 0,
-    opened_at TEXT, closed_at TEXT, settled_at TEXT)`);
+    opened_at TEXT, closed_at TEXT, settled_at TEXT,
+    startgg_event_id TEXT, startgg_event_name TEXT)`);
   await db.runAsync(`CREATE TABLE set_bets (
     id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, market_id INTEGER, picked_player_id INTEGER,
     amount_cents INTEGER, locked_odds REAL, state TEXT NOT NULL DEFAULT 'placed',
@@ -98,6 +99,36 @@ test('processTournamentEvents backfills a still-TBD slot on a pre-existing marke
   assert.equal(market.winner_id, xiaocai.id);
   assert.equal(market.p1_score, 0);
   assert.equal(market.p2_score, 3);
+});
+
+test('processTournamentEvents persists which start.gg event a market came from', async () => {
+  // The durable fix for the VSFighting XIV "Tekken Ball merged into the real
+  // Tekken 8 bracket" bug: two different events can share a videogame, and
+  // set_markets previously had no way to tell them apart after the fact.
+  // Persisting the event lets db.diagnoseMultiEventGames catch ANY future
+  // same-videogame merge, not just ones isSideEvent happens to name-match.
+  const gameRes = await db.runAsync(`INSERT INTO games (name, startgg_id) VALUES ('TEKKEN 8', 'g-t8')`);
+  const gameId = gameRes.lastID;
+
+  const events = [{
+    id: 'evt-real-t8', name: 'TEKKEN 8 (TEKKEN WORLD TOUR 2026 MASTER EVENT)',
+    videogame: { id: 'g-t8', name: 'TEKKEN 8' },
+    sets: {
+      nodes: [{
+        id: 's-real', state: 1, fullRoundText: 'Winners Semi-Final', round: 3,
+        phaseGroup: { id: 'pg-real' },
+        slots: [
+          { entrant: { id: 'e-kanda', name: 'kanda', seeds: [{ seedNum: 1 }] }, standing: null },
+        ],
+      }],
+    },
+  }];
+
+  await sync.processTournamentEvents({ id: 1 }, events);
+
+  const market = await db.getAsync(`SELECT startgg_event_id, startgg_event_name FROM set_markets WHERE startgg_set_id = 's-real'`);
+  assert.equal(market.startgg_event_id, 'evt-real-t8');
+  assert.equal(market.startgg_event_name, 'TEKKEN 8 (TEKKEN WORLD TOUR 2026 MASTER EVENT)');
 });
 
 test('processTournamentEvents settles a just-finished match before advancing its winner into a downstream pending slot, even when start.gg lists the pending set first', async () => {

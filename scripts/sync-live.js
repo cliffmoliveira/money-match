@@ -313,8 +313,8 @@ async function processTournamentEvents(tRow, events = []) {
           const p0 = await findOrCreatePlayerId(e0);
           const p1 = await findOrCreatePlayerId(e1);
           if (p0 && p1) {
-            await lm.fillBracketSlot({ tournamentId: tRow.id, gameId, startggSetId: setId, roundText: set.fullRoundText, roundInt: set.round ?? null, phaseGroupId, slot: 1, playerId: p0, seed: seedOf(e0) });
-            await lm.fillBracketSlot({ tournamentId: tRow.id, gameId, startggSetId: setId, roundText: set.fullRoundText, roundInt: set.round ?? null, phaseGroupId, slot: 2, playerId: p1, seed: seedOf(e1) });
+            await lm.fillBracketSlot({ tournamentId: tRow.id, gameId, startggSetId: setId, roundText: set.fullRoundText, roundInt: set.round ?? null, phaseGroupId, slot: 1, playerId: p0, seed: seedOf(e0), startggEventId: ev.id, startggEventName: ev.name });
+            await lm.fillBracketSlot({ tournamentId: tRow.id, gameId, startggSetId: setId, roundText: set.fullRoundText, roundInt: set.round ?? null, phaseGroupId, slot: 2, playerId: p1, seed: seedOf(e1), startggEventId: ev.id, startggEventName: ev.name });
             // Both real slots are known now - resolve any stale preview_*
             // projection for either player before the market moves past
             // 'open' (settleMarket below), since that's the only window a
@@ -356,8 +356,8 @@ async function processTournamentEvents(tRow, events = []) {
           const p0 = await findOrCreatePlayerId(e0);
           const p1 = await findOrCreatePlayerId(e1);
           if (p0 && p1) {
-            await lm.fillBracketSlot({ tournamentId: tRow.id, gameId, startggSetId: setId, roundText: set.fullRoundText, roundInt: set.round ?? null, phaseGroupId, slot: 1, playerId: p0, seed: seedOf(e0) });
-            await lm.fillBracketSlot({ tournamentId: tRow.id, gameId, startggSetId: setId, roundText: set.fullRoundText, roundInt: set.round ?? null, phaseGroupId, slot: 2, playerId: p1, seed: seedOf(e1) });
+            await lm.fillBracketSlot({ tournamentId: tRow.id, gameId, startggSetId: setId, roundText: set.fullRoundText, roundInt: set.round ?? null, phaseGroupId, slot: 1, playerId: p0, seed: seedOf(e0), startggEventId: ev.id, startggEventName: ev.name });
+            await lm.fillBracketSlot({ tournamentId: tRow.id, gameId, startggSetId: setId, roundText: set.fullRoundText, roundInt: set.round ?? null, phaseGroupId, slot: 2, playerId: p1, seed: seedOf(e1), startggEventId: ev.id, startggEventName: ev.name });
             // Same reasoning as the state===3 branch above: resolve stale
             // previews while the market is still 'open', before closeMarket
             // locks betting.
@@ -390,6 +390,7 @@ async function processTournamentEvents(tRow, events = []) {
             tournamentId: tRow.id, gameId, startggSetId: setId, roundText: set.fullRoundText,
             roundInt: set.round ?? null, phaseGroupId,
             slot: i + 1, playerId: pid, seed: seedOf(e),
+            startggEventId: ev.id, startggEventName: ev.name,
           });
           filled++;
           filledPlayerIds.push(pid);
