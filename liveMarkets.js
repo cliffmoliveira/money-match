@@ -30,13 +30,40 @@ const TBD = 0; // player id placeholder for an unfilled bracket slot
 // (each surface had its own "is it past yet" check, and they disagreed).
 const STALE_PENDING_DAYS = 5;
 function unresolvedSetsSql(marketAlias, tournamentAlias) {
-  return `EXISTS (
-    SELECT 1 FROM set_markets ${marketAlias}
-    WHERE ${marketAlias}.tournament_id = ${tournamentAlias}.id
-      AND (
-        ${marketAlias}.state IN ('open','closed')
-        OR (${marketAlias}.state = 'pending' AND date(${tournamentAlias}.date) >= date('now','-${STALE_PENDING_DAYS} days'))
+  return `(
+    EXISTS (
+      SELECT 1 FROM set_markets ${marketAlias}
+      WHERE ${marketAlias}.tournament_id = ${tournamentAlias}.id
+        AND (
+          ${marketAlias}.state IN ('open','closed')
+          OR (${marketAlias}.state = 'pending' AND date(${tournamentAlias}.date) >= date('now','-${STALE_PENDING_DAYS} days'))
+        )
+    )
+    OR (
+      -- A tournament can be genuinely still running with real bracket
+      -- progress (bracket_history) before its real Top-8 set_markets ever
+      -- get created — e.g. the bracket hasn't reached Top 8 yet, or a
+      -- multi-day event's stored date (day 1) is now more than a day in
+      -- the past relative to "today" even though it's still airing on a
+      -- later day. Only applies while no REAL (non-preview) set_markets row
+      -- exists yet — once real markets exist, the clause above is the
+      -- authoritative signal. Confirmed live: "Esports World Cup 2026:
+      -- Street Fighter 6 - LCQ" (a 3-day event) fell out of the date window
+      -- on its own final day and got permanently excluded from polling —
+      -- stranded on stale bracket_history progress (Winners Semi-Final)
+      -- with real Top-8 markets never created, since nothing ever polled it
+      -- again to find out it kept going.
+      NOT EXISTS (
+        SELECT 1 FROM set_markets ${marketAlias}_real
+        WHERE ${marketAlias}_real.tournament_id = ${tournamentAlias}.id
+          AND ${marketAlias}_real.startgg_set_id NOT LIKE 'preview_%'
       )
+      AND EXISTS (
+        SELECT 1 FROM bracket_history ${marketAlias}_bh
+        WHERE ${marketAlias}_bh.tournament_id = ${tournamentAlias}.id
+          AND date(${marketAlias}_bh.updated_at) >= date('now','-${STALE_PENDING_DAYS} days')
+      )
+    )
   )`;
 }
 

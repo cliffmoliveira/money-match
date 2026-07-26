@@ -50,6 +50,7 @@ before(async () => {
 beforeEach(async () => {
   await db.runAsync('DELETE FROM set_bets');
   await db.runAsync('DELETE FROM set_markets');
+  await db.runAsync('DELETE FROM bracket_history');
   await db.runAsync('DELETE FROM players');
   await db.runAsync('DELETE FROM games');
   await db.runAsync('DELETE FROM tournaments');
@@ -341,4 +342,52 @@ test('getActiveTournaments keeps polling a tournament with genuinely unresolved 
   const activeIds = active.map((t) => t.id);
   assert.ok(activeIds.includes(staleId), 'a tournament with a genuinely unresolved set must stay active regardless of how old its date is');
   assert.ok(!activeIds.includes(finishedRes.lastID), 'a fully-settled old tournament must not be swept back into active polling');
+});
+
+test('getActiveTournaments keeps polling a multi-day event that fell out of the date window before its real Top-8 markets ever existed', async () => {
+  // Reproduces a real production bug found on "Esports World Cup 2026:
+  // Street Fighter 6 - LCQ" (a 3-day event, date stores day 1 only): its
+  // bracket_history showed real progress through Winners Semi-Final as of
+  // this morning, but its real (non-preview) set_markets never got created
+  // (Top 8 hadn't been reached when it fell out of tracking) - so the
+  // BR-Kumite fix (unresolvedSetsSql checking real set_markets) couldn't
+  // rescue it: there was nothing real yet to call "unresolved". Once "now"
+  // moved more than a day past the stored day-1 date, it fell out of the
+  // -1/+2 day window and got permanently excluded from polling mid-event,
+  // stranded on stale bracket_history with no real markets ever created.
+  const gameRes = await db.runAsync(`INSERT INTO games (name, startgg_id) VALUES ('Street Fighter 6', 'g-sf6-2')`);
+  const gameId = gameRes.lastID;
+
+  const lcqRes = await db.runAsync(
+    `INSERT INTO tournaments (name, date, is_live, startgg_id) VALUES ('Esports World Cup 2026: Street Fighter 6 - LCQ', date('now','-2 days'), 0, 'sg-ewc-sf6-lcq')`
+  );
+  const lcqId = lcqRes.lastID;
+  // Real bracket progress recorded recently, but no real Top-8 markets yet -
+  // only a stale voided preview projection (the same shape as production).
+  await db.runAsync(
+    `INSERT INTO bracket_history (tournament_id, game_id, startgg_set_id, round_text, state, updated_at)
+     VALUES (?, ?, 'bh-wsf-1', 'Winners Semi-Final', 'completed', datetime('now','-16 hours'))`,
+    [lcqId, gameId]
+  );
+  await db.runAsync(
+    `INSERT INTO set_markets (tournament_id, game_id, startgg_set_id, state) VALUES (?, ?, 'preview_1_2_0', 'void')`,
+    [lcqId, gameId]
+  );
+
+  // Control: a tournament with equally-old bracket_history but no RECENT
+  // activity (last touched well past STALE_PENDING_DAYS) must not be swept
+  // back in - only genuinely-recent bracket progress does that.
+  const oldRes = await db.runAsync(
+    `INSERT INTO tournaments (name, date, is_live, startgg_id) VALUES ('Long Finished Major', date('now','-30 days'), 0, 'sg-old-major')`
+  );
+  await db.runAsync(
+    `INSERT INTO bracket_history (tournament_id, game_id, startgg_set_id, round_text, state, updated_at)
+     VALUES (?, ?, 'bh-old-1', 'Winners Semi-Final', 'completed', datetime('now','-30 days'))`,
+    [oldRes.lastID, gameId]
+  );
+
+  const active = await sync.getActiveTournaments();
+  const activeIds = active.map((t) => t.id);
+  assert.ok(activeIds.includes(lcqId), 'a multi-day event with recent real bracket progress but no real markets yet must stay active');
+  assert.ok(!activeIds.includes(oldRes.lastID), 'stale bracket_history from long ago must not sweep an old tournament back into active polling');
 });
