@@ -976,11 +976,19 @@ app.post('/api/sync/startgg/recent', async (req, res) => {
 // the daily Start.gg sync below - it shares start.gg's rate limit with the
 // 60s live poller, and a live event needs that budget far more urgently than
 // a majors-list refresh does.
+//
+// Also checks the shared unresolvedSetsSql definition (same one the live
+// poller's own getActiveTournaments uses), not just date(date) = date('now') -
+// a multi-day event's `date` column only ever stores day 1, so this used to
+// stop deferring the moment a still-running event's day 1 became "yesterday",
+// letting the daily sync compete for rate-limit budget with the live poller
+// on exactly the days a multi-day major needs that budget most.
 async function hasLiveTournamentToday() {
   try {
     const row = await db.getAsync(
       `SELECT 1 FROM tournaments
-       WHERE startgg_id IS NOT NULL AND (is_live = 1 OR date(date) = date('now'))
+       WHERE startgg_id IS NOT NULL
+         AND (is_live = 1 OR date(date) = date('now') OR ${liveMarkets.unresolvedSetsSql('sm', 'tournaments')})
        LIMIT 1`
     );
     return !!row;
