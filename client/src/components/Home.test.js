@@ -11,7 +11,6 @@ const BASE_ROUTES = [
   ['/api/past-results', { data: [] }],
   ['/api/games', []],
   ['/api/players', []],
-  ['/api/exhibitions/results', []],
   ['/api/live/markets', []],
   ['/api/live/upcoming', []],
 ];

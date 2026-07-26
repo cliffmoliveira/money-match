@@ -11,9 +11,7 @@ import ResetPassword from './components/ResetPassword';
 import Leaderboard from './components/Leaderboard';
 import Profile from './components/Profile';
 import AccountSettings from './components/AccountSettings';
-import Exhibitions from './components/Exhibitions';
 import Follow from './components/Follow';
-import AdminExhibitions from './components/AdminExhibitions';
 
 // Inner shell so we can read the current route (useLocation must be inside
 // <Router>) and hide the navbar on the auth screens, per the redesign.
@@ -42,11 +40,7 @@ function AppShell({ isLoggedIn, setIsLoggedIn }) {
         <Route path="/profile" element={isLoggedIn ? <Profile /> : <Navigate to="/login" />} />
         <Route path="/follow" element={isLoggedIn ? <Follow /> : <Navigate to="/login" />} />
         <Route path="/account" element={isLoggedIn ? <AccountSettings /> : <Navigate to="/login" />} />
-        <Route path="/exhibitions" element={<Exhibitions />} />
         <Route path="/affiliate-demo" element={<AffiliateDemo />} />
-        {/* Unlisted operator tool — not in the Navbar. Gated server-side by
-            requireAdminSecret, not by user login (see AdminExhibitions.js). */}
-        <Route path="/admin/exhibitions" element={<AdminExhibitions />} />
       </Routes>
     </>
   );
