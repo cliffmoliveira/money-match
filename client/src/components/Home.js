@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import './Home.css';
 import { getTournamentLogoSources, getTournamentAlt, getTournamentLogoStyle } from '../utils/tournamentLogos';
 import { getGameLogoSources, getGameAlt, getGameLogoStyle } from '../utils/gameLogos';
@@ -81,6 +81,7 @@ const BetPlayerName = ({ name }) => {
 };
 
 const Home = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -352,7 +353,22 @@ const Home = () => {
           </div>
           <div className="live-hero-sets">
             {liveNow.slice(0, 3).map((m) => (
-              <div key={m.id} className={`live-hero-set${m.state === 'closed' ? ' live' : ''}`}>
+              <div
+                key={m.id}
+                className={`live-hero-set${m.state === 'closed' ? ' live' : ''} clickable`}
+                role="button"
+                tabIndex={0}
+                onClick={() => navigate('/tournaments', {
+                  state: { tournamentName: m.tournament_name, gameName: m.game_name, marketId: m.id },
+                })}
+                onKeyDown={(e) => {
+                  if (e.key !== 'Enter' && e.key !== ' ') return;
+                  e.preventDefault();
+                  navigate('/tournaments', {
+                    state: { tournamentName: m.tournament_name, gameName: m.game_name, marketId: m.id },
+                  });
+                }}
+              >
                 {m.state === 'closed' && (
                   <span className="lh-live-badge">
                     <span className="lh-live-dot" aria-hidden="true" />

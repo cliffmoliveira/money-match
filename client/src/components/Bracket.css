@@ -46,6 +46,18 @@
 }
 .bnode.settled { background: var(--card); }
 
+/* Transient highlight when arriving here via a deep link (e.g. tapping a
+   match on Home's Latest Matches) — distinct from .bnode.closed's permanent
+   gold "live" glow so a live match doesn't read as if the highlight itself
+   is what's live, and fades out rather than staying forever. */
+.bnode-focus-highlight {
+  animation: bnodeFocusFade 2.5s ease-out forwards;
+}
+@keyframes bnodeFocusFade {
+  0% { box-shadow: 0 0 0 2.5px var(--text), 0 0 18px 4px rgba(255,255,255,0.5); }
+  100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+}
+
 .bnode-head {
   display: flex; justify-content: space-between; align-items: center;
   padding: 6px 10px; font-family: 'Saira', sans-serif; font-size: 10px; font-weight: 700;

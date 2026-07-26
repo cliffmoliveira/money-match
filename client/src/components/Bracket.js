@@ -127,7 +127,7 @@ const PoolBar = ({ p1 = 0, p2 = 0 }) => {
   );
 };
 
-const Node = ({ market, slip, onPick, demoControls, registerRef, isChampionMatch, bets = {} }) => {
+const Node = ({ market, slip, onPick, demoControls, registerRef, isChampionMatch, bets = {}, focusMarketId = null }) => {
   const setRef = (el) => registerRef(el);
   if (!market) {
     // Pre-tournament: nothing to show yet — the real set replaces this the
@@ -223,8 +223,9 @@ const Node = ({ market, slip, onPick, demoControls, registerRef, isChampionMatch
     );
   };
 
+  const isFocused = focusMarketId != null && market.id === focusMarketId;
   return (
-    <div ref={setRef} className={`bnode ${market.state}`}>
+    <div ref={setRef} className={`bnode ${market.state}${isFocused ? ' bnode-focus-highlight' : ''}`} data-market-id={market.id}>
       {(closed || pending) && (
         <div className="bnode-head">
           {closed && <span className="bnode-live"><span className="live-dot" /> LIVE</span>}
@@ -243,7 +244,7 @@ const Node = ({ market, slip, onPick, demoControls, registerRef, isChampionMatch
   );
 };
 
-const Column = ({ col, markets, slip, onPick, demoControls, registerRef, bets }) => {
+const Column = ({ col, markets, slip, onPick, demoControls, registerRef, bets, focusMarketId }) => {
   // Dynamic (single-elim) columns carry their own matcher; template columns
   // classify by round name.
   const nodes = markets
@@ -271,6 +272,7 @@ const Column = ({ col, markets, slip, onPick, demoControls, registerRef, bets })
         registerRef={(el) => registerRef(`${col.key}-${i}`, el)}
         isChampionMatch={isChampionMatch}
         bets={bets}
+        focusMarketId={focusMarketId}
       />
     );
     cells.push(isResetNode
@@ -286,7 +288,7 @@ const Column = ({ col, markets, slip, onPick, demoControls, registerRef, bets })
   );
 };
 
-const Bracket = ({ markets = [], slip = {}, onPick, demoControls, waiting = false, bets = {} }) => {
+const Bracket = ({ markets = [], slip = {}, onPick, demoControls, waiting = false, bets = {}, focusMarketId = null }) => {
   const fitRef = useRef(null);    // available-width container (overflow hidden)
   const innerRef = useRef(null);  // natural-size, scaled to fit
   const nodeRefs = useRef({});
@@ -422,7 +424,7 @@ const Bracket = ({ markets = [], slip = {}, onPick, demoControls, waiting = fals
     : ['WSF', 'WF'].map(colFor);
   const loserCols = singleElim ? [] : ['LR1', 'LR2', 'LSF', 'LF'].map(colFor);
   const grandCol = singleElim ? singleElim.columns.find((c) => c.key === 'GF') : colFor('GF');
-  const common = { markets, slip, onPick, demoControls, registerRef, bets };
+  const common = { markets, slip, onPick, demoControls, registerRef, bets, focusMarketId };
 
   return (
     <div

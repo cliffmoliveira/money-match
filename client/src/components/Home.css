@@ -116,6 +116,8 @@ body { background: var(--bg); color: var(--text); }
   border: 1px solid var(--border);
   border-radius: 15px; padding: 15px;
 }
+.live-hero-set.clickable { cursor: pointer; transition: border-color 0.15s ease; }
+.live-hero-set.clickable:hover, .live-hero-set.clickable:focus-visible { border-color: var(--gold); }
 .live-hero-set.live {
   border-color: var(--gold);
   box-shadow: 0 0 0 1.5px var(--gold), 0 0 8px 2px rgba(231,180,88,0.45), 0 0 22px 4px rgba(231,180,88,0.18);

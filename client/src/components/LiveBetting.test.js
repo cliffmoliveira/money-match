@@ -1,6 +1,6 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
 import LiveBetting from './LiveBetting';
-import { mockFetchRoutes, setLoggedOut } from '../testUtils';
+import { mockFetchRoutes, setLoggedOut, renderWithRouter } from '../testUtils';
 
 // LiveBetting.js has no react-router hooks of its own, so it's rendered
 // directly (no renderWithRouter needed). It fetches ~6 endpoints on mount
@@ -44,7 +44,7 @@ afterEach(() => {
 
 test('renders the empty state when there are no live or upcoming markets', async () => {
   mockFetchRoutes(BASE_ROUTES);
-  render(<LiveBetting />);
+  renderWithRouter(<LiveBetting />);
 
   await waitFor(() => expect(screen.getByText('No live markets right now')).toBeInTheDocument());
 });
@@ -56,7 +56,7 @@ test('shows a live tournament under Happening Now, auto-expanded, with its brack
     ['/api/game/10/20/tracker', { rounds: [], results: [], stillAlive: [] }],
     ['/api/game/10/20/players', { locked: true, entrants: [] }],
   ]);
-  render(<LiveBetting />);
+  renderWithRouter(<LiveBetting />);
 
   await waitFor(() => expect(screen.getByText('VSFighting XIV')).toBeInTheDocument());
   expect(screen.getByText('Happening Now')).toBeInTheDocument();
@@ -75,7 +75,7 @@ test('switching game tabs within a live tournament swaps the displayed bracket',
     ['/api/game/10/21/tracker', { rounds: [], results: [], stillAlive: [] }],
     ['/api/game/10/21/players', { locked: false, entrants: [] }],
   ]);
-  render(<LiveBetting />);
+  renderWithRouter(<LiveBetting />);
 
   await waitFor(() => expect(screen.getByText('Player One')).toBeInTheDocument());
   expect(screen.queryByText('Player Three')).not.toBeInTheDocument();
@@ -94,7 +94,7 @@ test('tapping an open pick adds it to the slip and opens the drawer', async () =
     ['/api/game/10/21/tracker', { rounds: [], results: [], stillAlive: [] }],
     ['/api/game/10/21/players', { locked: false, entrants: [] }],
   ]);
-  render(<LiveBetting />);
+  renderWithRouter(<LiveBetting />);
 
   await waitFor(() => expect(screen.getByText('Player Three')).toBeInTheDocument());
 

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import './LiveBetting.css';
 import Bracket from './Bracket';
 import WaitingRoom from './WaitingRoom';
@@ -154,6 +155,15 @@ const LiveBetting = () => {
     return next;
   });
 
+  // Deep link from Home's Latest Matches: { tournamentName, gameName, marketId }.
+  // Held in state rather than read directly from location each render, so it
+  // survives until the matching market actually shows up in `markets` (the
+  // first poll after navigating here might not have loaded yet) and is
+  // consumed exactly once.
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [pendingFocus, setPendingFocus] = useState(location.state?.marketId != null ? location.state : null);
+
   const userId = localStorage.getItem('userId');
 
   useEffect(() => {
@@ -212,6 +222,40 @@ const LiveBetting = () => {
       setExpandedTourneys(new Set([upcoming[0].tournament.name]));
     }
   }, [markets, upcoming]);
+
+  // Deep link from Home's Latest Matches: expand the target tournament, land
+  // on the right game tab, then scroll to and briefly highlight the exact
+  // match once its bracket node exists in the DOM. Waits for `markets` to
+  // actually contain the target (the poll that loads it may still be in
+  // flight right after navigating here) rather than assuming the first
+  // render already has it. The highlight itself is driven by React state
+  // (focusMarketId, passed down to Bracket/Node), not direct classList
+  // manipulation — LiveBetting polls every few seconds, and a class added
+  // straight to the DOM gets silently wiped the next time that node
+  // re-renders, since React always sets className fresh from its own JSX.
+  const [focusMarketId, setFocusMarketId] = useState(null);
+  useEffect(() => {
+    if (!pendingFocus) return;
+    const { tournamentName, gameName, marketId } = pendingFocus;
+    const match = markets.find((m) => m.tournament_name === tournamentName && m.game_name === gameName);
+    if (!match) return; // not loaded yet (or genuinely gone) - re-checks next time `markets` updates
+    setExpandedTourneys((prev) => new Set(prev).add(tournamentName));
+    setActiveTabs((prev) => ({ ...prev, [tournamentName]: `${tournamentName}::${gameName}` }));
+    setPendingFocus(null); // consume once
+    // Clear the router state too, so refreshing this page or navigating back
+    // to it later doesn't replay the same scroll/highlight.
+    navigate(location.pathname, { replace: true, state: null });
+    setFocusMarketId(marketId);
+    setTimeout(() => setFocusMarketId(null), 2500);
+    // Wait a tick for the newly-expanded section to actually mount before
+    // scrolling to it.
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        const el = document.querySelector(`[data-market-id="${marketId}"]`);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 60);
+    });
+  }, [pendingFocus, markets, navigate, location.pathname]);
 
   useEffect(() => {
     refresh();
@@ -551,6 +595,7 @@ const LiveBetting = () => {
                         slip={slip}
                         onPick={togglePick}
                         demoControls={demo ? renderDemoControls : null}
+                        focusMarketId={focusMarketId}
                         // Grouped by market_id, not a single bet per market: a user can
                         // pick both sides of the same set (hedging), and collapsing to
                         // one bet-per-market silently dropped whichever bet lost the
