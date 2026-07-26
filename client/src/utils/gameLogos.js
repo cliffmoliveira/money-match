@@ -199,6 +199,9 @@ const logoFileBySlug = {
   'mortal-kombat-xl': 'mortal-kombat-xl.png',
   'windjammers-2': 'windjammers-2.png',
   'marvel-tokon-fighting-souls': 'marvel-tokon-fighting-souls.png',
+  // DB name is "Def Jam: Fight for NY", auto-slugifies to "def-jam-fight-for-ny";
+  // shipped filename spells out "new-york" - mapped as shipped.
+  'def-jam-fight-for-ny': 'def-jam-fight-for-new-york.png',
 };
 
 export function getGameLogoSources(name) {

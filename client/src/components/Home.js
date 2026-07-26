@@ -367,7 +367,7 @@ const Home = () => {
                     </div>
                   )}
                   <div className="lh-set-logos">
-                    <div className="game-logo-box"><GameLogo name={m.game_name} height={36} /></div>
+                    <div className="game-logo-box"><GameLogo name={m.game_name} height={28} /></div>
                     {m.round_text && <span className="live-hero-meta">{m.round_text}</span>}
                   </div>
                 </div>

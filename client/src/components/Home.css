@@ -154,7 +154,10 @@ body { background: var(--bg); color: var(--text); }
    eats into this card's spacing below the logo, crowding it against the
    player rows. Containing it keeps every game's logo the same visual size
    in this card regardless of what margin hacks it needs elsewhere. */
-.lh-set-logos .game-logo-box { height: 36px; display: flex; align-items: center; overflow: hidden; }
+.lh-set-logos .game-logo-box {
+  height: 36px; padding: 0 6px; box-sizing: border-box; flex-shrink: 0;
+  display: flex; align-items: center; overflow: hidden;
+}
 .live-hero-meta { font-family: 'Saira', sans-serif; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
 .live-hero-match { display: flex; flex-direction: column; gap: 8px; }
 .lh-player {
