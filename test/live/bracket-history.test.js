@@ -54,6 +54,13 @@ test('isSideEvent matches side/community events and rejects the real bracket, ca
   assert.equal(syncLive.isSideEvent('TEKKEN 8 - TWT Challenger - Saturday'), false);
   assert.equal(syncLive.isSideEvent('Street Fighter 6'), false);
   assert.equal(syncLive.isSideEvent(undefined), false);
+  // Real-world case: VSFighting XIV ran "TEKKEN BALL (hosted by DQRetro)" - a
+  // bonus minigame, same videogame as the real "TEKKEN 8 (TEKKEN WORLD TOUR
+  // 2026 MASTER EVENT)" bracket - and its own completed bracket merged into
+  // the real tournament's still-in-progress one, crowning the minigame's
+  // winner as if they'd won the actual Tekken 8 tournament.
+  assert.equal(syncLive.isSideEvent('TEKKEN BALL (hosted by DQRetro)'), true);
+  assert.equal(syncLive.isSideEvent('TEKKEN 8 (TEKKEN WORLD TOUR 2026 MASTER EVENT)'), false);
 });
 
 test('resolveFinalPhase prefers a phase literally named "Top 8" over the highest phaseOrder', () => {

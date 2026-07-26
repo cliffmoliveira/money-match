@@ -154,7 +154,15 @@ function isPoolsPhase(name) {
 // the real "TWT Challenger - Saturday" event. Skip these entirely rather
 // than trying to track two brackets under one game.
 function isSideEvent(name) {
-  return /side\s+event|community\s+event/i.test(name || '');
+  // "Tekken Ball" is a standard bonus minigame run alongside the real TEKKEN 8
+  // bracket at majors (dodgeball-style, not the competitive game) - confirmed
+  // at VSFighting XIV merging into the real "TEKKEN 8 (TWT Master Event)"
+  // bracket the exact same way "Side Event Sunday" used to (see this
+  // function's other test cases): both share the same underlying videogame,
+  // which is all set_markets keys on, so its own completed bracket (with its
+  // own "Grand Final" round) got tangled into the real tournament's still-live
+  // one - showing someone else's minigame champion instead of no champion yet.
+  return /side\s+event|community\s+event|tekken\s+ball/i.test(name || '');
 }
 
 // Resolves an event's TRUE final phase. Start.gg's own phaseOrder doesn't
