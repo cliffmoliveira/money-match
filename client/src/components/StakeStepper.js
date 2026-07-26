@@ -4,7 +4,7 @@ import './StakeStepper.css';
 // Reusable stake control: big, tappable −/+ buttons around a typeable input.
 // Replaces the cramped native number-input spinner in the bet slips.
 // `onChange` receives the new value as a STRING (parents clean/parse it).
-const StakeStepper = ({ value, onChange, min = 0, step = 1, ariaLabel = 'Stake' }) => {
+const StakeStepper = ({ value, onChange, min = 0, step = 10, ariaLabel = 'Stake' }) => {
   const num = Number(value) || 0;
   const setVal = (n) => onChange(String(Math.max(min, Math.round(n * 100) / 100)));
   return (

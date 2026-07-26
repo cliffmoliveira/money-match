@@ -8,6 +8,17 @@ test('renders the current value and both step buttons', () => {
   expect(screen.getByLabelText('Increase stake')).toBeInTheDocument();
 });
 
+test('defaults to a step of 10 when no step prop is given', () => {
+  const onChange = jest.fn();
+  render(<StakeStepper value="50" onChange={onChange} />);
+
+  fireEvent.click(screen.getByLabelText('Increase stake'));
+  expect(onChange).toHaveBeenLastCalledWith('60');
+
+  fireEvent.click(screen.getByLabelText('Decrease stake'));
+  expect(onChange).toHaveBeenLastCalledWith('40');
+});
+
 test('clicking + increases by step and clicking - decreases by step', () => {
   const onChange = jest.fn();
   render(<StakeStepper value="5" onChange={onChange} step={2} />);

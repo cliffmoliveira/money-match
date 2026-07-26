@@ -53,14 +53,14 @@ test('increasing the stake and saving posts the new amount and calls onSaved', a
   render(<AdjustBetSheet bet={bet} onClose={() => {}} onSaved={onSaved} />);
 
   fireEvent.click(screen.getByRole('button', { name: 'Increase stake' }));
-  expect(screen.getByLabelText('Pick stake')).toHaveValue(11);
+  expect(screen.getByLabelText('Pick stake')).toHaveValue(20);
 
   fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
 
   await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
   const [, options] = fetchMock.mock.calls[fetchMock.mock.calls.length - 1];
   expect(JSON.parse(options.body)).toEqual({
-    tournamentId: 1, gameId: 2, playerId: 3, amount: 11,
+    tournamentId: 1, gameId: 2, playerId: 3, amount: 20,
   });
 });
 
