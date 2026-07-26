@@ -93,6 +93,10 @@ try {
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
+  // getMarkets' unresolvedSetsSql correlates on (tournament_id, updated_at)
+  // once per tournament row - without this, each call is a full scan of a
+  // table that only grows (144k+ rows and counting).
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_bracket_history_tournament ON bracket_history(tournament_id, updated_at)`);
 } catch (e) { console.error('[boot] bracket_history table setup failed:', e.message); }
 
 // players.photo_url: start.gg entrant profile photo, backfilled during

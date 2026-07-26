@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import './LiveBetting.css';
+import '../styles/results-table.css';
 import Bracket from './Bracket';
 import WaitingRoom from './WaitingRoom';
 import GameTracker from './GameTracker';
