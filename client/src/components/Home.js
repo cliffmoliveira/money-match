@@ -221,8 +221,15 @@ const Home = () => {
         ]);
         if (active && mRes.ok) setLiveMarkets(await mRes.json());
         if (active && upRes.ok) {
-          const { tournament } = await upRes.json();
-          setLiveActiveTournament(tournament?.isLive ? tournament : null);
+          // getUpcoming() returns an array of { tournament, games } (one per
+          // tracked upcoming/live tournament), not a single pair - find the
+          // live one, if any. Was destructured as a single object here and
+          // silently always resolved to undefined since getUpcoming() moved
+          // to the array shape (see LiveBetting.js's own upcoming handling,
+          // which was updated at the same time this call site wasn't).
+          const upcomingList = await upRes.json();
+          const live = Array.isArray(upcomingList) ? upcomingList.find((u) => u.tournament?.isLive) : null;
+          setLiveActiveTournament(live ? live.tournament : null);
         }
       } catch {
         /* non-fatal — the hero just falls back to its idle state */

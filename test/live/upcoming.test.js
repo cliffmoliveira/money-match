@@ -15,13 +15,20 @@ before(async () => {
   delete require.cache[require.resolve('../../liveMarkets')];
   db = require('../../db/db');
   lm = require('../../liveMarkets');
-  await db.runAsync(`CREATE TABLE tournaments (id INTEGER PRIMARY KEY, name TEXT, date TEXT, startgg_id TEXT, is_live INTEGER DEFAULT 0, logo_url TEXT)`);
+  await db.runAsync(`CREATE TABLE tournaments (id INTEGER PRIMARY KEY, name TEXT, date TEXT, startgg_id TEXT, is_live INTEGER DEFAULT 0, logo_url TEXT, city TEXT, country TEXT)`);
   await db.runAsync(`CREATE TABLE games (id INTEGER PRIMARY KEY, name TEXT)`);
   await db.runAsync(`CREATE TABLE players_games_tournaments (tournament_id INTEGER, game_id INTEGER, player_id INTEGER, seed_num INTEGER)`);
+  await db.runAsync(`CREATE TABLE tournament_games (tournament_id INTEGER, game_id INTEGER, num_entrants INTEGER)`);
+  await db.runAsync(`CREATE TABLE set_markets (tournament_id INTEGER, state TEXT)`);
+  // bracket_history is already created by db.js itself at require-time (see
+  // its own CREATE TABLE IF NOT EXISTS) - don't recreate it here.
 });
 
 beforeEach(async () => {
   await db.runAsync('DELETE FROM players_games_tournaments');
+  await db.runAsync('DELETE FROM tournament_games');
+  await db.runAsync('DELETE FROM set_markets');
+  await db.runAsync('DELETE FROM bracket_history');
   await db.runAsync('DELETE FROM games');
   await db.runAsync('DELETE FROM tournaments');
 });
@@ -38,7 +45,19 @@ async function trackGame(tournamentId, gameId) {
     [tournamentId, gameId, 1]);
 }
 
-test('returns the soonest upcoming tournament that has tracked games', async () => {
+// getUpcoming() moved from "the single soonest tournament" to "every
+// currently-relevant tournament" (commit 1b4253f, "show all seeded upcoming
+// tournaments, not just next one") — it now returns an ARRAY of
+// { tournament, games } pairs, furthest-out first. These tests used to
+// destructure a single { tournament, games } object straight off the
+// promise, which the array shape can never satisfy (Array has no .tournament
+// property) — every assertion here silently failed on "no such table"
+// errors from missing test fixtures first, masking that the tests
+// themselves were also stale. Rewritten against the real, current contract;
+// see client/src/components/Home.js's matching fix — its own consumer of
+// this same endpoint had the identical stale single-object assumption.
+
+test('returns every currently-relevant tournament with its tracked games, furthest-out first', async () => {
   await addGame(10, 'Street Fighter 6');
   await addGame(11, 'TEKKEN 8');
   await addTournament(1, 'Later Major', '2099-12-31');
@@ -47,39 +66,48 @@ test('returns the soonest upcoming tournament that has tracked games', async () 
   await trackGame(2, 10);
   await trackGame(2, 11);
 
-  const { tournament, games } = await lm.getUpcoming();
-  assert.equal(tournament.id, 2);
-  assert.equal(tournament.name, 'Sooner Major');
-  assert.deepEqual(games.map((g) => g.name), ['Street Fighter 6', 'TEKKEN 8']);
+  const result = await lm.getUpcoming();
+  assert.equal(result.length, 2);
+  assert.equal(result[0].tournament.id, 1, 'furthest-out (Later Major) sorts first');
+  assert.equal(result[0].tournament.name, 'Later Major');
+  assert.deepEqual(result[0].games.map((g) => g.name), ['Street Fighter 6']);
+  assert.equal(result[1].tournament.id, 2);
+  assert.deepEqual(result[1].games.map((g) => g.name), ['Street Fighter 6', 'TEKKEN 8']);
 });
 
-test('skips a sooner tournament that has no tracked games', async () => {
+test('includes a tournament with no tracked games, with an empty games array rather than skipping it', async () => {
   await addGame(10, 'Street Fighter 6');
   await addTournament(1, 'No Games Major', '2099-01-01'); // no trackGame
   await addTournament(2, 'Has Games Major', '2099-06-01');
   await trackGame(2, 10);
 
-  const { tournament } = await lm.getUpcoming();
-  assert.equal(tournament.id, 2);
+  const result = await lm.getUpcoming();
+  assert.equal(result.length, 2);
+  const noGames = result.find((r) => r.tournament.id === 1);
+  assert.deepEqual(noGames.games, []);
 });
 
-test('prefers a live tournament over a future-dated one', async () => {
+test('includes a live tournament even with a past date, alongside a future-dated one', async () => {
   await addGame(10, 'Street Fighter 6');
   await addTournament(1, 'Future Major', '2099-01-01');
   await trackGame(1, 10);
   await addTournament(2, 'Live Now Major', '2000-01-01', { isLive: 1 }); // past date but flagged live
   await trackGame(2, 10);
+  await addTournament(3, 'Old Dead Major', '1999-01-01'); // past, not live, no markets - must not appear
+  await trackGame(3, 10);
 
-  const { tournament } = await lm.getUpcoming();
-  assert.equal(tournament.id, 2);
+  const result = await lm.getUpcoming();
+  const ids = result.map((r) => r.tournament.id).sort();
+  assert.deepEqual(ids, [1, 2]);
+  const live = result.find((r) => r.tournament.id === 2);
+  assert.equal(live.tournament.isLive, 1);
 });
 
-test('returns null tournament when nothing is upcoming or live', async () => {
+test('returns an empty array when nothing is upcoming or live', async () => {
   await addGame(10, 'Street Fighter 6');
   await addTournament(1, 'Old Major', '2000-01-01'); // finished, not live
   await trackGame(1, 10);
 
   const result = await lm.getUpcoming();
-  assert.equal(result.tournament, null);
-  assert.deepEqual(result.games, []);
+  assert.deepEqual(result, []);
 });
