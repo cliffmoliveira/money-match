@@ -787,7 +787,13 @@ async function getUpcoming() {
        (SELECT SUM(num_entrants) FROM tournament_games tg WHERE tg.tournament_id = t.id) AS numEntrants,
        EXISTS (SELECT 1 FROM bracket_history bh WHERE bh.tournament_id = t.id AND bh.state = 'in_progress') AS hasLiveRound
      FROM tournaments t
-     WHERE startgg_id IS NOT NULL
+     WHERE (startgg_id IS NOT NULL
+            -- A manually-ingested event (startgg_id NULL - see
+            -- ingest-manual-results.js) has no start.gg presence to gate
+            -- on, but real bracket_history rows are the same proof of
+            -- "actually tracked progress, not an empty stub" that a synced
+            -- tournament gets from having a startgg_id at all.
+            OR EXISTS (SELECT 1 FROM bracket_history bh2 WHERE bh2.tournament_id = t.id))
        AND (is_live = 1
             OR date(date) >= date('now')
             OR EXISTS (SELECT 1 FROM set_markets sm2 WHERE sm2.tournament_id = t.id AND sm2.state IN ('open','closed')))

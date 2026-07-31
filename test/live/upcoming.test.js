@@ -35,14 +35,20 @@ beforeEach(async () => {
 
 after(() => { try { fs.unlinkSync(file); } catch { /* ignore */ } });
 
-async function addTournament(id, name, date, { isLive = 0 } = {}) {
+async function addTournament(id, name, date, { isLive = 0, startggId = `sgg-${id}` } = {}) {
   await db.runAsync('INSERT INTO tournaments (id, name, date, startgg_id, is_live) VALUES (?,?,?,?,?)',
-    [id, name, date, `sgg-${id}`, isLive]);
+    [id, name, date, startggId, isLive]);
 }
 async function addGame(id, name) { await db.runAsync('INSERT INTO games (id, name) VALUES (?,?)', [id, name]); }
 async function trackGame(tournamentId, gameId) {
   await db.runAsync('INSERT INTO players_games_tournaments (tournament_id, game_id, player_id, seed_num) VALUES (?,?,?,1)',
     [tournamentId, gameId, 1]);
+}
+async function addBracketHistory(tournamentId, gameId, setId) {
+  await db.runAsync(
+    `INSERT INTO bracket_history (tournament_id, game_id, startgg_set_id, state) VALUES (?,?,?,'completed')`,
+    [tournamentId, gameId, setId]
+  );
 }
 
 // getUpcoming() moved from "the single soonest tournament" to "every
@@ -101,6 +107,31 @@ test('includes a live tournament even with a past date, alongside a future-dated
   assert.deepEqual(ids, [1, 2]);
   const live = result.find((r) => r.tournament.id === 2);
   assert.equal(live.tournament.isLive, 1);
+});
+
+test('includes a manually-ingested (startgg_id NULL) live tournament that has real bracket_history progress', async () => {
+  // Mirrors ingest-manual-results.js's groupStages-only path: an EWC main-
+  // stage event whose group stages are done but whose Finals Bracket hasn't
+  // been played yet gets startgg_id=NULL, is_live=1, no set_markets at all -
+  // it must still surface here (this is its only route into any listing;
+  // getMarkets() requires >=1 set_markets row via its own JOIN, which a
+  // groupStages-only event never has).
+  await addGame(10, 'Street Fighter 6');
+  await addTournament(1, 'EWC Manual In Progress', '2026-07-29', { isLive: 1, startggId: null });
+  await db.runAsync('INSERT INTO tournament_games (tournament_id, game_id, num_entrants) VALUES (1, 10, 32)');
+  await addBracketHistory(1, 10, 'manual-x-gs-1');
+
+  const result = await lm.getUpcoming();
+  const ids = result.map((r) => r.tournament.id);
+  assert.deepEqual(ids, [1]);
+  assert.deepEqual(result[0].games.map((g) => g.name), ['Street Fighter 6']);
+});
+
+test('excludes a manually-ingested tournament with no bracket_history rows (an empty stub, not a real tracked event)', async () => {
+  await addTournament(1, 'EWC Manual Empty Stub', '2026-07-29', { isLive: 1, startggId: null });
+
+  const result = await lm.getUpcoming();
+  assert.deepEqual(result, []);
 });
 
 test('returns an empty array when nothing is upcoming or live', async () => {
