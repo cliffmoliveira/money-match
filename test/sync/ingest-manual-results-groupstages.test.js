@@ -77,7 +77,7 @@ test('writes groupStages as bracket_history rows, nullable score allowed alongsi
   const rows = await db.allAsync('SELECT * FROM bracket_history ORDER BY startgg_set_id');
   assert.equal(rows.length, 2);
   assert.equal(rows[0].round_text, 'Group Stage 1');
-  assert.equal(rows[0].state, 'settled');
+  assert.equal(rows[0].state, 'completed');
   assert.equal(rows[1].player1_score, null);
   assert.equal(rows[1].player2_score, null);
   assert.ok(rows[1].winner_id != null); // winner still known despite missing scores

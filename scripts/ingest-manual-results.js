@@ -192,7 +192,7 @@ async function main() {
       const existing = await db.getAsync('SELECT id FROM bracket_history WHERE startgg_set_id = ?', [setKey]);
       if (existing) {
         await db.runAsync(
-          `UPDATE bracket_history SET round_text=?, round_int=NULL, phase_order=?, state='settled',
+          `UPDATE bracket_history SET round_text=?, round_int=NULL, phase_order=?, state='completed',
              player1_id=?, player2_id=?, winner_id=?, player1_score=?, player2_score=? WHERE id=?`,
           [gs.round, gs.phaseOrder ?? null, p1, p2, winner, gs.p1Score ?? null, gs.p2Score ?? null, existing.id]
         );
@@ -201,7 +201,7 @@ async function main() {
           `INSERT INTO bracket_history
              (tournament_id, game_id, startgg_set_id, round_text, round_int, phase_order, state,
               player1_id, player2_id, winner_id, player1_score, player2_score)
-           VALUES (?, ?, ?, ?, NULL, ?, 'settled', ?, ?, ?, ?, ?)`,
+           VALUES (?, ?, ?, ?, NULL, ?, 'completed', ?, ?, ?, ?, ?)`,
           [tRow.id, gameRow.id, setKey, gs.round, gs.phaseOrder ?? null, p1, p2, winner, gs.p1Score ?? null, gs.p2Score ?? null]
         );
       }
