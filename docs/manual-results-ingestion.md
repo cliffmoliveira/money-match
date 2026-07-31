@@ -93,13 +93,47 @@ Use the **node-20 binary path** shown above: the SSH shell's default `node` is
 v24 and cannot load the app's compiled better-sqlite3 (ABI mismatch).
 `DATABASE_PATH` is already `/var/data/database.db` in the service env.
 
+## Liquipedia: drafting the JSON automatically
+
+`scripts/fetch-liquipedia-bracket.js` fetches an EWC (or any Liquipedia-
+tracked) main-stage Finals Bracket and drafts most of a `data/manual-results/`
+file for you — no more hand-transcribing every set from a broadcast VOD.
+
+```
+node scripts/fetch-liquipedia-bracket.js <LiquipediaPagePath> <manualId> [--out <path>]
+
+# e.g. once the Grand Final has actually concluded:
+node scripts/fetch-liquipedia-bracket.js Esports_World_Cup/2026/SF6 ewc-2026-sf6
+```
+
+`<LiquipediaPagePath>` is the page path under `liquipedia.net/fighters/`
+(no leading slash) — e.g. `Esports_World_Cup/2026/SF6`, `Esports_World_Cup/2026/T8`.
+Find it by searching liquipedia.net/fighters for the event.
+
+It only extracts bracket **structure** — round labels, pairings, scores,
+winners — never tournament metadata or this app's exact player-name
+convention. Both still need filling in by hand afterward (the script marks
+every such field `FILL ME IN`): tournament name/date/city/country, game
+name, and each player's real `players.name` (Liquipedia only gives bare
+gamertags — cross-reference the DB; `ingest-manual-results.js` will fail
+loudly with near-match suggestions on a typo, same as ever).
+
+Only ever pulls the single-elimination Finals Bracket (the section
+containing a "Grand Final" round) — pool/group stages are ignored, matching
+this app's existing Top-8-only tracking scope. Refuses to write anything
+until every match except a 3rd-place decider has a decisive score, so
+running it mid-event just prints progress ("4/7 sets decided") instead of
+producing a partial file someone could accidentally ingest — safe to re-run
+periodically as an event progresses.
+
+Currently only handles the standard 8-player EWC Finals Bracket shape (4
+quarterfinals → 2 semifinals → 1 Grand Final); it fails loudly rather than
+guess at a differently-shaped bracket.
+
 ## Future: automated second source
 
-If manual entry becomes a chore, the candidates are, in order of practicality:
-
-1. **Liquipedia** (MediaWiki API, has EWC brackets) — parse the bracket page
-   into this same JSON format, keep the ingest script as the single write path.
-2. An **admin endpoint/UI** wrapping this script's logic (gate behind
-   `ADMIN_SECRET` like the existing `/api/admin/exhibition*` routes).
-
-Either way the JSON format above stays the contract; only the producer changes.
+If the remaining hand-fill step (metadata + player names) becomes a chore
+too, an **admin endpoint/UI** wrapping the full pipeline (gated behind
+`ADMIN_SECRET` like the existing `/api/admin/exhibition*` routes) is the
+next practical step — the JSON format above stays the contract either way;
+only the producer changes.
