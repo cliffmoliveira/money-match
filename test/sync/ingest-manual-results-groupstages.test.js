@@ -112,3 +112,101 @@ test('rejects a groupStages entry with an invalid winner value', async () => {
   process.argv = ['node', 'ingest-manual-results.js', writeSpec(spec)];
   await assert.rejects(() => ingest.main(), /winner must be 1 or 2/);
 });
+
+test('rejects a spec with neither sets[] nor groupStages[]', async () => {
+  const spec = {
+    manualId: 'test-gs-empty',
+    tournament: { name: 'Test Event Empty', date: '2026-01-01', city: 'X', country: 'Y' },
+    game: 'Test Game', numEntrants: 4, sets: [], groupStages: [],
+  };
+  process.argv = ['node', 'ingest-manual-results.js', writeSpec(spec)];
+  await assert.rejects(() => ingest.main(), /at least one of sets\[\] or groupStages\[\]/);
+});
+
+test('groupStages-only spec (still-in-progress event) creates a live tournament with no winner and no matches row', async () => {
+  const spec = {
+    manualId: 'test-gs-inprogress',
+    tournament: { name: 'Test Event In Progress', date: '2026-01-01', city: 'X', country: 'Y' },
+    game: 'Test Game', numEntrants: 4,
+    groupStages: [{ n: 1, round: 'Group Stage 1', phaseOrder: 0, p1: 'C', p2: 'D', p1Score: 2, p2Score: 1, winner: 1 }],
+  };
+  process.argv = ['node', 'ingest-manual-results.js', writeSpec(spec)];
+  await ingest.main();
+  reconnect();
+
+  const t = await db.getAsync('SELECT * FROM tournaments WHERE name = ?', ['Test Event In Progress']);
+  assert.equal(t.is_live, 1);
+  assert.equal(t.winner_id, null);
+  const matches = await db.allAsync('SELECT * FROM matches WHERE tournament_id = ?', [t.id]);
+  assert.equal(matches.length, 0);
+  const sm = await db.allAsync('SELECT * FROM set_markets WHERE tournament_id = ?', [t.id]);
+  assert.equal(sm.length, 0);
+  const bh = await db.allAsync('SELECT * FROM bracket_history WHERE tournament_id = ?', [t.id]);
+  assert.equal(bh.length, 1);
+});
+
+test('re-running later with sets[] finalizes a previously groupStages-only tournament', async () => {
+  const manualId = 'test-gs-finalize';
+  const name = 'Test Event Finalize';
+  const gsSpec = {
+    manualId, tournament: { name, date: '2026-01-01', city: 'X', country: 'Y' },
+    game: 'Test Game', numEntrants: 4,
+    groupStages: [{ n: 1, round: 'Group Stage 1', phaseOrder: 0, p1: 'C', p2: 'D', p1Score: 2, p2Score: 1, winner: 1 }],
+  };
+  process.argv = ['node', 'ingest-manual-results.js', writeSpec(gsSpec)];
+  await ingest.main();
+  reconnect();
+
+  let t = await db.getAsync('SELECT * FROM tournaments WHERE name = ?', [name]);
+  assert.equal(t.is_live, 1);
+
+  const finalSpec = { ...gsSpec, sets: BASE_SETS.map((s) => ({ ...s, p1: 'C', p2: 'D' })) };
+  process.argv = ['node', 'ingest-manual-results.js', writeSpec(finalSpec)];
+  await ingest.main();
+  reconnect();
+
+  t = await db.getAsync('SELECT * FROM tournaments WHERE name = ?', [name]);
+  assert.equal(t.is_live, 0);
+  assert.ok(t.winner_id != null);
+  const matches = await db.allAsync('SELECT * FROM matches WHERE tournament_id = ?', [t.id]);
+  assert.equal(matches.length, 1);
+  // The earlier groupStages row must survive the finalize run untouched.
+  const bh = await db.allAsync('SELECT * FROM bracket_history WHERE tournament_id = ?', [t.id]);
+  assert.equal(bh.length, 1);
+});
+
+test('a groupStages-only re-run after finalization does not reset is_live/winner_id', async () => {
+  const manualId = 'test-gs-no-regress';
+  const name = 'Test Event No Regress';
+  const finalSpec = {
+    manualId, tournament: { name, date: '2026-01-01', city: 'X', country: 'Y' },
+    game: 'Test Game', numEntrants: 4,
+    sets: BASE_SETS,
+    groupStages: [{ n: 1, round: 'Group Stage 1', phaseOrder: 0, p1: 'C', p2: 'D', p1Score: 2, p2Score: 1, winner: 1 }],
+  };
+  process.argv = ['node', 'ingest-manual-results.js', writeSpec(finalSpec)];
+  await ingest.main();
+  reconnect();
+
+  let t = await db.getAsync('SELECT * FROM tournaments WHERE name = ?', [name]);
+  assert.equal(t.is_live, 0);
+  const winnerIdBefore = t.winner_id;
+  assert.ok(winnerIdBefore != null);
+
+  // A later groupStages-only correction (e.g. fixing one score) must not
+  // downgrade the already-finalized tournament back to "live, no winner".
+  const correctionSpec = {
+    manualId, tournament: { name, date: '2026-01-01', city: 'X', country: 'Y' },
+    game: 'Test Game', numEntrants: 4,
+    groupStages: [{ n: 1, round: 'Group Stage 1', phaseOrder: 0, p1: 'C', p2: 'D', p1Score: 2, p2Score: 0, winner: 1 }],
+  };
+  process.argv = ['node', 'ingest-manual-results.js', writeSpec(correctionSpec)];
+  await ingest.main();
+  reconnect();
+
+  t = await db.getAsync('SELECT * FROM tournaments WHERE name = ?', [name]);
+  assert.equal(t.is_live, 0);
+  assert.equal(t.winner_id, winnerIdBefore);
+  const bh = await db.getAsync('SELECT player2_score FROM bracket_history WHERE tournament_id = ?', [t.id]);
+  assert.equal(bh.player2_score, 0); // the correction still applied
+});

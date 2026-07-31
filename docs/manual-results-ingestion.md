@@ -15,7 +15,7 @@ exactly like a synced one:
 
 | Row | Purpose |
 | --- | --- |
-| `tournaments` (startgg_id NULL, is_live 0, winner_id set) | the event itself |
+| `tournaments` (startgg_id NULL, winner_id set once concluded) | the event itself |
 | `tournament_games` | game pill + entrant count on cards |
 | `set_markets` (state `settled`, `manual-*` set ids, zeroed pools) | bracket sets → "Past Tournaments" on /tournaments |
 | `matches` (Grand Final, negative synthetic startgg_id) | Home "Recent Champions" card |
@@ -25,6 +25,16 @@ It deliberately does **not** write `players_games_tournaments` — that table
 drives futures odds, and a finished manual event must never look bettable.
 `bracket_history` never carries money either (no odds/pools columns at all) —
 same as the live poller's own pre-Top-8 tracking for every synced tournament.
+
+**`sets[]` is optional as long as `groupStages[]` is present** — an event
+still in progress (its group stages finished, playoffs not yet played) can
+be ingested with `groupStages[]` alone, so its bracket_history shows up
+right away instead of waiting on the whole event to conclude. `tournaments`
+gets `is_live=1` and no `winner_id` in that case, same as a live-synced
+tournament mid-pools. Re-running later with `sets[]` added, once the Grand
+Final actually happens, finalizes it (`winner_id` set, `is_live=0`, the
+`matches` row written) — a `groupStages[]`-only re-run after that point
+never resets `is_live`/`winner_id`, it only ever adds information.
 
 ## Usage
 
@@ -52,7 +62,7 @@ for a complete example (EWC 2026 Fatal Fury main stage, ingested 2026-07-11).
   },
   "game": "Fatal Fury: City of the Wolves", // EXACT games.name
   "numEntrants": 8,                      // or null
-  "sets": [                              // one entry per set, any bracket shape
+  "sets": [                              // optional if groupStages[] is present - any bracket shape
     { "n": 1, "round": "Quarter-Final", "roundInt": 1,
       "p1": "REJECT | Laggia", "p2": "T1 | ZJZ",
       "p1Score": 5, "p2Score": 2, "at": "2026-07-11 09:00:00" }

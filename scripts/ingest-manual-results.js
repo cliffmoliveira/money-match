@@ -31,6 +31,16 @@
 // every other tournament's own pool/qualifying stage. A missing score is
 // allowed (bracket_history's score columns are nullable) as long as the
 // winner is known; `sets[]` above has no such exception.
+//
+// `sets[]` is ALSO optional as long as `groupStages[]` is present: an event
+// still in progress (its group stages finished, playoffs not yet played)
+// can be ingested with groupStages[] only, so its bracket_history shows up
+// right away instead of waiting on the whole event to conclude. Inserts the
+// tournaments row with is_live=1 and no winner_id in that case (like a live
+// synced tournament mid-pools). Re-running with sets[] once the Grand Final
+// actually happens finalizes it (winner_id set, is_live=0, matches row
+// written) - a groupStages-only re-run after that point leaves the existing
+// is_live/winner_id alone, it only ever adds information, never retracts it.
 
 const fs = require('fs');
 const path = require('path');
@@ -68,12 +78,18 @@ async function main() {
   if (!file) fail('usage: node scripts/ingest-manual-results.js <data.json> [--dry-run]');
 
   const spec = JSON.parse(fs.readFileSync(path.resolve(file), 'utf8'));
-  const { manualId, tournament, game, numEntrants, sets, groupStages = [] } = spec;
+  const { manualId, tournament, game, numEntrants, sets = [], groupStages = [] } = spec;
 
   // ---- Validate the spec before touching anything ----
   if (!manualId || !/^[a-z0-9-]+$/.test(manualId)) fail('manualId is required (lowercase kebab-case)');
   if (!tournament?.name || !tournament?.date) fail('tournament.name and tournament.date are required');
-  if (!Array.isArray(sets) || sets.length === 0) fail('sets[] is required');
+  // sets[] (the Finals Bracket - committed, bettable-shape results) is OPTIONAL:
+  // an event still in progress (its group stages done, playoffs not yet
+  // played) can be ingested with only groupStages[] so its bracket_history
+  // progress shows up immediately, same as a live-synced tournament's pool
+  // stage - re-running later with sets[] once the Grand Final concludes
+  // completes it (see the tournaments-row upsert below).
+  if (sets.length === 0 && groupStages.length === 0) fail('at least one of sets[] or groupStages[] is required');
   if (Number.isNaN(Date.parse(tournament.date))) fail(`tournament.date does not parse: ${tournament.date}`);
 
   const gameRow = await db.getAsync('SELECT id, name FROM games WHERE name = ?', [game]);
@@ -91,7 +107,7 @@ async function main() {
     }
   }
   const grandFinals = sets.filter((s) => s.round === 'Grand Final');
-  if (grandFinals.length !== 1) fail(`expected exactly 1 "Grand Final" set, found ${grandFinals.length}`);
+  if (sets.length > 0 && grandFinals.length !== 1) fail(`expected exactly 1 "Grand Final" set, found ${grandFinals.length}`);
 
   const gsSeen = new Set();
   for (const gs of groupStages) {
@@ -116,14 +132,18 @@ async function main() {
     }
   }
 
-  const gf = grandFinals[0];
-  const gfWinnerName = gf.p1Score > gf.p2Score ? gf.p1 : gf.p2;
-  const gfLoserName = gf.p1Score > gf.p2Score ? gf.p2 : gf.p1;
-  const gfWinnerScore = Math.max(gf.p1Score, gf.p2Score);
-  const gfLoserScore = Math.min(gf.p1Score, gf.p2Score);
+  const gf = grandFinals[0] || null;
+  const gfWinnerName = gf ? (gf.p1Score > gf.p2Score ? gf.p1 : gf.p2) : null;
+  const gfLoserName = gf ? (gf.p1Score > gf.p2Score ? gf.p2 : gf.p1) : null;
+  const gfWinnerScore = gf ? Math.max(gf.p1Score, gf.p2Score) : null;
+  const gfLoserScore = gf ? Math.min(gf.p1Score, gf.p2Score) : null;
 
   console.log(`Event: ${tournament.name} (${tournament.date}) — ${gameRow.name}`);
-  console.log(`Champion: ${gfWinnerName} def. ${gfLoserName} ${gfWinnerScore}-${gfLoserScore}`);
+  if (gf) {
+    console.log(`Champion: ${gfWinnerName} def. ${gfLoserName} ${gfWinnerScore}-${gfLoserScore}`);
+  } else {
+    console.log(`Still in progress (no Grand Final in this spec) - ${groupStages.length} group-stage rows only.`);
+  }
   console.log(`${sets.length} sets, players: ${[...playerIds.keys()].join(', ')}`);
   if (dryRun) {
     console.log('--dry-run: no writes performed.');
@@ -135,17 +155,30 @@ async function main() {
   try {
     // ---- tournaments row (find by exact name, else insert) ----
     let tRow = await db.getAsync('SELECT id FROM tournaments WHERE name = ?', [tournament.name]);
-    const winnerId = playerIds.get(gfWinnerName);
+    const winnerId = gf ? playerIds.get(gfWinnerName) : null;
     if (tRow) {
-      await db.runAsync(
-        'UPDATE tournaments SET date=?, city=?, country=?, logo_url=COALESCE(?, logo_url), winner_id=?, is_live=0 WHERE id=?',
-        [tournament.date, tournament.city || null, tournament.country || null, tournament.logoUrl || null, winnerId, tRow.id]
-      );
+      if (gf) {
+        // A complete Grand Final in this run is authoritative - finalize
+        // the event even if it was previously ingested groupStages-only.
+        await db.runAsync(
+          'UPDATE tournaments SET date=?, city=?, country=?, logo_url=COALESCE(?, logo_url), winner_id=?, is_live=0 WHERE id=?',
+          [tournament.date, tournament.city || null, tournament.country || null, tournament.logoUrl || null, winnerId, tRow.id]
+        );
+      } else {
+        // groupStages-only progress update - don't touch is_live/winner_id,
+        // there's no new information here about whether the event finished.
+        await db.runAsync(
+          'UPDATE tournaments SET date=?, city=?, country=?, logo_url=COALESCE(?, logo_url) WHERE id=?',
+          [tournament.date, tournament.city || null, tournament.country || null, tournament.logoUrl || null, tRow.id]
+        );
+      }
       console.log(`tournaments: updated existing id ${tRow.id}`);
     } else {
+      // First time this event is ingested: is_live=1 (still ongoing) unless
+      // a complete Grand Final is already in this spec.
       const r = await db.runAsync(
-        'INSERT INTO tournaments (name, date, city, country, winner_id, startgg_id, logo_url, is_live) VALUES (?, ?, ?, ?, ?, NULL, ?, 0)',
-        [tournament.name, tournament.date, tournament.city || null, tournament.country || null, winnerId, tournament.logoUrl || null]
+        'INSERT INTO tournaments (name, date, city, country, winner_id, startgg_id, logo_url, is_live) VALUES (?, ?, ?, ?, ?, NULL, ?, ?)',
+        [tournament.name, tournament.date, tournament.city || null, tournament.country || null, winnerId, tournament.logoUrl || null, gf ? 0 : 1]
       );
       tRow = { id: r.lastID };
       console.log(`tournaments: inserted id ${tRow.id}`);
@@ -209,25 +242,28 @@ async function main() {
     }
     if (groupStages.length) console.log(`bracket_history: ${gsWritten} group-stage rows written`);
 
-    // ---- Grand Final matches row (Home "Recent Champions" feed) ----
-    const matchKey = syntheticMatchId(`manual-${manualId}`);
-    const existingMatch = await db.getAsync('SELECT id FROM matches WHERE startgg_id = ?', [matchKey]);
-    const w = playerIds.get(gfWinnerName);
-    const l = playerIds.get(gfLoserName);
-    if (existingMatch) {
-      await db.runAsync(
-        `UPDATE matches SET tournament_id=?, game_id=?, player1_id=?, player2_id=?, winner_id=?, loser_id=?,
-         player1RoundsWon=?, player2RoundsWon=? WHERE id=?`,
-        [tRow.id, gameRow.id, w, l, w, l, gfWinnerScore, gfLoserScore, existingMatch.id]
-      );
-      console.log(`matches: updated existing id ${existingMatch.id}`);
-    } else {
-      await db.runAsync(
-        `INSERT INTO matches (tournament_id, game_id, player1_id, player2_id, winner_id, loser_id,
-         player1RoundsWon, player2RoundsWon, startgg_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [tRow.id, gameRow.id, w, l, w, l, gfWinnerScore, gfLoserScore, matchKey]
-      );
-      console.log(`matches: inserted Grand Final (synthetic startgg_id ${matchKey})`);
+    // ---- Grand Final matches row (Home "Recent Champions" feed) - only
+    // once the event has actually concluded ----
+    if (gf) {
+      const matchKey = syntheticMatchId(`manual-${manualId}`);
+      const existingMatch = await db.getAsync('SELECT id FROM matches WHERE startgg_id = ?', [matchKey]);
+      const w = playerIds.get(gfWinnerName);
+      const l = playerIds.get(gfLoserName);
+      if (existingMatch) {
+        await db.runAsync(
+          `UPDATE matches SET tournament_id=?, game_id=?, player1_id=?, player2_id=?, winner_id=?, loser_id=?,
+           player1RoundsWon=?, player2RoundsWon=? WHERE id=?`,
+          [tRow.id, gameRow.id, w, l, w, l, gfWinnerScore, gfLoserScore, existingMatch.id]
+        );
+        console.log(`matches: updated existing id ${existingMatch.id}`);
+      } else {
+        await db.runAsync(
+          `INSERT INTO matches (tournament_id, game_id, player1_id, player2_id, winner_id, loser_id,
+           player1RoundsWon, player2RoundsWon, startgg_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [tRow.id, gameRow.id, w, l, w, l, gfWinnerScore, gfLoserScore, matchKey]
+        );
+        console.log(`matches: inserted Grand Final (synthetic startgg_id ${matchKey})`);
+      }
     }
 
     await db.runAsync('COMMIT');

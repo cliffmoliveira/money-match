@@ -218,23 +218,47 @@ async function main() {
   console.log(`Fetching https://liquipedia.net/fighters/${pagePath} ...`);
   const html = await fetchPageHtml(pagePath);
   const $ = cheerio.load(html);
-  const sets = extractFinalsBracket($);
+
+  // The Finals Bracket section may not exist on the page at all yet (the
+  // event hasn't reached playoffs) - that's a normal "not started" state,
+  // not a shape problem, so it doesn't abort the whole run the way an
+  // actually-malformed bracket still should.
+  let sets = [];
+  try {
+    sets = extractFinalsBracket($);
+  } catch (err) {
+    if (/No bracket on this page contains a "Grand Final" round/.test(err.message)) {
+      console.log('Finals Bracket: not on the page yet (playoffs haven\'t started).');
+    } else {
+      throw err;
+    }
+  }
   const groupMatches = extractGroupStages($);
 
   const decided = sets.filter((s) => s.decided).length;
-  console.log(`${decided}/${sets.length} Finals Bracket sets decided:`);
-  for (const s of sets) {
-    const status = s.decided ? `${s.p1Score}-${s.p2Score}` : 'not yet played';
-    console.log(`  [${s.round}] ${s.p1} vs ${s.p2}: ${status}`);
+  if (sets.length) {
+    console.log(`${decided}/${sets.length} Finals Bracket sets decided:`);
+    for (const s of sets) {
+      const status = s.decided ? `${s.p1Score}-${s.p2Score}` : 'not yet played';
+      console.log(`  [${s.round}] ${s.p1} vs ${s.p2}: ${status}`);
+    }
   }
 
   const groupDecided = groupMatches.filter((m) => m.decided).length;
   console.log(`\n${groupDecided}/${groupMatches.length} group-stage matches decided.`);
 
-  if (decided < sets.length || groupDecided < groupMatches.length) {
-    console.log(`\nNot finished yet - re-run once the Grand Final concludes. No file written.`);
+  // sets[] and groupStages[] can each go out independently once THEIR OWN
+  // data is complete - ingest-manual-results.js accepts either alone (see
+  // its own comments). Never include a partially-decided sets[]/groupStages[]
+  // in the draft - that array has to be all-or-nothing, so we simply omit
+  // whichever one isn't ready rather than writing undecided placeholders.
+  const finalsReady = sets.length > 0 && decided === sets.length;
+  const groupsReady = groupMatches.length > 0 && groupDecided === groupMatches.length;
+  if (!finalsReady && !groupsReady) {
+    console.log(`\nNothing ready to write yet. No file written.`);
     return;
   }
+  if (!finalsReady) console.log('\nFinals Bracket not finished yet - writing group-stage progress only.');
 
   const draft = {
     manualId,
@@ -246,25 +270,29 @@ async function main() {
     },
     game: 'FILL ME IN - EXACT games.name',
     numEntrants: 8,
-    sets: sets.map((s, i) => ({
-      n: i + 1, round: s.round, roundInt: s.roundInt,
-      p1: `FILL ME IN (Liquipedia: "${s.p1}")`,
-      p2: `FILL ME IN (Liquipedia: "${s.p2}")`,
-      p1Score: s.p1Score, p2Score: s.p2Score,
-      at: 'FILL ME IN - YYYY-MM-DD HH:MM:SS',
-    })),
+    ...(finalsReady ? {
+      sets: sets.map((s, i) => ({
+        n: i + 1, round: s.round, roundInt: s.roundInt,
+        p1: `FILL ME IN (Liquipedia: "${s.p1}")`,
+        p2: `FILL ME IN (Liquipedia: "${s.p2}")`,
+        p1Score: s.p1Score, p2Score: s.p2Score,
+        at: 'FILL ME IN - YYYY-MM-DD HH:MM:SS',
+      })),
+    } : {}),
     // Display-only bracket progress (see docs/manual-results-ingestion.md) -
     // never opens a market, never carries money. One flat round per phase,
     // matching how this app already collapses every synced tournament's
     // own pool/qualifying stage into a single "Pools" round rather than
     // reproducing individual GSL sub-rounds.
-    groupStages: groupMatches.map((m, i) => ({
-      n: i + 1, round: m.round, phaseOrder: m.phaseOrder,
-      p1: `FILL ME IN (Liquipedia: "${m.p1}")`,
-      p2: `FILL ME IN (Liquipedia: "${m.p2}")`,
-      p1Score: m.p1Score, p2Score: m.p2Score,
-      winner: m.winner,
-    })),
+    ...(groupsReady ? {
+      groupStages: groupMatches.map((m, i) => ({
+        n: i + 1, round: m.round, phaseOrder: m.phaseOrder,
+        p1: `FILL ME IN (Liquipedia: "${m.p1}")`,
+        p2: `FILL ME IN (Liquipedia: "${m.p2}")`,
+        p1Score: m.p1Score, p2Score: m.p2Score,
+        winner: m.winner,
+      })),
+    } : {}),
   };
 
   const dest = outPath || path.join(__dirname, '..', 'data', 'manual-results', `${manualId}.json`);
