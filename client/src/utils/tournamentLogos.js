@@ -32,6 +32,7 @@ const brandPatterns = [
   { keywords: ['texas', 'showdown'], slug: 'texas-showdown' },
   { keywords: ['east', 'coast', 'throwdown'], slug: 'east-coast-throwdown' },
   { keywords: ['eglx'], slug: 'eglx' },
+  { keywords: ['esports', 'world', 'cup'], slug: 'esports-world-cup' },
 ];
 
 export function getTournamentSlug(name) {
@@ -96,7 +97,12 @@ export function getTournamentAlt(name) {
 
 export function getTournamentLogoStyle(name, baseHeight) {
   const height = Math.max(1, Math.round((baseHeight || 32)));
-  return { maxHeight: `${height}px`, objectFit: 'contain' };
+  // Most bundled logos are roughly square, but a wide logotype (e.g.
+  // Esports World Cup's wordmark, ~5:1) would render at full height-derived
+  // width and overflow a narrow flex slot since height alone doesn't bound
+  // it - cap width too, generous enough that square/near-square logos never
+  // hit it.
+  return { maxHeight: `${height}px`, maxWidth: `${height * 3}px`, objectFit: 'contain' };
 }
 
 function slugifyTournamentNameRaw(name) {
