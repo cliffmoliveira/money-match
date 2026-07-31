@@ -24,14 +24,20 @@
 //     a hand-entered finished event must never surface as a bettable future.
 //   - All markets are inserted pre-settled with zeroed pools/odds, matching
 //     how backfill-top8-2026.js records historical sets nobody bet on.
+//
+// Optional `groupStages[]`: pre-Top-8 bracket progress (display only, see
+// scripts/fetch-liquipedia-bracket.js). Writes bracket_history rows, never
+// set_markets — no odds/pools/money, matches how the live poller treats
+// every other tournament's own pool/qualifying stage. A missing score is
+// allowed (bracket_history's score columns are nullable) as long as the
+// winner is known; `sets[]` above has no such exception.
 
 const fs = require('fs');
 const path = require('path');
 const db = require('../db/db');
 
 function fail(msg) {
-  console.error(`ERROR: ${msg}`);
-  process.exit(1);
+  throw new Error(msg);
 }
 
 // Deterministic 31-bit hash (djb2), negated for synthetic matches.startgg_id.
@@ -62,7 +68,7 @@ async function main() {
   if (!file) fail('usage: node scripts/ingest-manual-results.js <data.json> [--dry-run]');
 
   const spec = JSON.parse(fs.readFileSync(path.resolve(file), 'utf8'));
-  const { manualId, tournament, game, numEntrants, sets } = spec;
+  const { manualId, tournament, game, numEntrants, sets, groupStages = [] } = spec;
 
   // ---- Validate the spec before touching anything ----
   if (!manualId || !/^[a-z0-9-]+$/.test(manualId)) fail('manualId is required (lowercase kebab-case)');
@@ -87,10 +93,25 @@ async function main() {
   const grandFinals = sets.filter((s) => s.round === 'Grand Final');
   if (grandFinals.length !== 1) fail(`expected exactly 1 "Grand Final" set, found ${grandFinals.length}`);
 
+  const gsSeen = new Set();
+  for (const gs of groupStages) {
+    for (const k of ['n', 'round', 'p1', 'p2']) {
+      if (gs[k] === undefined || gs[k] === null) fail(`groupStages #${gs.n ?? '?'}: missing field "${k}"`);
+    }
+    if (gsSeen.has(gs.n)) fail(`duplicate groupStages n=${gs.n}`);
+    gsSeen.add(gs.n);
+    if (gs.winner !== 1 && gs.winner !== 2) fail(`groupStages #${gs.n}: winner must be 1 or 2 (got ${JSON.stringify(gs.winner)})`);
+  }
+
   // Resolve every player up front so a bad name aborts before any write.
   const playerIds = new Map();
   for (const s of sets) {
     for (const name of [s.p1, s.p2]) {
+      if (!playerIds.has(name)) playerIds.set(name, await resolvePlayer(name));
+    }
+  }
+  for (const gs of groupStages) {
+    for (const name of [gs.p1, gs.p2]) {
       if (!playerIds.has(name)) playerIds.set(name, await resolvePlayer(name));
     }
   }
@@ -159,6 +180,35 @@ async function main() {
     }
     console.log(`set_markets: ${inserted} inserted, ${skipped} already present`);
 
+    // ---- bracket_history rows for pre-Top-8 group-stage progress (display
+    // only - never opens a market, never carries money, same as every
+    // synced tournament's own pool/qualifying stage) ----
+    let gsWritten = 0;
+    for (const gs of groupStages) {
+      const setKey = `manual-${manualId}-gs-${gs.n}`;
+      const p1 = playerIds.get(gs.p1);
+      const p2 = playerIds.get(gs.p2);
+      const winner = gs.winner === 1 ? p1 : p2;
+      const existing = await db.getAsync('SELECT id FROM bracket_history WHERE startgg_set_id = ?', [setKey]);
+      if (existing) {
+        await db.runAsync(
+          `UPDATE bracket_history SET round_text=?, round_int=NULL, phase_order=?, state='settled',
+             player1_id=?, player2_id=?, winner_id=?, player1_score=?, player2_score=? WHERE id=?`,
+          [gs.round, gs.phaseOrder ?? null, p1, p2, winner, gs.p1Score ?? null, gs.p2Score ?? null, existing.id]
+        );
+      } else {
+        await db.runAsync(
+          `INSERT INTO bracket_history
+             (tournament_id, game_id, startgg_set_id, round_text, round_int, phase_order, state,
+              player1_id, player2_id, winner_id, player1_score, player2_score)
+           VALUES (?, ?, ?, ?, NULL, ?, 'settled', ?, ?, ?, ?, ?)`,
+          [tRow.id, gameRow.id, setKey, gs.round, gs.phaseOrder ?? null, p1, p2, winner, gs.p1Score ?? null, gs.p2Score ?? null]
+        );
+      }
+      gsWritten++;
+    }
+    if (groupStages.length) console.log(`bracket_history: ${gsWritten} group-stage rows written`);
+
     // ---- Grand Final matches row (Home "Recent Champions" feed) ----
     const matchKey = syntheticMatchId(`manual-${manualId}`);
     const existingMatch = await db.getAsync('SELECT id FROM matches WHERE startgg_id = ?', [matchKey]);
@@ -189,7 +239,11 @@ async function main() {
   await db.closeAsync();
 }
 
-main().catch((err) => {
-  console.error('Ingestion failed:', err);
-  process.exit(1);
-});
+module.exports = { main };
+
+if (require.main === module) {
+  main().catch((err) => {
+    console.error(`ERROR: ${err.message}`);
+    process.exit(1);
+  });
+}

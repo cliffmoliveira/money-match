@@ -71,7 +71,17 @@ async function fetchPageHtml(pagePath) {
 // single-elim counts QF 1, SF 2, GF 3).
 const ROUND_INT_BY_LABEL = { Quarterfinals: 1, Semifinals: 2, 'Grand Final': 3 };
 
-function extractMatch($, matchEl) {
+// requireScores=true (the Finals Bracket / betting-relevant sets) demands
+// two real numeric scores - matches docs/manual-results-ingestion.md's
+// "every set needs a decisive score" rule. requireScores=false (group
+// stages, display-only bracket_history rows, nullable score columns)
+// accepts a match as decided once a winner is determinable even if a score
+// is missing - confirmed live against EWC 2026 Fatal Fury: 2 of 60 group
+// matches (both involving GO1) render his win via .brkts-opponent-win but
+// have no parseable losing score anywhere in the markup, an upstream
+// Liquipedia data gap rather than a parsing bug. Scores are still captured
+// whenever present either way.
+function extractMatch($, matchEl, { requireScores = true } = {}) {
   const opponents = $(matchEl).find('.brkts-opponent-entry');
   if (opponents.length !== 2) return null;
   const names = opponents.map((i, o) => $(o).attr('aria-label') || $(o).text().trim()).get();
@@ -81,13 +91,67 @@ function extractMatch($, matchEl) {
     .get();
   const p1Won = $(opponents[0]).find('> div').first().hasClass('brkts-opponent-win');
   const p2Won = $(opponents[1]).find('> div').first().hasClass('brkts-opponent-win');
-  const decided = scores.length === 2 && scores.every((s) => s !== '' && !Number.isNaN(Number(s))) && (p1Won || p2Won);
+  const hasWinner = p1Won || p2Won;
+  const hasScores = scores.length === 2 && scores.every((s) => s !== '' && !Number.isNaN(Number(s)));
+  const decided = requireScores ? (hasScores && hasWinner) : hasWinner;
   return {
     p1: names[0], p2: names[1],
-    p1Score: decided ? Number(scores[0]) : null,
-    p2Score: decided ? Number(scores[1]) : null,
+    p1Score: hasScores ? Number(scores[0]) : null,
+    p2Score: hasScores ? Number(scores[1]) : null,
+    winner: hasWinner ? (p1Won ? 1 : 2) : null,
     decided,
   };
+}
+
+// EWC's pre-Finals stage is "N groups of 8, GSL-style double-elimination,
+// top 4 advance" (First Phase: 4 groups; Second Phase: 2 groups - identical
+// wording across every EWC fighting-game page checked). This app already
+// has a convention for exactly this shape: every synced tournament's own
+// pool/qualifying rounds collapse into a single "Pools" bracket_history
+// round (see scripts/sync-live.js's isPoolsPhase/groupSetsIntoRounds -
+// round_int: null, one synthetic label, real per-round granularity
+// discarded) rather than reproducing each GSL sub-round individually.
+// Mirrors that exactly instead of inventing a second convention: every
+// match in a phase becomes one flat list under phaseLabel, no attempt to
+// distinguish Winners/Losers Quarterfinal etc.
+function extractGroupStagePhase($, wrapperEls, phaseLabel) {
+  const matches = [];
+  wrapperEls.each((groupIndex, wrapperEl) => {
+    $(wrapperEl).find('.brkts-match').not('.brkts-third-place-match').each((i, m) => {
+      const parsed = extractMatch($, m, { requireScores: false });
+      matches.push({ ...parsed, phaseOrder: groupIndex, round: phaseLabel, roundInt: null });
+    });
+  });
+  return matches;
+}
+
+function extractGroupStages($) {
+  const all = $('.brkts-bracket-wrapper');
+  const finalsWrapper = all.filter((i, el) => $(el).text().includes('Grand Final'));
+  const groupWrappers = all.not(finalsWrapper);
+
+  // First Phase is always 4 groups, Second Phase always 2, in source order
+  // (the wikitext lists Group Stage 1's groups, then Group Stage 2's, then
+  // the Finals Bracket, always in that order) - fail loudly rather than
+  // guess at a different count, same philosophy as extractFinalsBracket.
+  if (groupWrappers.length !== 6) {
+    fail(`Unexpected group-stage wrapper count: ${groupWrappers.length} (expected 6: 4 First Phase groups + 2 Second Phase groups).`);
+  }
+  const firstPhase = groupWrappers.slice(0, 4);
+  const secondPhase = groupWrappers.slice(4, 6);
+
+  const matches = [
+    ...extractGroupStagePhase($, firstPhase, 'Group Stage 1'),
+    ...extractGroupStagePhase($, secondPhase, 'Group Stage 2'),
+  ];
+  // Every group is a fixed 10-match GSL-8 shape (confirmed against all 6
+  // groups of the completed EWC 2026 Fatal Fury event) - a different count
+  // means either a match hasn't rendered yet or the format changed.
+  const expected = (firstPhase.length + secondPhase.length) * 10;
+  if (matches.length !== expected) {
+    fail(`Unexpected group-stage match count: ${matches.length} (expected ${expected} - ${firstPhase.length + secondPhase.length} groups x 10 matches each).`);
+  }
+  return matches;
 }
 
 function extractFinalsBracket($) {
@@ -155,6 +219,7 @@ async function main() {
   const html = await fetchPageHtml(pagePath);
   const $ = cheerio.load(html);
   const sets = extractFinalsBracket($);
+  const groupMatches = extractGroupStages($);
 
   const decided = sets.filter((s) => s.decided).length;
   console.log(`${decided}/${sets.length} Finals Bracket sets decided:`);
@@ -163,7 +228,10 @@ async function main() {
     console.log(`  [${s.round}] ${s.p1} vs ${s.p2}: ${status}`);
   }
 
-  if (decided < sets.length) {
+  const groupDecided = groupMatches.filter((m) => m.decided).length;
+  console.log(`\n${groupDecided}/${groupMatches.length} group-stage matches decided.`);
+
+  if (decided < sets.length || groupDecided < groupMatches.length) {
     console.log(`\nNot finished yet - re-run once the Grand Final concludes. No file written.`);
     return;
   }
@@ -185,6 +253,18 @@ async function main() {
       p1Score: s.p1Score, p2Score: s.p2Score,
       at: 'FILL ME IN - YYYY-MM-DD HH:MM:SS',
     })),
+    // Display-only bracket progress (see docs/manual-results-ingestion.md) -
+    // never opens a market, never carries money. One flat round per phase,
+    // matching how this app already collapses every synced tournament's
+    // own pool/qualifying stage into a single "Pools" round rather than
+    // reproducing individual GSL sub-rounds.
+    groupStages: groupMatches.map((m, i) => ({
+      n: i + 1, round: m.round, phaseOrder: m.phaseOrder,
+      p1: `FILL ME IN (Liquipedia: "${m.p1}")`,
+      p2: `FILL ME IN (Liquipedia: "${m.p2}")`,
+      p1Score: m.p1Score, p2Score: m.p2Score,
+      winner: m.winner,
+    })),
   };
 
   const dest = outPath || path.join(__dirname, '..', 'data', 'manual-results', `${manualId}.json`);
@@ -195,7 +275,7 @@ async function main() {
   console.log('against the DB; ingest-manual-results.js will fail loudly with near-match suggestions for typos).');
 }
 
-module.exports = { extractFinalsBracket, extractMatch };
+module.exports = { extractFinalsBracket, extractMatch, extractGroupStages };
 
 if (require.main === module) {
   main().catch((err) => {

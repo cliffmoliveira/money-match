@@ -1,7 +1,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 const cheerio = require('cheerio');
-const { extractFinalsBracket } = require('../../scripts/fetch-liquipedia-bracket');
+const { extractFinalsBracket, extractGroupStages } = require('../../scripts/fetch-liquipedia-bracket');
 
 // Minimal fixture reproducing the real Liquipedia bracket DOM shape (see
 // scripts/fetch-liquipedia-bracket.js's own comments for how this was
@@ -113,4 +113,76 @@ test('fails loudly on an unexpected bracket shape instead of mislabeling rounds'
   });
   const $ = cheerio.load(html);
   assert.throws(() => extractFinalsBracket($), /Unexpected bracket shape/);
+});
+
+// ---- extractGroupStages ----
+// Real group-stage matches don't need the round-lower/round-center scaffolding
+// extractFinalsBracket relies on - extractGroupStages just finds every
+// .brkts-match inside each non-finals wrapper, flat.
+function groupWrapperHtml(matches) {
+  return `<div class="brkts-bracket-wrapper">Group<div class="brkts-bracket">${matches.join('')}</div></div>`;
+}
+function tenMatches(prefix) {
+  return Array.from({ length: 10 }, (_, i) =>
+    match({ p1: `${prefix}${i}a`, p2: `${prefix}${i}b`, p1Score: 3, p2Score: 1 })
+  );
+}
+const FINALS_MARKER = '<div class="brkts-bracket-wrapper">Grand Final marker only</div>';
+
+test('extracts group-stage matches, tagging each with its phase label and group index', () => {
+  const html = [
+    ...Array.from({ length: 4 }, (_, i) => groupWrapperHtml(tenMatches(`p1g${i}`))),
+    ...Array.from({ length: 2 }, (_, i) => groupWrapperHtml(tenMatches(`p2g${i}`))),
+    FINALS_MARKER,
+  ].join('');
+  const $ = cheerio.load(html);
+  const matches = extractGroupStages($);
+
+  assert.equal(matches.length, 60); // 6 groups x 10
+  assert.equal(matches.filter((m) => m.round === 'Group Stage 1').length, 40);
+  assert.equal(matches.filter((m) => m.round === 'Group Stage 2').length, 20);
+  assert.ok(matches.every((m) => m.decided));
+  // Distinct phaseOrder per group within a phase (0-3 for First Phase).
+  const phase1Groups = new Set(matches.filter((m) => m.round === 'Group Stage 1').map((m) => m.phaseOrder));
+  assert.deepEqual([...phase1Groups].sort(), [0, 1, 2, 3]);
+});
+
+test('a known winner with no recoverable score still counts as decided (nullable in bracket_history)', () => {
+  // Reproduces the real EWC 2026 Fatal Fury case: GO1's win is marked via
+  // .brkts-opponent-win, but the shared score-holder never rendered at all
+  // for that match on Liquipedia's page - an upstream data gap, not a
+  // parsing bug. Winner survives; both scores come back null.
+  const withMissingScore = match({ p1: 'X', p2: 'Y', p1Score: 3, p2Score: 1 })
+    .replace(/<span class="match-info-header-scoreholder-score">3<\/span><span class="match-info-header-scoreholder-score">1<\/span>/, '');
+  const groups = [
+    ...Array.from({ length: 3 }, (_, i) => groupWrapperHtml(tenMatches(`a${i}`))),
+    groupWrapperHtml([...tenMatches('b').slice(1), withMissingScore]),
+    ...Array.from({ length: 2 }, (_, i) => groupWrapperHtml(tenMatches(`c${i}`))),
+    FINALS_MARKER,
+  ];
+  const $ = cheerio.load(groups.join(''));
+  const matches = extractGroupStages($);
+
+  const partial = matches.find((m) => m.p1 === 'X' && m.p2 === 'Y');
+  assert.ok(partial.decided);
+  assert.equal(partial.p1Score, null);
+  assert.equal(partial.p2Score, null);
+  assert.equal(partial.winner, 1);
+});
+
+test('fails loudly on an unexpected group-stage wrapper count', () => {
+  const html = [groupWrapperHtml(tenMatches('only')), FINALS_MARKER].join('');
+  const $ = cheerio.load(html);
+  assert.throws(() => extractGroupStages($), /Unexpected group-stage wrapper count/);
+});
+
+test('fails loudly when a group has the wrong number of matches', () => {
+  const html = [
+    ...Array.from({ length: 3 }, (_, i) => groupWrapperHtml(tenMatches(`a${i}`))),
+    groupWrapperHtml(tenMatches('short').slice(0, 5)), // only 5, not 10
+    ...Array.from({ length: 2 }, (_, i) => groupWrapperHtml(tenMatches(`c${i}`))),
+    FINALS_MARKER,
+  ];
+  const $ = cheerio.load(html.join(''));
+  assert.throws(() => extractGroupStages($), /Unexpected group-stage match count/);
 });

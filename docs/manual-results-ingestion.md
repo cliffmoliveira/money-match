@@ -19,9 +19,12 @@ exactly like a synced one:
 | `tournament_games` | game pill + entrant count on cards |
 | `set_markets` (state `settled`, `manual-*` set ids, zeroed pools) | bracket sets → "Past Tournaments" on /tournaments |
 | `matches` (Grand Final, negative synthetic startgg_id) | Home "Recent Champions" card |
+| `bracket_history` (optional, `groupStages[]`) | pre-Top-8 round pills (Group Stage 1/2, etc.) — display only |
 
 It deliberately does **not** write `players_games_tournaments` — that table
 drives futures odds, and a finished manual event must never look bettable.
+`bracket_history` never carries money either (no odds/pools columns at all) —
+same as the live poller's own pre-Top-8 tracking for every synced tournament.
 
 ## Usage
 
@@ -53,6 +56,11 @@ for a complete example (EWC 2026 Fatal Fury main stage, ingested 2026-07-11).
     { "n": 1, "round": "Quarter-Final", "roundInt": 1,
       "p1": "REJECT | Laggia", "p2": "T1 | ZJZ",
       "p1Score": 5, "p2Score": 2, "at": "2026-07-11 09:00:00" }
+  ],
+  "groupStages": [                       // optional - pre-Top-8 progress, display only
+    { "n": 1, "round": "Group Stage 1", "phaseOrder": 0,
+      "p1": "REJECT | Laggia", "p2": "abao",
+      "p1Score": 3, "p2Score": 1, "winner": 1 }
   ]
 }
 ```
@@ -69,6 +77,11 @@ Rules the script enforces:
 - `roundInt` follows the sync's convention: positive winners-side rounds
   counting up to the Grand Final (LCQ example: Winners Semi 1, Winners Final 2,
   Grand Final 3; losers side negative). For single-elim: QF 1, SF 2, GF 3.
+- `groupStages[]` entries need `winner` (1 or 2) instead of a decisive score -
+  `p1Score`/`p2Score` may be `null` (bracket_history's score columns are
+  nullable; a missing score doesn't block writing the round pill, unlike
+  `sets[]` above). Re-running is safe here too: keyed by
+  `manual-<manualId>-gs-<n>`.
 
 ## Behavior after ingestion
 
@@ -118,17 +131,27 @@ name, and each player's real `players.name` (Liquipedia only gives bare
 gamertags — cross-reference the DB; `ingest-manual-results.js` will fail
 loudly with near-match suggestions on a typo, same as ever).
 
-Only ever pulls the single-elimination Finals Bracket (the section
-containing a "Grand Final" round) — pool/group stages are ignored, matching
-this app's existing Top-8-only tracking scope. Refuses to write anything
-until every match except a 3rd-place decider has a decisive score, so
-running it mid-event just prints progress ("4/7 sets decided") instead of
-producing a partial file someone could accidentally ingest — safe to re-run
-periodically as an event progresses.
+Also pulls Group Stage 1 and Group Stage 2 (EWC's pre-Top-8 phases — 4
+groups then 2, each an 8-player GSL-style double-elimination) into the
+`groupStages[]` field, one flat round per phase rather than reproducing
+every individual GSL sub-round — mirrors exactly how the live poller
+already collapses every synced tournament's own pool stage into a single
+"Pools" round (`scripts/sync-live.js`'s `isPoolsPhase`/`groupSetsIntoRounds`).
+A group match with a known winner but no recoverable score (confirmed
+happening on Liquipedia's own page for 2 of 60 Fatal Fury group matches —
+an upstream data gap, not a parsing bug) is still included; only the Finals
+Bracket's `sets[]` require a full score.
 
-Currently only handles the standard 8-player EWC Finals Bracket shape (4
-quarterfinals → 2 semifinals → 1 Grand Final); it fails loudly rather than
-guess at a differently-shaped bracket.
+Refuses to write anything until every Finals Bracket match (except a
+3rd-place decider) AND every group-stage match has a decided result, so
+running it mid-event just prints progress instead of producing a partial
+file someone could accidentally ingest — safe to re-run periodically as an
+event progresses.
+
+Currently only handles the standard EWC shape: Finals Bracket = 4
+quarterfinals → 2 semifinals → 1 Grand Final; group stages = exactly 4
+First-Phase groups + 2 Second-Phase groups, each exactly 10 matches. Fails
+loudly rather than guess at a differently-shaped bracket or event format.
 
 ## Future: automated second source
 
