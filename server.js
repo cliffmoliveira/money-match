@@ -17,6 +17,7 @@ const account = require('./account');
 const futuresMeta = require('./futuresMeta');
 const futures = require('./futures');
 const { syncLive, reconcileStaleMarkets } = require('./scripts/sync-live');
+const { autoSyncManualEvents } = require('./scripts/auto-sync-manual-events');
 const follows = require('./follows');
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -1105,6 +1106,49 @@ function scheduleStaleMarketReconcile() {
   })();
 }
 
+// EWC main-stage results never touch start.gg (see docs/manual-results-
+// ingestion.md), so nothing above can discover them - this was previously a
+// manually-triggered process (someone runs scripts/fetch-liquipedia-bracket.js,
+// cross-references player names by hand, runs scripts/ingest-manual-results.js).
+// Checks Liquipedia every few hours instead and auto-ingests whenever every
+// involved player name resolves unambiguously (see auto-sync-manual-events.js's
+// own doc comment for exactly what "safe" means here) - same restart-safe
+// app_state pattern as the schedulers above, just a shorter interval since
+// users expect same-day freshness for something like "who just won."
+function scheduleManualEventAutoSync() {
+  const CHECK_MS = 3 * 60 * 60 * 1000; // 3h - cheap (3 known events, mostly instant skips)
+  const LAST_RUN_KEY = 'last_manual_event_auto_sync_at';
+  const attempt = async () => {
+    try {
+      await autoSyncManualEvents();
+    } catch (err) {
+      console.error('Manual-event auto-sync failed:', err.message);
+    }
+    try {
+      await db.runAsync(
+        `INSERT INTO app_state (key, value) VALUES (?, ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+        [LAST_RUN_KEY, new Date().toISOString()]
+      );
+    } catch (err) {
+      console.error(`Failed to record ${LAST_RUN_KEY}:`, err.message);
+    }
+    setTimeout(attempt, CHECK_MS);
+  };
+  (async () => {
+    let lastRun = null;
+    try {
+      const row = await db.getAsync('SELECT value FROM app_state WHERE key = ?', [LAST_RUN_KEY]);
+      lastRun = row ? new Date(row.value).getTime() : null;
+    } catch (err) {
+      console.error(`Failed to read ${LAST_RUN_KEY}:`, err.message);
+    }
+    const elapsed = lastRun ? Date.now() - lastRun : Infinity;
+    const initialDelay = elapsed >= CHECK_MS ? 0 : CHECK_MS - elapsed;
+    setTimeout(attempt, initialDelay);
+  })();
+}
+
 // Live poller: refresh Top 8 markets for active tournaments. Cheap when nothing
 // is live (one local query, no Start.gg call). Default 60s — Start.gg rate-limits
 // (429) below this; LIVE_SYNC_MS can override but lower values risk throttling.
@@ -1159,6 +1203,7 @@ if (!process.env.DISABLE_SYNC) {
   scheduleStartGgSync();
   scheduleLiveSync();
   scheduleStaleMarketReconcile();
+  scheduleManualEventAutoSync();
 }
 
 // Catch-all route for React

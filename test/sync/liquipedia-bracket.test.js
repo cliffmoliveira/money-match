@@ -176,6 +176,15 @@ test('fails loudly on an unexpected group-stage wrapper count', () => {
   assert.throws(() => extractGroupStages($), /Unexpected group-stage wrapper count/);
 });
 
+test('zero group-stage wrappers gets a distinct, recognizable "not started" error, not a generic shape error', () => {
+  // Real case: EWC's Tekken 8 page before Aug 4 has no Finals Bracket AND no
+  // group-stage wrappers at all yet - callers (fetch-liquipedia-bracket.js's
+  // main(), auto-sync-manual-events.js) need to tell "not started" apart
+  // from "the page's shape genuinely changed" by message alone.
+  const $ = cheerio.load(FINALS_MARKER);
+  assert.throws(() => extractGroupStages($), /No group-stage bracket wrappers on this page yet/);
+});
+
 test('fails loudly when a group has the wrong number of matches', () => {
   const html = [
     ...Array.from({ length: 3 }, (_, i) => groupWrapperHtml(tenMatches(`a${i}`))),

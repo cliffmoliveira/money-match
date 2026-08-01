@@ -130,6 +130,16 @@ function extractGroupStages($) {
   const finalsWrapper = all.filter((i, el) => $(el).text().includes('Grand Final'));
   const groupWrappers = all.not(finalsWrapper);
 
+  // Zero wrappers at all (not just "wrong count") means the tournament
+  // hasn't started - the whole bracket section is still an empty shell on
+  // the page. That's a normal, expected state (same as extractFinalsBracket's
+  // own "no Grand Final round yet" case), not a shape problem - distinct,
+  // recognizable message so a caller can treat it as "not ready" rather than
+  // a hard failure (confirmed needed live: EWC's Tekken 8 page before Aug 4
+  // has neither a Finals Bracket NOR any group-stage wrappers rendered yet).
+  if (groupWrappers.length === 0) {
+    fail('No group-stage bracket wrappers on this page yet (tournament hasn\'t started).');
+  }
   // First Phase is always 4 groups, Second Phase always 2, in source order
   // (the wikitext lists Group Stage 1's groups, then Group Stage 2's, then
   // the Finals Bracket, always in that order) - fail loudly rather than
@@ -233,7 +243,16 @@ async function main() {
       throw err;
     }
   }
-  const groupMatches = extractGroupStages($);
+  let groupMatches = [];
+  try {
+    groupMatches = extractGroupStages($);
+  } catch (err) {
+    if (/No group-stage bracket wrappers on this page yet/.test(err.message)) {
+      console.log('Group stages: not on the page yet (tournament hasn\'t started).');
+    } else {
+      throw err;
+    }
+  }
 
   const decided = sets.filter((s) => s.decided).length;
   if (sets.length) {
@@ -303,7 +322,7 @@ async function main() {
   console.log('against the DB; ingest-manual-results.js will fail loudly with near-match suggestions for typos).');
 }
 
-module.exports = { extractFinalsBracket, extractMatch, extractGroupStages };
+module.exports = { extractFinalsBracket, extractMatch, extractGroupStages, fetchPageHtml };
 
 if (require.main === module) {
   main().catch((err) => {

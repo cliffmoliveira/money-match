@@ -152,21 +152,48 @@ happening on Liquipedia's own page for 2 of 60 Fatal Fury group matches —
 an upstream data gap, not a parsing bug) is still included; only the Finals
 Bracket's `sets[]` require a full score.
 
-Refuses to write anything until every Finals Bracket match (except a
-3rd-place decider) AND every group-stage match has a decided result, so
-running it mid-event just prints progress instead of producing a partial
-file someone could accidentally ingest — safe to re-run periodically as an
-event progresses.
+`sets[]`/`groupStages[]` are each written to the draft independently, as
+soon as THEIR OWN data is fully decided — not gated on each other, matching
+`ingest-manual-results.js`'s own sets[]-optional-if-groupStages[]-present
+rule (see above). A partially-decided one (a Finals Bracket mid-playoff, or
+a group stage whose page hasn't rendered yet) is simply omitted from the
+draft rather than written with placeholder/undecided entries — running it
+mid-event just prints progress and writes whatever part is ready, safe to
+re-run periodically as an event progresses.
 
 Currently only handles the standard EWC shape: Finals Bracket = 4
 quarterfinals → 2 semifinals → 1 Grand Final; group stages = exactly 4
 First-Phase groups + 2 Second-Phase groups, each exactly 10 matches. Fails
-loudly rather than guess at a differently-shaped bracket or event format.
+loudly rather than guess at a differently-shaped bracket or event format -
+except a Finals Bracket / group-stage section that doesn't exist on the
+page AT ALL yet (the event hasn't reached that stage), which is treated as
+a normal "not ready", not a shape problem.
 
-## Future: automated second source
+## Automated: scripts/auto-sync-manual-events.js
 
-If the remaining hand-fill step (metadata + player names) becomes a chore
-too, an **admin endpoint/UI** wrapping the full pipeline (gated behind
-`ADMIN_SECRET` like the existing `/api/admin/exhibition*` routes) is the
-next practical step — the JSON format above stays the contract either way;
-only the producer changes.
+The manual trigger above is no longer the only path. `scheduleManualEventAutoSync`
+in server.js runs `scripts/auto-sync-manual-events.js` every 3 hours in
+production: it checks Liquipedia for every event in that script's `REGISTRY`
+(one entry per EWC 2026 fighting-game title) and auto-ingests whenever
+**every** involved player name resolves to **exactly one** existing
+`players` row — matching a bare Liquipedia gamertag (e.g. `"Craime"`) against
+the row whose name's last sponsor-tag segment (splitting on `|`/`丨`/`｜`/`/`,
+the separators every real tag uses) equals it, case-insensitively.
+
+This closes the "why wasn't this updated automatically" gap for the common
+case (most Top players already have a row from an earlier 2026 major), but
+deliberately can't resolve a genuinely new or ambiguous tag without a
+human — that's the same "never auto-create, exact identity only" rule
+protecting this app from duplicate-player pollution everywhere else
+(see the xiaohai duplicate-account investigation, [player_startgg_aliases]
+in db.js). When a name can't be safely auto-resolved, the whole batch for
+that event is skipped (not partially ingested) and logged clearly
+(`[auto-sync-manual] <manualId>: N player name(s) couldn't be safely
+auto-resolved ... : <names>`) — visible in Render logs, not silently stuck.
+That's when the manual `fetch-liquipedia-bracket.js` + hand cross-reference
++ `ingest-manual-results.js` path above is still the way to close it out.
+
+Add a new EWC event to `REGISTRY` (manualId, Liquipedia page path,
+tournament/game template) as soon as it's announced — everything else is
+automatic from that point on, including bootstrapping the very first
+`data/manual-results/<event>.json` file once its group stages finish.

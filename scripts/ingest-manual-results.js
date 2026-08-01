@@ -71,13 +71,12 @@ async function resolvePlayer(name) {
   );
 }
 
-async function main() {
-  const args = process.argv.slice(2);
-  const dryRun = args.includes('--dry-run');
-  const file = args.find((a) => !a.startsWith('--'));
-  if (!file) fail('usage: node scripts/ingest-manual-results.js <data.json> [--dry-run]');
-
-  const spec = JSON.parse(fs.readFileSync(path.resolve(file), 'utf8'));
+// Core ingestion, callable directly with an already-parsed spec object (used
+// by scripts/auto-sync-manual-events.js to ingest several events in one
+// process run) as well as by main() below for the CLI/file-path usage.
+// closeDb=false lets a multi-event caller keep the same db connection open
+// across calls instead of main()'s one-shot CLI behavior of closing it.
+async function ingestSpec(spec, { dryRun = false, closeDb = true } = {}) {
   const { manualId, tournament, game, numEntrants, sets = [], groupStages = [] } = spec;
 
   // ---- Validate the spec before touching anything ----
@@ -147,8 +146,8 @@ async function main() {
   console.log(`${sets.length} sets, players: ${[...playerIds.keys()].join(', ')}`);
   if (dryRun) {
     console.log('--dry-run: no writes performed.');
-    await db.closeAsync();
-    return;
+    if (closeDb) await db.closeAsync();
+    return { dryRun: true };
   }
 
   await db.runAsync('BEGIN');
@@ -268,14 +267,25 @@ async function main() {
 
     await db.runAsync('COMMIT');
     console.log(`Done. Tournament id ${tRow.id} — "${tournament.name}" is now in past results.`);
+    if (closeDb) await db.closeAsync();
+    return { tournamentId: tRow.id, finalized: !!gf };
   } catch (err) {
     await db.runAsync('ROLLBACK');
+    if (closeDb) await db.closeAsync();
     throw err;
   }
-  await db.closeAsync();
 }
 
-module.exports = { main };
+async function main() {
+  const args = process.argv.slice(2);
+  const dryRun = args.includes('--dry-run');
+  const file = args.find((a) => !a.startsWith('--'));
+  if (!file) fail('usage: node scripts/ingest-manual-results.js <data.json> [--dry-run]');
+  const spec = JSON.parse(fs.readFileSync(path.resolve(file), 'utf8'));
+  return ingestSpec(spec, { dryRun });
+}
+
+module.exports = { main, ingestSpec, resolvePlayer };
 
 if (require.main === module) {
   main().catch((err) => {
