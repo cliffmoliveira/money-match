@@ -60,7 +60,7 @@ beforeEach(async () => {
 
 after(() => { try { fs.unlinkSync(file); } catch { /* ignore */ } });
 
-async function seedMarket({ state, startggSetId = '104770041', p1StartggId = 'e-a', p2StartggId = 'e-b' }) {
+async function seedMarket({ state, startggSetId = '104770041', p1StartggId = 'e-a', p2StartggId = 'e-b', p2Id = null }) {
   const gameRes = await db.runAsync(`INSERT INTO games (name, startgg_id) VALUES ('The King of Fighters XV', 'g1')`);
   const tRes = await db.runAsync(`INSERT INTO tournaments (name, date, startgg_id) VALUES ('KOF Test', '2026-06-26', 't1')`);
   const p1Res = await db.runAsync(`INSERT INTO players (name, startgg_id) VALUES ('Madkof', ?)`, [p1StartggId]);
@@ -68,9 +68,9 @@ async function seedMarket({ state, startggSetId = '104770041', p1StartggId = 'e-
   const mRes = await db.runAsync(
     `INSERT INTO set_markets (tournament_id, game_id, startgg_set_id, round_text, player1_id, player2_id, state, p1_prob, p2_prob)
      VALUES (?, ?, ?, 'Winners Semi-Final', ?, ?, ?, 0.5, 0.5)`,
-    [tRes.lastID, gameRes.lastID, startggSetId, p1Res.lastID, p2Res.lastID, state]
+    [tRes.lastID, gameRes.lastID, startggSetId, p1Res.lastID, p2Id ?? p2Res.lastID, state]
   );
-  return { marketId: mRes.lastID, tournamentId: tRes.lastID, p1: p1Res.lastID, p2: p2Res.lastID, startggSetId };
+  return { marketId: mRes.lastID, tournamentId: tRes.lastID, gameId: gameRes.lastID, p1: p1Res.lastID, p2: p2Res.lastID, startggSetId };
 }
 
 test('settles a pending market once start.gg reports it complete (real production case)', async () => {
@@ -128,6 +128,32 @@ test('closes (does not settle) a market that is still in-progress on start.gg', 
   assert.equal(result, 'closed');
   const market = await db.getAsync('SELECT state FROM set_markets WHERE id = ?', [marketId]);
   assert.equal(market.state, 'closed');
+});
+
+test('backfills a still-TBD slot before settling (real production case: KOF XV & SAMSHO)', async () => {
+  // The exact bug: player2_id was 0 (TBD) locally even though start.gg had
+  // long since recorded both real entrants and a decisive result. Without
+  // the backfill step this silently stayed "skipped" forever.
+  const { marketId, tournamentId, gameId, p1, p2 } = await seedMarket({ state: 'pending', p2Id: 0 });
+  const set = {
+    state: 3, winnerId: 'e-a',
+    slots: [
+      { entrant: { id: 'e-a', name: 'Madkof', participants: [] }, standing: { stats: { score: { value: 3 } } } },
+      // Matches the already-seeded player's startgg_id ('e-b') - findOrCreatePlayerId
+      // resolves it to that existing row rather than minting a duplicate.
+      { entrant: { id: 'e-b', name: 'SCORE', participants: [] }, standing: { stats: { score: { value: 1 } } } },
+    ],
+  };
+  const result = await sync.reconcileOneStaleMarket(
+    { id: marketId, tournament_id: tournamentId, game_id: gameId, startgg_set_id: '104770041', player1_id: p1, player2_id: 0, round_text: 'Winners Semi-Final', round_int: null, phase_group_id: null },
+    set
+  );
+  assert.equal(result, 'settled');
+
+  const market = await db.getAsync('SELECT * FROM set_markets WHERE id = ?', [marketId]);
+  assert.equal(market.state, 'settled');
+  assert.equal(market.player2_id, p2); // backfilled to the real player, not left as TBD
+  assert.equal(market.winner_id, p1);
 });
 
 test('leaves a market untouched when start.gg still reports it unresolved (not yet started)', async () => {

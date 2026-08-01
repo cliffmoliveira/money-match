@@ -725,14 +725,39 @@ async function reconcileOneStaleMarket(m, set) {
   const e1 = set.slots?.[1]?.entrant;
   const p1s = scoreOf(set.slots?.[0]);
   const p2s = scoreOf(set.slots?.[1]);
-  if (set.state === 3 && set.winnerId != null && e0?.id && e1?.id && m.player1_id && m.player2_id) {
+
+  // A stale market can still have a TBD slot locally (player_id 0) even when
+  // start.gg clearly has both real entrants now - confirmed live on KOF XV &
+  // SAMSHO's 2 stuck markets, both genuinely completed on start.gg's side but
+  // never settled here because they'd never been backfilled. Always re-fill
+  // both slots first when start.gg knows them, exactly like
+  // processTournamentEvents' own "always re-fill before closing/settling"
+  // step, before deciding what to do with the market.
+  if (e0?.id && e1?.id && (set.state === 2 || set.state === 3)) {
+    const p0 = await findOrCreatePlayerId(e0);
+    const p1 = await findOrCreatePlayerId(e1);
+    if (p0 && p1) {
+      await lm.fillBracketSlot({
+        tournamentId: m.tournament_id, gameId: m.game_id, startggSetId: m.startgg_set_id,
+        roundText: m.round_text, roundInt: m.round_int, phaseGroupId: m.phase_group_id,
+        slot: 1, playerId: p0,
+      });
+      await lm.fillBracketSlot({
+        tournamentId: m.tournament_id, gameId: m.game_id, startggSetId: m.startgg_set_id,
+        roundText: m.round_text, roundInt: m.round_int, phaseGroupId: m.phase_group_id,
+        slot: 2, playerId: p1,
+      });
+    }
+  }
+
+  if (set.state === 3 && set.winnerId != null && e0?.id && e1?.id) {
     const winnerEntrant = set.winnerId === e0.id ? e0 : e1;
     const winnerPid = await findOrCreatePlayerId(winnerEntrant);
     await lm.settleMarket(m.id, winnerPid, p1s, p2s);
     console.log(`[reconcile-stale] settled market ${m.id} (set ${m.startgg_set_id}, "${m.round_text}")`);
     return 'settled';
   }
-  if (set.state === 2 && m.player1_id && m.player2_id) {
+  if (set.state === 2 && e0?.id && e1?.id) {
     await lm.closeMarket(m.id, p1s, p2s);
     return 'closed';
   }
@@ -741,7 +766,7 @@ async function reconcileOneStaleMarket(m, set) {
 
 async function reconcileStaleMarkets() {
   const stale = await db.allAsync(
-    `SELECT id, tournament_id, startgg_set_id, player1_id, player2_id, round_text
+    `SELECT id, tournament_id, game_id, startgg_set_id, player1_id, player2_id, round_text, round_int, phase_group_id
      FROM set_markets
      WHERE state IN ('open','closed','pending')
        AND startgg_set_id GLOB '[0-9]*'` // excludes preview_*/manual-* synthetic ids
