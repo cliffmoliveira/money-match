@@ -89,6 +89,29 @@ test('resolveFinalPhase falls back to highest phaseOrder when no phase is named 
   ]).id, 2);
 });
 
+test('resolveFinalPhase prefers the smallest "Top N" bracket over phaseOrder for any N, not just 8', () => {
+  // Real production bug (VSFighting XIV's TEKKEN 8 bracket): TEKKEN WORLD
+  // TOUR events run Top 96 -> Top 24 -> Top 12, never a phase literally
+  // named "Top 8" - the old name-only check found no match and fell back
+  // to phaseOrder, which start.gg had scrambled (1/3/4/2) so "Top 24"
+  // (order 4) outranked the true final stage "Top 12" (order 2). The
+  // smallest-N heuristic must pick "Top 12" regardless of phaseOrder.
+  const phases = [
+    { id: 1, name: 'Bracket', phaseOrder: 1 },
+    { id: 2, name: 'Top 12', phaseOrder: 2 },
+    { id: 3, name: 'Top 96', phaseOrder: 3 },
+    { id: 4, name: 'Top 24', phaseOrder: 4 },
+  ];
+  assert.equal(syncLive.resolveFinalPhase(phases).id, 2);
+});
+
+test('resolveFinalPhase picks the smallest Top N even when it also has the lowest phaseOrder', () => {
+  assert.equal(syncLive.resolveFinalPhase([
+    { id: 1, name: 'Top 8', phaseOrder: 1 },
+    { id: 2, name: 'Top 32', phaseOrder: 2 },
+  ]).id, 1);
+});
+
 test('classifyRoundStatus: done when every set is state 3, live once any set has started, next when none have', () => {
   assert.equal(syncLive.classifyRoundStatus([{ state: 3 }, { state: 3 }]), 'done');
   assert.equal(syncLive.classifyRoundStatus([{ state: 3 }, { state: 2 }]), 'live');

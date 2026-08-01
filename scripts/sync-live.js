@@ -172,11 +172,36 @@ function isSideEvent(name) {
 // Confirmed against a real event where "Top 16" (phaseOrder 3) outranked the
 // actual "Top 8" phase (phaseOrder 2), which caused the genuine Top 8 bracket
 // to be misclassified as pre-Top-8 history instead of the live money market.
-// Falls back to highest phaseOrder when no phase is named "Top 8" (the
-// original heuristic, still correct for every ordinary tournament).
+//
+// The original fix only matched a phase literally named "Top 8", which
+// missed the general case: any event whose phases are named "Top N" for
+// some N other than 8 (TEKKEN WORLD TOUR events commonly run Top 96 -> Top
+// 24 -> Top 12, never a "Top 8") got no match at all and fell through to
+// the broken phaseOrder fallback anyway. Confirmed live on VSFighting XIV's
+// TEKKEN 8 bracket: phases Bracket/Top 96/Top 24/Top 12 carried phaseOrder
+// 1/3/4/2 - the fallback picked "Top 24" (order 4) over the true final
+// stage "Top 12" (order 2, the smallest bracket - where Winners
+// Semi-Final/Winners Final/Grand Final actually live), so the poller kept
+// tracking the wrong, larger phase. The real Top 12 sets it had already
+// created (from an earlier cycle that briefly got this right) were then
+// never revisited - 3 markets sat open/pending for a week with real bets
+// stuck on them, and the tournament kept reading as "live" long after it
+// finished, because nothing was left polling the phase with its actual
+// unresolved sets.
+//
+// Generalizes to: among every phase whose name contains "Top N", prefer
+// the SMALLEST N (the smallest remaining bracket is definitionally the
+// most final stage, regardless of what phaseOrder start.gg assigned it).
+// Only falls back to raw phaseOrder when no phase name contains a "Top N"
+// pattern at all (e.g. tournaments using bare "Bracket"/"Finals" names,
+// the original fallback's actual intended case).
 function resolveFinalPhase(phases = []) {
-  const top8 = phases.find((p) => /top\s*8/i.test(p.name || ''));
-  if (top8) return top8;
+  const withTopN = phases
+    .map((p) => ({ phase: p, n: Number((/top\s*(\d+)/i.exec(p.name || '') || [])[1]) }))
+    .filter((x) => Number.isFinite(x.n));
+  if (withTopN.length) {
+    return withTopN.reduce((a, b) => (b.n < a.n ? b : a)).phase;
+  }
   return phases.reduce((a, b) => ((b.phaseOrder ?? 0) > (a.phaseOrder ?? 0) ? b : a));
 }
 
@@ -669,6 +694,82 @@ async function getActiveTournaments() {
   );
 }
 
+// Low-frequency safety net (see scheduleStaleMarketReconcile in server.js,
+// runs ~daily) — deliberately NOT the same population getActiveTournaments()
+// polls every 60s. That query's STALE_PENDING_DAYS cutoff exists on purpose:
+// without it, a tournament with a genuinely-abandoned pending set (start.gg
+// never finishing a report) would poll forever. But the cutoff has a real
+// cost - confirmed live on "KOF XV & SAMSHO at EVO 2026 BYOC": 2 sets
+// (Winners Semi-Final, Losers Quarter-Final) were still 'pending' in our DB
+// when the tournament aged out of the -1/+2 day and STALE_PENDING_DAYS
+// windows, so the 60s poller stopped checking it - even though start.gg
+// itself had already recorded real, decisive results for both. They sat
+// stuck for a week, with 99 FM in real bets never resolving.
+//
+// This sweep has no such cutoff: it finds EVERY real (non-preview) market
+// still open/closed/pending, however old, and does one direct per-set
+// lookup against start.gg rather than re-walking the tournament's whole
+// event/phase tree (cheap, and doesn't care whether the tournament still
+// "looks live" by any of getActiveTournaments' criteria). Running daily
+// instead of every 60s is what makes checking even long-dead tournaments
+// affordable - most sets resolve within days and simply stop appearing in
+// this query once settled, so the steady-state cost is near zero.
+// Pure decision + write step for one stale market, given its DB row and the
+// freshly-fetched start.gg `set` object (or null if start.gg no longer has
+// it) — separated from the fetch loop below so it's testable with a mocked
+// `set` payload the same way processTournamentEvents takes pre-fetched
+// `events` rather than calling startgg() itself.
+async function reconcileOneStaleMarket(m, set) {
+  if (!set) return 'skipped'; // set no longer exists on start.gg - leave it, don't guess
+  const e0 = set.slots?.[0]?.entrant;
+  const e1 = set.slots?.[1]?.entrant;
+  const p1s = scoreOf(set.slots?.[0]);
+  const p2s = scoreOf(set.slots?.[1]);
+  if (set.state === 3 && set.winnerId != null && e0?.id && e1?.id && m.player1_id && m.player2_id) {
+    const winnerEntrant = set.winnerId === e0.id ? e0 : e1;
+    const winnerPid = await findOrCreatePlayerId(winnerEntrant);
+    await lm.settleMarket(m.id, winnerPid, p1s, p2s);
+    console.log(`[reconcile-stale] settled market ${m.id} (set ${m.startgg_set_id}, "${m.round_text}")`);
+    return 'settled';
+  }
+  if (set.state === 2 && m.player1_id && m.player2_id) {
+    await lm.closeMarket(m.id, p1s, p2s);
+    return 'closed';
+  }
+  return 'skipped'; // still genuinely unresolved on start.gg's own side - nothing to do yet
+}
+
+async function reconcileStaleMarkets() {
+  const stale = await db.allAsync(
+    `SELECT id, tournament_id, startgg_set_id, player1_id, player2_id, round_text
+     FROM set_markets
+     WHERE state IN ('open','closed','pending')
+       AND startgg_set_id GLOB '[0-9]*'` // excludes preview_*/manual-* synthetic ids
+  );
+  const stats = { checked: stale.length, settled: 0, closed: 0, skipped: 0, errors: 0 };
+  for (const m of stale) {
+    try {
+      const data = await startgg(
+        `query { set(id: ${m.startgg_set_id}) {
+           state winnerId
+           slots { entrant { id name participants { images { type url } player { id } } } standing { stats { score { value } } } }
+         } }`,
+        {}
+      );
+      const result = await reconcileOneStaleMarket(m, data.set);
+      stats[result]++;
+    } catch (err) {
+      stats.errors++;
+      console.error(`[reconcile-stale] set ${m.startgg_set_id} (market ${m.id}) failed: ${err.message}`);
+    }
+    await sleep(REQ_DELAY_MS);
+  }
+  if (stale.length) {
+    console.log(`[reconcile-stale] checked ${stats.checked}: ${stats.settled} settled, ${stats.closed} closed, ${stats.skipped} still unresolved, ${stats.errors} error(s)`);
+  }
+  return stats;
+}
+
 async function syncLive({ all = false, tournamentIds = null } = {}) {
   const tournaments = tournamentIds && tournamentIds.length > 0
     ? await db.allAsync(
@@ -727,14 +828,18 @@ async function syncLive({ all = false, tournamentIds = null } = {}) {
 module.exports = {
   syncLive, processTournamentEvents, fetchActiveEvents, selectTop8Sets, isTop8Round,
   isPoolsPhase, isSideEvent, isGameFullyResolved, resolveFinalPhase, classifyRoundStatus, groupSetsIntoRounds, fetchHistoryPhases, processHistorySets,
-  getActiveTournaments,
+  getActiveTournaments, reconcileStaleMarkets, reconcileOneStaleMarket,
 };
 
 if (require.main === module) {
-  const all = process.argv.includes('--all');
-  const idsArg = process.argv.find((a) => a.startsWith('--tournament-id='));
-  const tournamentIds = idsArg
-    ? idsArg.slice('--tournament-id='.length).split(',').map((s) => parseInt(s.trim(), 10)).filter(Number.isFinite)
-    : null;
-  syncLive({ all, tournamentIds }).then(() => process.exit(0)).catch((e) => { console.error(e.message); process.exit(1); });
+  if (process.argv.includes('--reconcile-stale')) {
+    reconcileStaleMarkets().then(() => process.exit(0)).catch((e) => { console.error(e.message); process.exit(1); });
+  } else {
+    const all = process.argv.includes('--all');
+    const idsArg = process.argv.find((a) => a.startsWith('--tournament-id='));
+    const tournamentIds = idsArg
+      ? idsArg.slice('--tournament-id='.length).split(',').map((s) => parseInt(s.trim(), 10)).filter(Number.isFinite)
+      : null;
+    syncLive({ all, tournamentIds }).then(() => process.exit(0)).catch((e) => { console.error(e.message); process.exit(1); });
+  }
 }

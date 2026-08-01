@@ -16,7 +16,7 @@ const economy = require('./economy');
 const account = require('./account');
 const futuresMeta = require('./futuresMeta');
 const futures = require('./futures');
-const { syncLive } = require('./scripts/sync-live');
+const { syncLive, reconcileStaleMarkets } = require('./scripts/sync-live');
 const follows = require('./follows');
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -1061,6 +1061,50 @@ function scheduleStartGgSync() {
   })();
 }
 
+// Low-frequency safety net for straggler set_markets (see
+// scripts/sync-live.js's reconcileStaleMarkets doc comment for the full
+// story): the 60s live poller (scheduleLiveSync below) only checks
+// tournaments matching getActiveTournaments' own criteria, which
+// deliberately stops including a tournament once its last pending set ages
+// past STALE_PENDING_DAYS - a real market can outlive that cutoff and sit
+// stuck forever with real bets on it. Runs once a day, same
+// restart-safe app_state pattern as scheduleStartGgSync above.
+function scheduleStaleMarketReconcile() {
+  const token = process.env.STARTGG_API_TOKEN || null;
+  if (!token) return; // scheduleStartGgSync already warns once; no need to repeat it
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const LAST_RUN_KEY = 'last_stale_market_reconcile_at';
+  const attempt = async () => {
+    try {
+      await reconcileStaleMarkets();
+    } catch (err) {
+      console.error('Stale-market reconcile failed:', err.message);
+    }
+    try {
+      await db.runAsync(
+        `INSERT INTO app_state (key, value) VALUES (?, ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+        [LAST_RUN_KEY, new Date().toISOString()]
+      );
+    } catch (err) {
+      console.error(`Failed to record ${LAST_RUN_KEY}:`, err.message);
+    }
+    setTimeout(attempt, DAY_MS);
+  };
+  (async () => {
+    let lastRun = null;
+    try {
+      const row = await db.getAsync('SELECT value FROM app_state WHERE key = ?', [LAST_RUN_KEY]);
+      lastRun = row ? new Date(row.value).getTime() : null;
+    } catch (err) {
+      console.error(`Failed to read ${LAST_RUN_KEY}:`, err.message);
+    }
+    const elapsed = lastRun ? Date.now() - lastRun : Infinity;
+    const initialDelay = elapsed >= DAY_MS ? 0 : DAY_MS - elapsed;
+    setTimeout(attempt, initialDelay);
+  })();
+}
+
 // Live poller: refresh Top 8 markets for active tournaments. Cheap when nothing
 // is live (one local query, no Start.gg call). Default 60s — Start.gg rate-limits
 // (429) below this; LIVE_SYNC_MS can override but lower values risk throttling.
@@ -1114,6 +1158,7 @@ process.on('uncaughtException', (err) => {
 if (!process.env.DISABLE_SYNC) {
   scheduleStartGgSync();
   scheduleLiveSync();
+  scheduleStaleMarketReconcile();
 }
 
 // Catch-all route for React
