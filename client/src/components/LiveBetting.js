@@ -333,6 +333,7 @@ const LiveBetting = () => {
       }
       setSlip({});
       setPlaceMsg(`Placed ${entries.length} pick${entries.length > 1 ? 's' : ''}.`);
+      setShowPnl(true); // surface the new pick immediately instead of leaving the toggle off
       await refresh();
     } catch (err) {
       setPlaceMsg(`Could not place picks: ${err.message}`);

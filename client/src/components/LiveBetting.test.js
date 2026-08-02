@@ -105,3 +105,37 @@ test('tapping an open pick adds it to the slip and opens the drawer', async () =
   expect(screen.getByText('Live Slip (1)')).toBeInTheDocument();
   expect(screen.queryByText(/tap a player's odds/i)).not.toBeInTheDocument();
 });
+
+test('placing a pick activates the "My picks" toggle without a manual click', async () => {
+  // The toggle only renders once a real placed bet comes back from the API
+  // (hasAnyPicks), not from internal state alone - mock /api/live/bets
+  // statefully so the post-placement refresh() actually reflects the new
+  // pick, the same way the real backend does.
+  let placedBets = [];
+  mockFetchRoutes([
+    ...BASE_ROUTES,
+    ['/api/live/markets', [tekkenMarket]],
+    ['/api/game/10/21/tracker', { rounds: [], results: [], stillAlive: [] }],
+    ['/api/game/10/21/players', { locked: false, entrants: [] }],
+    ['/api/live/bets', (url, opts) => {
+      if (opts?.method === 'POST') {
+        placedBets = [{ id: 1, tournament_name: 'VSFighting XIV', game_name: 'Tekken 8', picked_name: 'Player Three' }];
+        return {};
+      }
+      return placedBets;
+    }],
+  ]);
+  renderWithRouter(<LiveBetting />);
+
+  await waitFor(() => expect(screen.getByText('Player Three')).toBeInTheDocument());
+  fireEvent.click(screen.getByText('Player Three').closest('button'));
+
+  // "My picks" isn't rendered at all until there's a pick to show.
+  expect(screen.queryByText('My picks')).not.toBeInTheDocument();
+
+  fireEvent.change(screen.getByLabelText('Stake'), { target: { value: '50' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Place Picks' }));
+
+  await waitFor(() => expect(screen.getByText('My picks')).toBeInTheDocument());
+  expect(screen.getByText('My picks').closest('button')).toHaveClass('active');
+});
