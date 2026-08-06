@@ -111,6 +111,37 @@ test('seedUpcomingTournament gives up cleanly when the infobox has no sdate yet'
   assert.equal(row, undefined);
 });
 
+test('syncOneEvent flags a seeded row live once its start date arrives with nothing decided yet', async () => {
+  // Real production case: EWC 2026 T8's Liquipedia sdate had already passed
+  // with no group-stage/bracket data rendered yet - without this, the
+  // future-date check in getUpcoming() would make the row disappear again.
+  const entry = autoSync.REGISTRY.find((e) => e.manualId === 'ewc-2026-t8');
+  await db.runAsync(
+    'INSERT INTO tournaments (name, date, is_live) VALUES (?, ?, 0)',
+    [entry.tournament.name, '2000-01-01']
+  );
+  global.fetch = async () => ({ ok: true, json: async () => ({ parse: { text: { '*': '<div></div>' } } }) });
+
+  const result = await autoSync.syncOneEvent(entry);
+  assert.equal(result.status, 'flagged-live');
+  const row = await db.getAsync('SELECT is_live FROM tournaments WHERE name = ?', [entry.tournament.name]);
+  assert.equal(row.is_live, 1);
+});
+
+test('syncOneEvent leaves a seeded row alone when its start date is still in the future', async () => {
+  const entry = autoSync.REGISTRY.find((e) => e.manualId === 'ewc-2026-t8');
+  await db.runAsync(
+    'INSERT INTO tournaments (name, date, is_live) VALUES (?, ?, 0)',
+    [entry.tournament.name, '2099-01-01']
+  );
+  global.fetch = async () => ({ ok: true, json: async () => ({ parse: { text: { '*': '<div></div>' } } }) });
+
+  const result = await autoSync.syncOneEvent(entry);
+  assert.equal(result.status, 'not-ready');
+  const row = await db.getAsync('SELECT is_live FROM tournaments WHERE name = ?', [entry.tournament.name]);
+  assert.equal(row.is_live, 0);
+});
+
 test('syncOneEvent seeds an upcoming entry when a brand-new event has no decided sets or groups yet', async () => {
   global.fetch = async (url) => {
     if (String(url).includes('prop=wikitext')) return wikitextResponse('2026-08-06');

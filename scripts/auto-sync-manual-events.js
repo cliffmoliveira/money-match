@@ -156,7 +156,7 @@ async function seedUpcomingTournament(entry) {
 }
 
 async function syncOneEvent(entry) {
-  const existing = await db.getAsync('SELECT id, winner_id, date FROM tournaments WHERE name = ?', [entry.tournament.name]);
+  const existing = await db.getAsync('SELECT id, winner_id, date, is_live FROM tournaments WHERE name = ?', [entry.tournament.name]);
   if (existing && existing.winner_id != null) {
     return { manualId: entry.manualId, status: 'already-finalized' };
   }
@@ -183,6 +183,17 @@ async function syncOneEvent(entry) {
     if (!existing) {
       const seededId = await seedUpcomingTournament(entry);
       return { manualId: entry.manualId, status: seededId ? 'seeded' : 'not-ready' };
+    }
+    // A seeded-ahead-of-time row (see seedUpcomingTournament) uses the
+    // infobox's sdate as its date - once that date arrives with still
+    // nothing decided (groups/bracket data lagging the real-world
+    // schedule, as observed for EWC 2026 T8), getUpcoming()'s future-date
+    // check alone would make it fall out of Upcoming. Flip it live, same
+    // as a start.gg tournament flips to "Happening Now" once its bracket
+    // opens, before any set is decided.
+    if (!existing.is_live && new Date(existing.date) <= new Date()) {
+      await db.runAsync('UPDATE tournaments SET is_live = 1 WHERE id = ?', [existing.id]);
+      return { manualId: entry.manualId, status: 'flagged-live' };
     }
     return { manualId: entry.manualId, status: 'not-ready' };
   }
