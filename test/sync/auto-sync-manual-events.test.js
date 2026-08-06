@@ -131,6 +131,49 @@ test('syncOneEvent leaves an already-seeded row alone once its start date has pa
   assert.equal(row.is_live, 0);
 });
 
+test('diagnoseMissingRegistryEntries warns about an EWC edition/game synced via start.gg with no REGISTRY entry', async () => {
+  await db.runAsync("INSERT INTO games (name) VALUES ('Guilty Gear Strive')");
+  const game = await db.getAsync("SELECT id FROM games WHERE name = 'Guilty Gear Strive'");
+  await db.runAsync(
+    "INSERT INTO tournaments (name, date, startgg_id) VALUES ('Esports World Cup 2027: Guilty Gear Strive - LCQ', '2027-08-01', 999)"
+  );
+  const t = await db.getAsync("SELECT id FROM tournaments WHERE name LIKE 'Esports World Cup 2027%'");
+  await db.runAsync('INSERT INTO tournament_games (tournament_id, game_id) VALUES (?, ?)', [t.id, game.id]);
+
+  const warnings = [];
+  const origWarn = console.warn;
+  console.warn = (msg) => warnings.push(msg);
+  try {
+    await autoSync.diagnoseMissingRegistryEntries();
+  } finally {
+    console.warn = origWarn;
+  }
+
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /Guilty Gear Strive 2027/);
+  assert.match(warnings[0], /no REGISTRY entry/);
+});
+
+test('diagnoseMissingRegistryEntries stays silent when every synced EWC edition/game has a REGISTRY entry', async () => {
+  const game = await db.getAsync("SELECT id FROM games WHERE name = 'TEKKEN 8'");
+  await db.runAsync(
+    "INSERT INTO tournaments (name, date, startgg_id) VALUES ('Esports World Cup 2026: TEKKEN 8 - LCQ', '2026-08-01', 998)"
+  );
+  const t = await db.getAsync("SELECT id FROM tournaments WHERE name LIKE 'Esports World Cup 2026: TEKKEN 8 - LCQ'");
+  await db.runAsync('INSERT INTO tournament_games (tournament_id, game_id) VALUES (?, ?)', [t.id, game.id]);
+
+  const warnings = [];
+  const origWarn = console.warn;
+  console.warn = (msg) => warnings.push(msg);
+  try {
+    await autoSync.diagnoseMissingRegistryEntries();
+  } finally {
+    console.warn = origWarn;
+  }
+
+  assert.equal(warnings.length, 0);
+});
+
 test('syncOneEvent seeds an upcoming entry when a brand-new event has no decided sets or groups yet', async () => {
   global.fetch = async (url) => {
     if (String(url).includes('prop=wikitext')) return wikitextResponse('2026-08-06');

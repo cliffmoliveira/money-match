@@ -230,7 +230,49 @@ async function syncOneEvent(entry) {
   return { manualId: entry.manualId, status: 'ingested', finalized: result.finalized };
 }
 
+// Guards against the actual root cause of the EWC 2026 T8 gap: REGISTRY is a
+// hand-maintained list, and nothing forced a human to add a new edition/game
+// to it when EWC announced one. EWC's Last Chance Qualifiers DO run on
+// start.gg (unlike the main stage), so a synced "Esports World Cup ... <Year>"
+// tournament is reliable, zero-maintenance proof that an edition exists - if
+// its game has no matching REGISTRY entry for that year, the main-stage
+// bracket for it isn't being tracked at all and this says so loudly instead
+// of staying silent like the original gap did. Read-only: never seeds or
+// modifies anything, just reports.
+async function diagnoseMissingRegistryEntries(logPrefix = '[auto-sync-manual]') {
+  try {
+    const rows = await db.allAsync(
+      `SELECT DISTINCT t.name AS tournament_name, g.name AS game_name
+       FROM tournaments t
+       JOIN tournament_games tg ON tg.tournament_id = t.id
+       JOIN games g ON g.id = tg.game_id
+       WHERE t.startgg_id IS NOT NULL
+         AND (t.name LIKE '%Esports World Cup%' OR t.name LIKE '%EWC%')`
+    );
+    const registryKeys = new Set(REGISTRY.map((e) => {
+      const year = (e.tournament.name.match(/\b(20\d{2})\b/) || [])[1];
+      return `${year}::${e.game.toLowerCase()}`;
+    }));
+    const missing = new Set();
+    for (const row of rows) {
+      const year = (row.tournament_name.match(/\b(20\d{2})\b/) || [])[1];
+      if (!year) continue;
+      const key = `${year}::${row.game_name.toLowerCase()}`;
+      if (!registryKeys.has(key)) missing.add(`${row.game_name} ${year} (seen via start.gg tournament "${row.tournament_name}")`);
+    }
+    if (missing.size) {
+      console.warn(
+        `${logPrefix} ${missing.size} EWC edition/game combo(s) visible on start.gg with no REGISTRY entry in ` +
+        `auto-sync-manual-events.js - that main-stage bracket will NOT be tracked until one is added: ${[...missing].join('; ')}`
+      );
+    }
+  } catch (err) {
+    console.error(`${logPrefix} REGISTRY coverage diagnostic failed: ${err.message}`);
+  }
+}
+
 async function autoSyncManualEvents() {
+  await diagnoseMissingRegistryEntries();
   const results = [];
   for (const entry of REGISTRY) {
     try {
@@ -243,7 +285,7 @@ async function autoSyncManualEvents() {
   return results;
 }
 
-module.exports = { autoSyncManualEvents, syncOneEvent, resolveBareTag, seedUpcomingTournament, REGISTRY };
+module.exports = { autoSyncManualEvents, syncOneEvent, resolveBareTag, seedUpcomingTournament, diagnoseMissingRegistryEntries, REGISTRY };
 
 if (require.main === module) {
   autoSyncManualEvents().then((results) => {
