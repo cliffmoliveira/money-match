@@ -111,28 +111,17 @@ test('seedUpcomingTournament gives up cleanly when the infobox has no sdate yet'
   assert.equal(row, undefined);
 });
 
-test('syncOneEvent flags a seeded row live once its start date arrives with nothing decided yet', async () => {
-  // Real production case: EWC 2026 T8's Liquipedia sdate had already passed
-  // with no group-stage/bracket data rendered yet - without this, the
-  // future-date check in getUpcoming() would make the row disappear again.
+test('syncOneEvent leaves an already-seeded row alone once its start date has passed with nothing decided yet', async () => {
+  // Deliberately NOT flipping is_live here: scripts/sync-live.js's 60s
+  // auto-clear sweep resets is_live=0 for any tournament with zero
+  // unresolved set_markets rows (see its own "Auto-clear is_live" comment),
+  // which describes every freshly-seeded manual event - toggling is_live
+  // here would just get stomped by that sweep a minute later. Visibility
+  // for this case is getUpcoming()'s job (see its own bridge-window test).
   const entry = autoSync.REGISTRY.find((e) => e.manualId === 'ewc-2026-t8');
   await db.runAsync(
     'INSERT INTO tournaments (name, date, is_live) VALUES (?, ?, 0)',
     [entry.tournament.name, '2000-01-01']
-  );
-  global.fetch = async () => ({ ok: true, json: async () => ({ parse: { text: { '*': '<div></div>' } } }) });
-
-  const result = await autoSync.syncOneEvent(entry);
-  assert.equal(result.status, 'flagged-live');
-  const row = await db.getAsync('SELECT is_live FROM tournaments WHERE name = ?', [entry.tournament.name]);
-  assert.equal(row.is_live, 1);
-});
-
-test('syncOneEvent leaves a seeded row alone when its start date is still in the future', async () => {
-  const entry = autoSync.REGISTRY.find((e) => e.manualId === 'ewc-2026-t8');
-  await db.runAsync(
-    'INSERT INTO tournaments (name, date, is_live) VALUES (?, ?, 0)',
-    [entry.tournament.name, '2099-01-01']
   );
   global.fetch = async () => ({ ok: true, json: async () => ({ parse: { text: { '*': '<div></div>' } } }) });
 

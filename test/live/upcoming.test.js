@@ -134,6 +134,27 @@ test('excludes a manually-ingested tournament with no bracket_history rows (an e
   assert.deepEqual(result, []);
 });
 
+test('includes a manually-tracked event whose seeded date already passed but no bracket data has landed yet (14-day bridge)', async () => {
+  // Real production case: EWC 2026 T8's Liquipedia infobox sdate had
+  // already passed with no group-stage/bracket data rendered on the page
+  // yet - the row is is_live=0 (seedUpcomingTournament never sets it live)
+  // and has zero bracket_history, so it must lean on the date bridge alone.
+  const fiveDaysAgo = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  await addGame(10, 'TEKKEN 8');
+  await addTournament(1, 'EWC Manual Seeded, Date Just Passed', fiveDaysAgo, { isLive: 0, startggId: null });
+  await db.runAsync('INSERT INTO tournament_games (tournament_id, game_id, num_entrants) VALUES (1, 10, 32)');
+
+  const result = await lm.getUpcoming();
+  assert.deepEqual(result.map((r) => r.tournament.id), [1]);
+});
+
+test('excludes a manually-tracked stub whose seeded date is well past the 14-day bridge window', async () => {
+  await addTournament(1, 'EWC Manual Long Abandoned', '2020-01-01', { isLive: 0, startggId: null });
+
+  const result = await lm.getUpcoming();
+  assert.deepEqual(result, []);
+});
+
 test('includes a manually-tracked event seeded ahead of time (future date, no bracket_history yet)', async () => {
   // Mirrors auto-sync-manual-events.js's seedUpcomingTournament: a
   // not-yet-started EWC main-stage event gets a bare tournaments row

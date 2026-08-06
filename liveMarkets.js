@@ -787,23 +787,36 @@ async function getUpcoming() {
        (SELECT SUM(num_entrants) FROM tournament_games tg WHERE tg.tournament_id = t.id) AS numEntrants,
        EXISTS (SELECT 1 FROM bracket_history bh WHERE bh.tournament_id = t.id AND bh.state = 'in_progress') AS hasLiveRound
      FROM tournaments t
-     WHERE (startgg_id IS NOT NULL
+     WHERE (
+       (startgg_id IS NOT NULL
             -- A manually-ingested event (startgg_id NULL - see
             -- ingest-manual-results.js) has no start.gg presence to gate
             -- on, but real bracket_history rows are the same proof of
             -- "actually tracked progress, not an empty stub" that a synced
             -- tournament gets from having a startgg_id at all.
-            OR EXISTS (SELECT 1 FROM bracket_history bh2 WHERE bh2.tournament_id = t.id)
-            -- A manually-tracked event that hasn't started yet (see
-            -- auto-sync-manual-events.js's seedUpcomingTournament) has
-            -- neither of the above - nothing's happened for it to prove
-            -- itself with. A future date is proof enough on its own: the
-            -- only thing that ever inserts a future-dated tournaments row
-            -- is a real sync/seed path, never manual DB surgery.
-            OR date(date) >= date('now'))
+            OR EXISTS (SELECT 1 FROM bracket_history bh2 WHERE bh2.tournament_id = t.id))
        AND (is_live = 1
             OR date(date) >= date('now')
             OR EXISTS (SELECT 1 FROM set_markets sm2 WHERE sm2.tournament_id = t.id AND sm2.state IN ('open','closed')))
+       )
+       -- Bridge window for a manually-tracked event seeded ahead of its own
+       -- results (auto-sync-manual-events.js's seedUpcomingTournament): its
+       -- only date is Liquipedia's infobox sdate, which can already be in
+       -- the past once the event is actually underway (its bracket/group
+       -- data just hasn't rendered yet) - the plain "date >= now" check
+       -- above would drop it right back out. Can't lean on is_live for this:
+       -- sync-live.js's 60s auto-clear sweep resets is_live=0 for any
+       -- tournament with zero unresolved set_markets rows, which describes
+       -- every freshly-seeded event, so the two would fight every minute.
+       -- A wide but bounded date window is the only signal left that isn't
+       -- already owned by another subsystem - 14 days comfortably covers a
+       -- real multi-day major without leaving a truly abandoned/never-
+       -- updated stub visible indefinitely. Once real data lands, ingestion
+       -- writes bracket_history and this bridge stops mattering.
+       OR (startgg_id IS NULL
+           AND is_live = 0
+           AND NOT EXISTS (SELECT 1 FROM bracket_history bh3 WHERE bh3.tournament_id = t.id)
+           AND date(date, '+14 days') >= date('now'))
      ORDER BY date(date) DESC`
   );
   return Promise.all(tournaments.map(async (tournament) => {
