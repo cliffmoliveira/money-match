@@ -134,6 +134,22 @@ test('excludes a manually-ingested tournament with no bracket_history rows (an e
   assert.deepEqual(result, []);
 });
 
+test('includes a manually-tracked event seeded ahead of time (future date, no bracket_history yet)', async () => {
+  // Mirrors auto-sync-manual-events.js's seedUpcomingTournament: a
+  // not-yet-started EWC main-stage event gets a bare tournaments row
+  // (startgg_id NULL, is_live 0, no bracket_history at all) well before any
+  // set is played, purely off its real future date.
+  await addGame(10, 'TEKKEN 8');
+  await db.runAsync(
+    "INSERT INTO tournaments (id, name, date, startgg_id, is_live) VALUES (1, 'EWC Manual Seeded', '2099-01-01', NULL, 0)"
+  );
+  await db.runAsync('INSERT INTO tournament_games (tournament_id, game_id, num_entrants) VALUES (1, 10, 32)');
+
+  const result = await lm.getUpcoming();
+  assert.deepEqual(result.map((r) => r.tournament.id), [1]);
+  assert.deepEqual(result[0].games.map((g) => g.name), ['TEKKEN 8']);
+});
+
 test('returns an empty array when nothing is upcoming or live', async () => {
   await addGame(10, 'Street Fighter 6');
   await addTournament(1, 'Old Major', '2000-01-01'); // finished, not live

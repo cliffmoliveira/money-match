@@ -67,6 +67,23 @@ async function fetchPageHtml(pagePath) {
   return data.parse.text['*'];
 }
 
+// Raw wikitext (not the rendered HTML fetchPageHtml returns) - the only place
+// an event's real start date lives, in the {{Infobox league|sdate=...}}
+// template. The rendered bracket HTML never carries this since {{ShowBracket}}
+// resolves to match data only, not the page's own infobox metadata.
+async function fetchPageWikitext(pagePath) {
+  const url = `${WIKI_API}?action=parse&page=${encodeURIComponent(pagePath)}&format=json&prop=wikitext`;
+  const res = await fetch(url, {
+    headers: { 'User-Agent': USER_AGENT, 'Accept-Encoding': 'gzip' },
+  });
+  if (!res.ok) fail(`Liquipedia API request failed: HTTP ${res.status}`);
+  const data = await res.json();
+  if (data.error) {
+    fail(`Liquipedia API error for page "${pagePath}": ${data.error.info || data.error.code}`);
+  }
+  return data.parse.wikitext['*'];
+}
+
 // Round label -> this app's roundInt convention (docs/manual-results-ingestion.md:
 // single-elim counts QF 1, SF 2, GF 3).
 const ROUND_INT_BY_LABEL = { Quarterfinals: 1, Semifinals: 2, 'Grand Final': 3 };
@@ -322,7 +339,7 @@ async function main() {
   console.log('against the DB; ingest-manual-results.js will fail loudly with near-match suggestions for typos).');
 }
 
-module.exports = { extractFinalsBracket, extractMatch, extractGroupStages, fetchPageHtml };
+module.exports = { extractFinalsBracket, extractMatch, extractGroupStages, fetchPageHtml, fetchPageWikitext };
 
 if (require.main === module) {
   main().catch((err) => {

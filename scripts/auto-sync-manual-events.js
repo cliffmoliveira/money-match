@@ -27,7 +27,7 @@
 const path = require('path');
 const cheerio = require('cheerio');
 const db = require('../db/db');
-const { fetchPageHtml, extractFinalsBracket, extractGroupStages } = require('./fetch-liquipedia-bracket');
+const { fetchPageHtml, fetchPageWikitext, extractFinalsBracket, extractGroupStages } = require('./fetch-liquipedia-bracket');
 const { ingestSpec } = require('./ingest-manual-results');
 
 // Every EWC 2026 fighting-game event this app tracks. Add a new entry here
@@ -116,6 +116,45 @@ function extractSection($) {
   return { finalsSets, groupMatches };
 }
 
+// Seeds a bare tournaments (+ tournament_games) row for an event that hasn't
+// started yet - no sets, no bracket_history, just enough (name/date/logo/
+// game) for it to appear in Upcoming ahead of time, same as a start.gg
+// tournament does before its bracket opens. The real start date only lives in
+// Liquipedia's wikitext infobox ({{Infobox league|sdate=...}}) - the rendered
+// HTML fetchPageHtml() uses for bracket data never carries it. Only ever
+// called once, the first time this event is seen with nothing decided yet;
+// once a tournaments row exists, syncOneEvent's `existing` check short-
+// circuits past this on every later run.
+async function seedUpcomingTournament(entry) {
+  let wikitext;
+  try {
+    wikitext = await fetchPageWikitext(entry.liquipediaPage);
+  } catch (err) {
+    console.error(`[auto-sync-manual] ${entry.manualId}: wikitext fetch failed - ${err.message}`);
+    return null;
+  }
+  const m = /\|\s*sdate\s*=\s*(\d{4}-\d{2}-\d{2})/.exec(wikitext);
+  if (!m) {
+    console.error(`[auto-sync-manual] ${entry.manualId}: no start date (sdate) in Liquipedia infobox yet - can't seed an upcoming entry`);
+    return null;
+  }
+  const gameRow = await db.getAsync('SELECT id FROM games WHERE name = ?', [entry.game]);
+  if (!gameRow) {
+    console.error(`[auto-sync-manual] ${entry.manualId}: game "${entry.game}" not found in games table`);
+    return null;
+  }
+  const r = await db.runAsync(
+    'INSERT INTO tournaments (name, date, city, country, winner_id, startgg_id, logo_url, is_live) VALUES (?, ?, ?, ?, NULL, NULL, ?, 0)',
+    [entry.tournament.name, m[1], entry.tournament.city || null, entry.tournament.country || null, entry.tournament.logoUrl || null]
+  );
+  await db.runAsync(
+    'INSERT INTO tournament_games (tournament_id, game_id, num_entrants) VALUES (?, ?, ?)',
+    [r.lastID, gameRow.id, entry.numEntrants ?? null]
+  );
+  console.log(`[auto-sync-manual] ${entry.manualId}: seeded upcoming tournament id ${r.lastID} (starts ${m[1]})`);
+  return r.lastID;
+}
+
 async function syncOneEvent(entry) {
   const existing = await db.getAsync('SELECT id, winner_id, date FROM tournaments WHERE name = ?', [entry.tournament.name]);
   if (existing && existing.winner_id != null) {
@@ -141,6 +180,10 @@ async function syncOneEvent(entry) {
   const finalsDecided = finalsSets.length > 0 && finalsSets.every((s) => s.decided);
   const groupsDecided = groupMatches.length > 0 && groupMatches.every((m) => m.decided);
   if (!finalsDecided && !groupsDecided) {
+    if (!existing) {
+      const seededId = await seedUpcomingTournament(entry);
+      return { manualId: entry.manualId, status: seededId ? 'seeded' : 'not-ready' };
+    }
     return { manualId: entry.manualId, status: 'not-ready' };
   }
 
@@ -200,7 +243,7 @@ async function autoSyncManualEvents() {
   return results;
 }
 
-module.exports = { autoSyncManualEvents, syncOneEvent, resolveBareTag, REGISTRY };
+module.exports = { autoSyncManualEvents, syncOneEvent, resolveBareTag, seedUpcomingTournament, REGISTRY };
 
 if (require.main === module) {
   autoSyncManualEvents().then((results) => {

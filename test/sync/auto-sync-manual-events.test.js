@@ -9,6 +9,7 @@ const fs = require('fs');
 // table, with no human review in the loop. A false-positive match here means
 // auto-attributing a real result to the wrong real person.
 let db, autoSync, file;
+const realFetch = global.fetch;
 
 before(async () => {
   file = path.join(os.tmpdir(), `mm-autosync-${process.pid}-${Math.random().toString(36).slice(2)}.db`);
@@ -20,11 +21,16 @@ before(async () => {
   autoSync = require('../../scripts/auto-sync-manual-events');
   await db.runAsync(`CREATE TABLE players (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE, country TEXT NOT NULL DEFAULT '', startgg_id INTEGER, photo_url TEXT)`);
   await db.runAsync(`CREATE TABLE tournaments (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE, date DATE NOT NULL, city TEXT, country TEXT, winner_id INTEGER, startgg_id INTEGER, logo_url TEXT, is_live INTEGER NOT NULL DEFAULT 0)`);
+  await db.runAsync(`CREATE TABLE games (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE)`);
+  await db.runAsync(`CREATE TABLE tournament_games (tournament_id INTEGER, game_id INTEGER, num_entrants INTEGER)`);
+  await db.runAsync("INSERT INTO games (name) VALUES ('Fatal Fury: City of the Wolves'), ('Street Fighter 6'), ('TEKKEN 8')");
 });
 
 beforeEach(async () => {
   await db.runAsync('DELETE FROM players');
   await db.runAsync('DELETE FROM tournaments');
+  await db.runAsync('DELETE FROM tournament_games');
+  global.fetch = realFetch;
 });
 
 after(() => { try { fs.unlinkSync(file); } catch { /* ignore */ } });
@@ -68,4 +74,53 @@ test('syncOneEvent skips an already-finalized tournament without any network cal
   const entry = autoSync.REGISTRY.find((e) => e.manualId === 'ewc-2026-ffcotw');
   const result = await autoSync.syncOneEvent(entry);
   assert.equal(result.status, 'already-finalized');
+});
+
+function wikitextResponse(sdate) {
+  return {
+    ok: true,
+    json: async () => ({ parse: { wikitext: { '*': sdate ? `{{Infobox league\n|sdate=${sdate}\n|edate=2026-08-07\n}}` : '{{Infobox league\n}}' } } }),
+  };
+}
+
+test('seedUpcomingTournament writes a bare tournaments + tournament_games row using the infobox start date', async () => {
+  global.fetch = async () => wikitextResponse('2026-08-06');
+  const entry = autoSync.REGISTRY.find((e) => e.manualId === 'ewc-2026-t8');
+
+  const id = await autoSync.seedUpcomingTournament(entry);
+  assert.ok(id);
+
+  const row = await db.getAsync('SELECT * FROM tournaments WHERE id = ?', [id]);
+  assert.equal(row.name, entry.tournament.name);
+  assert.equal(row.date, '2026-08-06');
+  assert.equal(row.startgg_id, null);
+  assert.equal(row.winner_id, null);
+  assert.equal(row.is_live, 0);
+
+  const tg = await db.getAsync('SELECT * FROM tournament_games WHERE tournament_id = ?', [id]);
+  assert.equal(tg.num_entrants, entry.numEntrants);
+});
+
+test('seedUpcomingTournament gives up cleanly when the infobox has no sdate yet', async () => {
+  global.fetch = async () => wikitextResponse(null);
+  const entry = autoSync.REGISTRY.find((e) => e.manualId === 'ewc-2026-t8');
+
+  const id = await autoSync.seedUpcomingTournament(entry);
+  assert.equal(id, null);
+  const row = await db.getAsync('SELECT * FROM tournaments WHERE name = ?', [entry.tournament.name]);
+  assert.equal(row, undefined);
+});
+
+test('syncOneEvent seeds an upcoming entry when a brand-new event has no decided sets or groups yet', async () => {
+  global.fetch = async (url) => {
+    if (String(url).includes('prop=wikitext')) return wikitextResponse('2026-08-06');
+    // Rendered-page fetch (prop=text): an empty page, no brackets started.
+    return { ok: true, json: async () => ({ parse: { text: { '*': '<div></div>' } } }) };
+  };
+  const entry = autoSync.REGISTRY.find((e) => e.manualId === 'ewc-2026-t8');
+
+  const result = await autoSync.syncOneEvent(entry);
+  assert.equal(result.status, 'seeded');
+  const row = await db.getAsync('SELECT * FROM tournaments WHERE name = ?', [entry.tournament.name]);
+  assert.equal(row.date, '2026-08-06');
 });

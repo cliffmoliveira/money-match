@@ -793,7 +793,14 @@ async function getUpcoming() {
             -- on, but real bracket_history rows are the same proof of
             -- "actually tracked progress, not an empty stub" that a synced
             -- tournament gets from having a startgg_id at all.
-            OR EXISTS (SELECT 1 FROM bracket_history bh2 WHERE bh2.tournament_id = t.id))
+            OR EXISTS (SELECT 1 FROM bracket_history bh2 WHERE bh2.tournament_id = t.id)
+            -- A manually-tracked event that hasn't started yet (see
+            -- auto-sync-manual-events.js's seedUpcomingTournament) has
+            -- neither of the above - nothing's happened for it to prove
+            -- itself with. A future date is proof enough on its own: the
+            -- only thing that ever inserts a future-dated tournaments row
+            -- is a real sync/seed path, never manual DB surgery.
+            OR date(date) >= date('now'))
        AND (is_live = 1
             OR date(date) >= date('now')
             OR EXISTS (SELECT 1 FROM set_markets sm2 WHERE sm2.tournament_id = t.id AND sm2.state IN ('open','closed')))
