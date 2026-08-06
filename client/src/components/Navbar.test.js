@@ -73,6 +73,9 @@ test('claiming the daily reward calls the API and flips the popover to its claim
   await waitFor(() => expect(screen.getByText(/daily reward/i)).toBeInTheDocument());
   await userEvent.click(screen.getByRole('button', { name: /daily reward/i }));
 
+  // The "Watch a video" ad-reward option was removed from this popover.
+  expect(screen.queryByText(/watch a video/i)).not.toBeInTheDocument();
+
   const claimBtn = await screen.findByRole('button', { name: /claim \+25 fm/i });
   await userEvent.click(claimBtn);
 

@@ -4,7 +4,6 @@ import './Navbar.css';
 import logo from '../assets/images/hit_confirmed.png';
 import { fm } from '../utils/money';
 import { apiFetch } from '../utils/api';
-import RewardedAdButton from './RewardedAdButton';
 
 // Person outline shown in the avatar circle when no photo is uploaded.
 const PersonIcon = () => (
@@ -62,7 +61,7 @@ const nextDayAmount = (ramp, streak) => {
 
 // Daily-reward popover: explains Fight Money, shows the 7-day streak ladder with
 // today highlighted, and either claims the waiting bonus or previews tomorrow's.
-const RewardPopover = ({ dailyBonus, claiming, onClaim, onReward, adReward }) => {
+const RewardPopover = ({ dailyBonus, claiming, onClaim }) => {
   const ramp = (dailyBonus.ramp && dailyBonus.ramp.length) ? dailyBonus.ramp : DEFAULT_RAMP;
   const N = ramp.length;
   const available = dailyBonus.available;
@@ -117,8 +116,6 @@ const RewardPopover = ({ dailyBonus, claiming, onClaim, onReward, adReward }) =>
         <div className="reward-next">Come back tomorrow for <strong>+{fm(tomorrow)}</strong></div>
       )}
 
-      <RewardedAdButton placement="reward-popover" onReward={onReward} cooldownMs={adReward?.retryInMs || 0} />
-
       <div className="reward-earn">Earn more: win picks · log in daily</div>
     </div>
   );
@@ -129,7 +126,6 @@ const Navbar = ({ isLoggedIn }) => {
   const [avatar, setAvatar] = useState(null);
   const [balanceCents, setBalanceCents] = useState(null);
   const [dailyBonus, setDailyBonus] = useState(null);
-  const [adReward, setAdReward] = useState(null);
   const [claiming, setClaiming] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [rewardOpen, setRewardOpen] = useState(false);
@@ -175,7 +171,6 @@ const Navbar = ({ isLoggedIn }) => {
           if (active && seq === walletSeqRef.current) {
             setBalanceCents(data.balanceCents);
             setDailyBonus(data.dailyBonus || null);
-            setAdReward(data.adReward || null);
           }
         }
       } catch { /* ignore transient errors */ }
@@ -312,7 +307,7 @@ const Navbar = ({ isLoggedIn }) => {
                       {dailyBonus.available && <span className="navbar-reward-dot" aria-hidden="true" />}
                     </button>
                     {rewardOpen && (
-                      <RewardPopover dailyBonus={dailyBonus} claiming={claiming} onClaim={claimDaily} onReward={setBalanceCents} adReward={adReward} />
+                      <RewardPopover dailyBonus={dailyBonus} claiming={claiming} onClaim={claimDaily} />
                     )}
                   </div>
                 )}
