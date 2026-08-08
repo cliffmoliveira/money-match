@@ -101,6 +101,33 @@ test('reports undecided matches instead of fabricating a result', () => {
   assert.equal(sets.find((s) => s.round === 'Semi-Final' && s.p1 === 'A').decided, false);
 });
 
+test('strips Liquipedia\'s page-slug disambiguator and underscores from an aria-label name', () => {
+  // Real production case: EWC 2026 T8's Top 8 rendered "Sin" (who shares his
+  // display tag with another wiki subject) as aria-label="Sin_(Dutch_Player)"
+  // - the underscore-for-space convention plus a disambiguator suffix, not
+  // the actual competitive tag resolveBareTag needs to match against.
+  const html = bracketHtml({
+    lower: [
+      match({ p1: 'Sin_(Dutch_Player)', p2: 'Tekken_Master', p1Score: 2, p2Score: 0 }),
+      match({ p1: 'A', p2: 'B', p1Score: 2, p2Score: 1 }),
+      match({ p1: 'Sin_(Dutch_Player)', p2: 'A' }),
+      match({ p1: 'C', p2: 'D', p1Score: 2, p2Score: 0 }),
+      match({ p1: 'E', p2: 'F', p1Score: 2, p2Score: 1 }),
+      match({ p1: 'C', p2: 'E' }),
+    ],
+    center: [
+      match({ p1: '', p2: '' }),
+      match({ p1: '', p2: '', thirdPlace: true }),
+    ],
+  });
+  const $ = cheerio.load(html);
+  const sets = extractFinalsBracket($);
+
+  const qf1 = sets.find((s) => s.p1 === 'Sin' || s.p2 === 'Sin');
+  assert.ok(qf1, 'the disambiguated name resolved down to the bare tag "Sin"');
+  assert.equal(qf1.p2, 'Tekken Master');
+});
+
 test('fails loudly when no Grand Final bracket exists on the page', () => {
   const $ = cheerio.load('<div class="brkts-bracket-wrapper">Group Stage 1, no finals yet</div>');
   assert.throws(() => extractFinalsBracket($), /Grand Final/);

@@ -98,10 +98,26 @@ const ROUND_INT_BY_LABEL = { Quarterfinals: 1, Semifinals: 2, 'Grand Final': 3 }
 // have no parseable losing score anywhere in the markup, an upstream
 // Liquipedia data gap rather than a parsing bug. Scores are still captured
 // whenever present either way.
+// aria-label is preferred over .text() because the rendered opponent entry's
+// own text node runs the player name straight into the adjacent score digit
+// with no separator (e.g. "Sin1") - but aria-label is Liquipedia's own page
+// slug for that player, not their competitive tag, whenever they share a
+// display name with another wiki subject: underscores stand in for spaces,
+// and a disambiguator is appended (e.g. "Sin_(Dutch_Player)" for the tag
+// "Sin", confirmed live against EWC 2026 T8's Top 8). Undo both so
+// resolveBareTag in auto-sync-manual-events.js gets the real tag to match
+// against, not the page-title text alongside it.
+function normalizeAriaLabelName(raw) {
+  return raw.replace(/_/g, ' ').replace(/\s*\([^)]*\)\s*$/, '').trim();
+}
+
 function extractMatch($, matchEl, { requireScores = true } = {}) {
   const opponents = $(matchEl).find('.brkts-opponent-entry');
   if (opponents.length !== 2) return null;
-  const names = opponents.map((i, o) => $(o).attr('aria-label') || $(o).text().trim()).get();
+  const names = opponents.map((i, o) => {
+    const aria = $(o).attr('aria-label');
+    return aria ? normalizeAriaLabelName(aria) : $(o).text().trim();
+  }).get();
   const scores = $(matchEl)
     .find('.match-info-header-scoreholder-score')
     .map((i, s) => $(s).text().trim())
