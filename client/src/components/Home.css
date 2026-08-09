@@ -307,7 +307,7 @@ body { background: var(--bg); color: var(--text); }
 /* 2-up only when a cell is wide enough for the whole bet row; otherwise the
    grid drops to a single full-width column so nothing squeezes or overflows. */
 .bets-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); gap: 12px; }
-.bets .bet-card {
+.bet-card {
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 14px;
