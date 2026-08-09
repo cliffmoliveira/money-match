@@ -53,34 +53,8 @@ test('renders computed stats and pick history rows from live bets', async () => 
   // Stats: 1 win, 1 loss, 50% accuracy, net = (1800-1000) - 500 = 300 -> "+3"
   expect(screen.getByText('+3')).toBeInTheDocument();
   expect(screen.getByText('50%')).toBeInTheDocument();
-  expect(screen.getByText('WON')).toBeInTheDocument();
-  expect(screen.getByText('LOST')).toBeInTheDocument();
+  expect(screen.getByText(/won/i)).toBeInTheDocument();
+  expect(screen.getByText(/lost/i)).toBeInTheDocument();
   expect(screen.getAllByText('MkLeo').length).toBeGreaterThan(0);
   expect(screen.getAllByText('Tweek').length).toBeGreaterThan(0);
-});
-
-test('hides the tournament name label when a bundled logo covers that brand, but keeps it when there is none', async () => {
-  setLoggedIn({ userId: 9014 });
-  mockFetchRoutes([
-    ['/api/live/bets?userId=9014', [
-      {
-        id: 1, state: 'won', amount_cents: 1000, payout_cents: 1800, locked_odds: 1.8,
-        picked_name: 'MkLeo', player1_name: 'MkLeo', player2_name: 'Tweek',
-        tournament_name: 'Esports World Cup 2026: TEKKEN 8 - LCQ', game_name: 'Tekken 8', round_text: 'Grand Final',
-      },
-      {
-        id: 2, state: 'lost', amount_cents: 500, payout_cents: 0, locked_odds: 2.1,
-        picked_name: 'Tweek', player1_name: 'MkLeo', player2_name: 'Tweek',
-        tournament_name: 'VSFighting XIV', game_name: 'Tekken 8', round_text: 'Winners Final',
-      },
-    ]],
-  ]);
-
-  renderWithRouter(<Profile />);
-
-  await waitFor(() => expect(screen.getByText('Pick history')).toBeInTheDocument());
-  // EWC has a bundled logo (esports-world-cup.png) - the redundant text label is suppressed.
-  expect(screen.queryByText('Esports World Cup 2026: TEKKEN 8 - LCQ')).not.toBeInTheDocument();
-  // VSFighting has no bundled logo asset - its name is the only identifier, so it stays.
-  expect(screen.getByText('VSFighting XIV')).toBeInTheDocument();
 });

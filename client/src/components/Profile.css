@@ -65,21 +65,10 @@
 }
 
 .pf-recent-title { font-family: 'Saira', sans-serif; font-size: 16px; font-weight: 700; margin: 0 0 12px; }
-.pf-picks { display: flex; flex-direction: column; gap: 10px; }
-.pf-picks .bet-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 12px 16px; font-size: 14px; display: flex; flex-direction: column; gap: 8px; }
-
-.pf-bet-pick { font-weight: 700; }
-.pf-pick-name { color: var(--gold); }
-.pf-pick-vs { color: var(--muted); font-weight: 500; }
-.pf-pick-opp { color: var(--muted); }
-.pf-pick-name.pf-winner::before,
-.pf-pick-opp.pf-winner::before { content: "\2605 "; color: var(--gold); }
-.pf-pick-opp.pf-winner { color: var(--text); }
-.pf-bet-stake { display: flex; align-items: center; gap: 6px; flex: none; margin-left: auto; font-family: 'Saira', sans-serif; font-size: 13px; white-space: nowrap; }
-.pf-bet-amount { font-weight: 700; font-variant-numeric: tabular-nums; }
-.pf-bet-amount.loss { color: var(--live-text); }
-.pf-bet-odds { color: var(--muted); font-weight: 600; }
-.pf-bet-payout { font-weight: 700; color: var(--win); font-variant-numeric: tabular-nums; }
+/* Pick history cards reuse Home.css's .bets-grid/.bet-card and friends
+   directly (see Profile.js's import of Home.css) so this page's cards
+   look identical to Home's "Your Picks" widget - no page-specific
+   overrides needed here. */
 
 @media (max-width: 600px) {
   .profile-page { padding: 22px 14px 90px; }

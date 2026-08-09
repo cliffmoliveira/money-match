@@ -95,20 +95,6 @@ export function getTournamentAlt(name) {
   return name || 'Tournament';
 }
 
-// Slugs that actually have a bundled asset under public/assets/tournaments -
-// keep this in sync whenever a logo file is added or removed. Used to decide
-// when a tournament's NAME label is redundant next to its logo (e.g.
-// Profile.js's pick history) versus still the only identifying element on
-// screen for a brand with no logo asset yet.
-const BUNDLED_LOGO_SLUGS = new Set([
-  'capcom-cup', 'capcom-pro-tour', 'ceo', 'combo-breaker', 'dreamhack',
-  'esports-world-cup', 'evo', 'frosty-faustings', 'red-bull-kumite',
-]);
-
-export function hasTournamentLogo(name) {
-  return BUNDLED_LOGO_SLUGS.has(getTournamentSlug(name));
-}
-
 export function getTournamentLogoStyle(name, baseHeight) {
   const height = Math.max(1, Math.round((baseHeight || 32)));
   // Most bundled logos are roughly square, but a wide logotype (e.g.
