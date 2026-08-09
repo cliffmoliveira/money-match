@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import './Profile.css';
-import { getTournamentLogoSources, getTournamentAlt, getTournamentLogoStyle } from '../utils/tournamentLogos';
+import { getTournamentLogoSources, getTournamentAlt, getTournamentLogoStyle, hasTournamentLogo } from '../utils/tournamentLogos';
 import { getGameLogoSources, getGameAlt, getGameLogoStyle } from '../utils/gameLogos';
 import { fmAmount } from '../utils/money';
 import { apiFetch } from '../utils/api';
@@ -145,7 +145,9 @@ const Profile = () => {
                 <div className="bet-row bet-row-top">
                   <div className="bet-tournament">
                     <TournamentLogo name={b.tournament_name} height={20} />
-                    <span className="bet-tournament-name">{b.tournament_name || '—'}</span>
+                    {!hasTournamentLogo(b.tournament_name) && (
+                      <span className="bet-tournament-name">{b.tournament_name || '—'}</span>
+                    )}
                   </div>
                   {b.round_text && <span className="bet-kind">{b.round_text}</span>}
                   <div className={`bet-outcome ${statusClass}`}>{statusLabel}</div>
