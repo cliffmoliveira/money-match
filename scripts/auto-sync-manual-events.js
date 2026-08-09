@@ -77,8 +77,12 @@ const SEPARATORS = /[|｜丨/]/;
 // LIKE-prefilters in SQL (cheap), then checks precisely in JS - a plain SQL
 // substring match alone would false-positive (e.g. Liquipedia's "Xian"
 // matching inside an unrelated player named "waktuxiang").
+async function likeCandidates(bareTag) {
+  return db.allAsync(`SELECT id, name FROM players WHERE name LIKE '%' || ? || '%'`, [bareTag]);
+}
+
 async function resolveBareTag(bareTag) {
-  const candidates = await db.allAsync(`SELECT id, name FROM players WHERE name LIKE '%' || ? || '%'`, [bareTag]);
+  const candidates = await likeCandidates(bareTag);
   const matches = candidates.filter((c) => {
     const segments = c.name.split(SEPARATORS);
     const last = segments[segments.length - 1].trim();
@@ -86,6 +90,32 @@ async function resolveBareTag(bareTag) {
   });
   if (matches.length === 1) return matches[0];
   return null; // 0 or 2+ - not safe to auto-resolve
+}
+
+// Pure formatter for a single unresolved name's diagnostic line, given the
+// SAME loose LIKE-prefiltered candidate list resolveBareTag itself computed
+// (0 candidates vs 2+ candidates are different problems needing different
+// next steps, so distinguish them instead of a single flat "unresolved").
+// Separated from suggestUnresolved() below so it's testable without a DB.
+function describeUnresolved(name, candidates) {
+  if (!candidates.length) {
+    return `"${name}": no players row contains this tag at all - likely a brand-new player, not a resolution failure`;
+  }
+  return `"${name}": ${candidates.length} candidate(s), none an exact last-segment match - ${candidates.map((c) => `[${c.id}] ${c.name}`).join(' ; ')}`;
+}
+
+// Re-queries (deliberately not cached from resolveBareTag's own attempt -
+// this only runs for the handful of names that failed, so the extra query is
+// cheap) so the "needs-human" log carries enough to act on immediately,
+// mirroring ingest-manual-results.js's own near-match suggestions on a
+// failed resolvePlayer() - without this, resolving EWC 2026 T8's unresolved
+// names took several manual SQL queries against production per name.
+async function suggestUnresolved(names) {
+  const lines = [];
+  for (const name of names) {
+    lines.push(describeUnresolved(name, await likeCandidates(name)));
+  }
+  return lines;
 }
 
 async function resolveAllNames(names) {
@@ -193,10 +223,11 @@ async function syncOneEvent(entry) {
   const { resolved, unresolved } = await resolveAllNames(allNames);
 
   if (unresolved.length) {
+    const suggestions = await suggestUnresolved(unresolved);
     console.error(
       `[auto-sync-manual] ${entry.manualId}: ${unresolved.length} player name(s) couldn't be safely auto-resolved ` +
-      `(0 or multiple candidates) - skipping this run, needs a human to run scripts/fetch-liquipedia-bracket.js + ` +
-      `manually cross-reference: ${unresolved.join(', ')}`
+      `- skipping this run, needs a human to run scripts/fetch-liquipedia-bracket.js + ingest-manual-results.js:\n` +
+      suggestions.map((line) => `    ${line}`).join('\n')
     );
     return { manualId: entry.manualId, status: 'needs-human', unresolved };
   }
@@ -285,7 +316,10 @@ async function autoSyncManualEvents() {
   return results;
 }
 
-module.exports = { autoSyncManualEvents, syncOneEvent, resolveBareTag, seedUpcomingTournament, diagnoseMissingRegistryEntries, REGISTRY };
+module.exports = {
+  autoSyncManualEvents, syncOneEvent, resolveBareTag, seedUpcomingTournament,
+  diagnoseMissingRegistryEntries, describeUnresolved, suggestUnresolved, REGISTRY,
+};
 
 if (require.main === module) {
   autoSyncManualEvents().then((results) => {

@@ -67,6 +67,27 @@ test('returns null when no candidate exists at all', async () => {
   assert.equal(match, null);
 });
 
+test('describeUnresolved calls out a brand-new player distinctly from a genuinely ambiguous one', () => {
+  const brandNew = autoSync.describeUnresolved('CherryBerryMango', []);
+  assert.match(brandNew, /brand-new player/);
+
+  const ambiguous = autoSync.describeUnresolved('mok', [{ id: 1, name: 'Falcons | mok' }, { id: 2, name: 'VARREL | mok' }]);
+  assert.match(ambiguous, /\[1\] Falcons \| mok/);
+  assert.match(ambiguous, /\[2\] VARREL \| mok/);
+});
+
+test('suggestUnresolved surfaces real candidates for names LIKE-matched but not resolved cleanly', async () => {
+  // Real production case: "Atif Butt" (Liquipedia's real name, not a
+  // sponsor tag) never LIKE-matches "Falcons | ATIF" at all - the whole
+  // point is this can only report what candidates genuinely exist, it can
+  // never manufacture the right one out of thin air.
+  await db.runAsync("INSERT INTO players (name) VALUES ('Falcons | mok'), ('VARREL | mok')");
+  const lines = await autoSync.suggestUnresolved(['mok', 'CompletelyUnknownTag']);
+  assert.equal(lines.length, 2);
+  assert.match(lines[0], /2 candidate\(s\)/);
+  assert.match(lines[1], /brand-new player/);
+});
+
 test('syncOneEvent skips an already-finalized tournament without any network call', async () => {
   await db.runAsync(
     "INSERT INTO tournaments (name, date, winner_id) VALUES ('Esports World Cup 2026: FATAL FURY: City of the Wolves', '2026-07-11', 1)"
