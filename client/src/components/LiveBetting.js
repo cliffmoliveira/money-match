@@ -542,8 +542,20 @@ const LiveBetting = () => {
   );
 
   // Group markets by tournament -> game, capturing the tournament logo on first encounter
+  // A tournament's own set of tracked games (from getUpcoming(), which reads
+  // tournament_games/players_games_tournaments directly) is always the FULL
+  // roster - `games` above only has an entry per game once real Top-8
+  // set_markets exist for it. A big multi-game major has wildly staggered
+  // per-game lifecycles (confirmed live on CEO 2026: several games' Top 8s
+  // had already settled while Street Fighter 6/TEKKEN 8/etc. were still deep
+  // in pools with zero real markets of their own) - without this, those
+  // still-in-pools games simply vanished from the pill the moment ANY game
+  // at the same tournament got its first real market, since upcomingNotYet-
+  // Marketed (below) excludes any tournament already present in `groups`.
+  const upcomingGamesByTournament = new Map(upcoming.map((u) => [u.tournament.name, u]));
+
   const renderPills = (grps) => Object.entries(grps).map(([tName, { logoUrl: tLogo, date: tDate, city: tCity, country: tCountry, numEntrants: tNumEntrants, games }]) => {
-    const tTabs = Object.entries(games)
+    const marketedTabs = Object.entries(games)
       .sort(([, a], [, b]) => gamePriority(a) - gamePriority(b))
       .map(([gName, mkts]) => {
         const isSettled = mkts.length > 0 && mkts.every((m) => m.state === 'settled' || m.state === 'void');
@@ -557,6 +569,18 @@ const LiveBetting = () => {
         const isLive = !isSettled && mkts.some((m) => m.state !== 'pending');
         return { key: `${tName}::${gName}`, gameName: gName, mkts, isLive, isSettled, winner };
       });
+    const upcomingMatch = upcomingGamesByTournament.get(tName);
+    const marketedNames = new Set(marketedTabs.map((t) => t.gameName));
+    // Shell tab: no real market yet, so there's nothing to bet on or settle -
+    // just enough (tournamentId/gameId) for TrackerPanel's own pool-progress
+    // fetch (/api/game/:t/:g/tracker) and a placeholder "next" Top 8 template.
+    const poolOnlyTabs = (upcomingMatch?.games || [])
+      .filter((g) => !marketedNames.has(g.name))
+      .map((g) => ({
+        key: `${tName}::${g.name}`, gameName: g.name, mkts: [], isLive: false, isSettled: false, winner: null,
+        tournamentId: upcomingMatch.tournament.id, gameId: g.id,
+      }));
+    const tTabs = [...marketedTabs, ...poolOnlyTabs].sort((a, b) => gamePriority(a.mkts) - gamePriority(b.mkts));
     const hasLive = tTabs.some((t) => t.isLive);
     const isExpanded = expandedTourneys.has(tName);
     const activeTabKey = (activeTabs[tName] && tTabs.find((t) => t.key === activeTabs[tName]))
@@ -585,8 +609,8 @@ const LiveBetting = () => {
               <section className="live-tournament" role="tabpanel">
                 <div className="live-game">
                   <TrackerPanel
-                    tournamentId={activeTabData.mkts[0]?.tournament_id}
-                    gameId={activeTabData.mkts[0]?.game_id}
+                    tournamentId={activeTabData.mkts[0]?.tournament_id ?? activeTabData.tournamentId}
+                    gameId={activeTabData.mkts[0]?.game_id ?? activeTabData.gameId}
                     top8Status={activeTabData.isSettled ? 'done' : activeTabData.isLive ? 'live' : 'next'}
                     bracketBets={activeGameBets}
                     showPnl={showPnl}
@@ -594,6 +618,7 @@ const LiveBetting = () => {
                     bracket={
                       <Bracket
                         markets={activeTabData.mkts}
+                        waiting={activeTabData.mkts.length === 0}
                         slip={slip}
                         onPick={togglePick}
                         demoControls={demo ? renderDemoControls : null}

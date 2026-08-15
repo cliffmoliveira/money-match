@@ -106,6 +106,40 @@ test('tapping an open pick adds it to the slip and opens the drawer', async () =
   expect(screen.queryByText(/tap a player's odds/i)).not.toBeInTheDocument();
 });
 
+test('shows a game tab for a still-in-pools game with no real markets yet, alongside a marketed one', async () => {
+  // Real production case: CEO 2026 had real settled markets for some games
+  // (e.g. Melee) while Street Fighter 6/TEKKEN 8/etc. were still hundreds of
+  // bracket_history rows deep in pools with zero real markets of their own -
+  // those games must still show up as tabs (pulled from getUpcoming()'s full
+  // tournament_games roster), not disappear just because the tournament
+  // already has a marketed game elsewhere.
+  mockFetchRoutes([
+    ...BASE_ROUTES,
+    ['/api/live/markets', [sf6Market]],
+    ['/api/live/upcoming', [{
+      tournament: { id: 10, name: 'VSFighting XIV', date: '2026-07-20', logoUrl: null, city: 'Orlando', country: 'US', numEntrants: 128 },
+      games: [{ id: 20, name: 'Street Fighter 6' }, { id: 22, name: 'Fatal Fury: City of the Wolves' }],
+    }]],
+    ['/api/game/10/20/tracker', { rounds: [], results: [], stillAlive: [] }],
+    ['/api/game/10/20/players', { locked: true, entrants: [] }],
+    ['/api/game/10/22/tracker', { rounds: [{ roundText: 'Pools', roundInt: null, status: 'in_progress' }], results: [], stillAlive: [] }],
+    ['/api/game/10/22/players', { locked: false, entrants: [] }],
+  ]);
+  renderWithRouter(<LiveBetting />);
+
+  await waitFor(() => expect(screen.getByText('VSFighting XIV')).toBeInTheDocument());
+  expect(screen.getByRole('tab', { name: /street fighter 6/i })).toBeInTheDocument();
+  const poolTab = screen.getByRole('tab', { name: /fatal fury/i });
+  expect(poolTab).toBeInTheDocument();
+  // No real market yet, so no LIVE badge and no settled/winner styling.
+  expect(poolTab).not.toHaveClass('settled');
+
+  fireEvent.click(poolTab);
+  // Switching into it fetches its own pool progress off tournamentId/gameId
+  // sourced from getUpcoming(), not from any market row.
+  await waitFor(() => expect(screen.getByText('Pools')).toBeInTheDocument());
+});
+
 test('placing a pick activates the "My picks" toggle without a manual click', async () => {
   // The toggle only renders once a real placed bet comes back from the API
   // (hasAnyPicks), not from internal state alone - mock /api/live/bets
