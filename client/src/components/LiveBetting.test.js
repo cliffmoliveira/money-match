@@ -167,6 +167,67 @@ test('keeps a tournament under Happening Now when it is_live even though its onl
   expect(screen.queryByText('Next Up')).not.toBeInTheDocument();
 });
 
+test('CANARY: a large multi-game major with staggered per-game progress renders correctly end-to-end', async () => {
+  // Combines every CEO 2026 failure mode found in one session into a single
+  // fixture, so a future change can't reintroduce any of them without this
+  // test catching it - each bug only showed up at CEO's scale (many games,
+  // wildly staggered per-game progress), never in a small single/two-game
+  // tournament, which is all the other tests above exercise:
+  //   1. unresolvedSetsSql gated its bracket_history fallback on the WHOLE
+  //      tournament having zero real markets anywhere, so once ANY game
+  //      settled, the tournament wrongly fell out of live tracking entirely
+  //      (backend - covered separately in liveMarkets.test coverage; this
+  //      test only asserts the frontend consequence: it must still render
+  //      as live here rather than being absent).
+  //   2. A game only got a tab once it had real Top-8 markets - every
+  //      still-in-pools game vanished from the page.
+  //   3. groupIsLive only checked whether an already-marketed game had a
+  //      set open/closed/pending at that exact poll tick - with every
+  //      marketed game momentarily settled between rounds, the tournament
+  //      read as "not live" and landed in a headerless bucket that looked
+  //      like part of "Next Up".
+  const bigMajor = {
+    tournament: { id: 50, name: 'Big Major 2026', date: '2026-08-14', logoUrl: null, city: 'Orlando', country: 'US', numEntrants: 512, isLive: true },
+    games: [
+      { id: 30, name: 'Super Smash Bros. Melee' },
+      { id: 31, name: 'Super Smash Bros. Ultimate' },
+      { id: 32, name: 'Street Fighter 6' },
+      { id: 33, name: 'Tekken 8' },
+      { id: 34, name: 'Fatal Fury: City of the Wolves' },
+    ],
+  };
+  // Only 2 of the 5 games have real markets, and both are momentarily
+  // settled between rounds - nothing open/closed/pending anywhere.
+  const meleeMarket = {
+    id: 301, tournament_id: 50, game_id: 30, tournament_name: 'Big Major 2026', tournament_logo_url: null,
+    tournament_date: '2026-08-14', tournament_city: 'Orlando', tournament_country: 'US', tournament_num_entrants: 512,
+    game_name: 'Super Smash Bros. Melee', round_text: 'Grand Final', round_int: 3, state: 'settled',
+    player1_id: 1, player2_id: 2, player1_name: 'Player One', player2_name: 'Player Two',
+    p1_live_odds: 1.5, p2_live_odds: 2.5, p1_score: 3, p2_score: 1, winner_id: 1,
+  };
+  const ssbuMarket = { ...meleeMarket, id: 302, game_id: 31, game_name: 'Super Smash Bros. Ultimate' };
+
+  mockFetchRoutes([
+    ...BASE_ROUTES,
+    ['/api/live/markets', [meleeMarket, ssbuMarket]],
+    ['/api/live/upcoming', [bigMajor]],
+    ['/api/game/50/30/tracker', { rounds: [], results: [], stillAlive: [] }],
+    ['/api/game/50/30/players', { locked: true, entrants: [] }],
+  ]);
+  renderWithRouter(<LiveBetting />);
+
+  // 1. Renders as live, exactly once, not duplicated across sections.
+  await waitFor(() => expect(screen.getAllByText('Big Major 2026')).toHaveLength(1));
+  expect(screen.getByText('Happening Now')).toBeInTheDocument();
+  expect(screen.queryByText('Next Up')).not.toBeInTheDocument();
+  expect(screen.queryByText('Future Tournaments')).not.toBeInTheDocument();
+
+  // 2. Every tracked game gets a tab, marketed or not.
+  for (const g of bigMajor.games) {
+    expect(screen.getByRole('tab', { name: new RegExp(g.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') })).toBeInTheDocument();
+  }
+});
+
 test('placing a pick activates the "My picks" toggle without a manual click', async () => {
   // The toggle only renders once a real placed bet comes back from the API
   // (hasAnyPicks), not from internal state alone - mock /api/live/bets
