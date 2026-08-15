@@ -140,6 +140,33 @@ test('shows a game tab for a still-in-pools game with no real markets yet, along
   await waitFor(() => expect(screen.getByText('Pools')).toBeInTheDocument());
 });
 
+test('keeps a tournament under Happening Now when it is_live even though its only marketed set already settled', async () => {
+  // Real production case: CEO 2026 was is_live=1 with real bracket activity
+  // (other games still deep in pools) but its only currently-marketed game's
+  // set happened to be settled at that exact 6s poll tick, with nothing else
+  // open/closed/pending - groupIsLive's old per-market-only check read that
+  // as "not live", dropping it into the headerless `restGroups` bucket that
+  // renders wherever it lands in the JSX. It landed right after "Next Up"
+  // with no separator, reading as if it were one of the not-yet-started
+  // events instead of the live tournament it actually was.
+  const settledMarket = { ...sf6Market, state: 'settled', winner_id: 1 };
+  mockFetchRoutes([
+    ...BASE_ROUTES,
+    ['/api/live/markets', [settledMarket]],
+    ['/api/live/upcoming', [{
+      tournament: { id: 10, name: 'VSFighting XIV', date: '2026-07-20', logoUrl: null, city: 'Orlando', country: 'US', numEntrants: 128, isLive: true },
+      games: [{ id: 20, name: 'Street Fighter 6' }],
+    }]],
+    ['/api/game/10/20/tracker', { rounds: [], results: [], stillAlive: [] }],
+    ['/api/game/10/20/players', { locked: true, entrants: [] }],
+  ]);
+  renderWithRouter(<LiveBetting />);
+
+  await waitFor(() => expect(screen.getByText('VSFighting XIV')).toBeInTheDocument());
+  expect(screen.getByText('Happening Now')).toBeInTheDocument();
+  expect(screen.queryByText('Next Up')).not.toBeInTheDocument();
+});
+
 test('placing a pick activates the "My picks" toggle without a manual click', async () => {
   // The toggle only renders once a real placed bet comes back from the API
   // (hasAnyPicks), not from internal state alone - mock /api/live/bets

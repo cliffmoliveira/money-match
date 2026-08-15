@@ -666,12 +666,24 @@ const LiveBetting = () => {
   // settled - mirrors renderPills' own isLive calc so a tournament that has
   // already graduated past the pre-Top-8 waiting-room pill doesn't fall
   // through both headings and read as if it vanished from the page.
-  const groupIsLive = (group) => Object.values(group.games).some((mkts) => {
+  //
+  // That per-market check alone isn't enough for a big multi-game major
+  // though: between two sets (one just settled, the next round not opened
+  // for THIS specific marketed game yet) every one of its real markets can
+  // read settled/pending for a whole 6s poll tick even though other games at
+  // the same tournament are still actively in pools - the tournament itself
+  // is_live=1 in the DB the whole time. Without also trusting that flag, the
+  // tournament falls into `restGroups`, which has no heading of its own and
+  // renders wherever it lands in the JSX - confirmed live: CEO 2026 landed
+  // directly under the "Next Up" list with no separator, reading as if it
+  // were one of the not-yet-started events instead of already running.
+  const liveTournamentNames = new Set(upcoming.filter((u) => u.tournament.isLive).map((u) => u.tournament.name));
+  const groupIsLive = (tName, group) => liveTournamentNames.has(tName) || Object.values(group.games).some((mkts) => {
     const isSettled = mkts.length > 0 && mkts.every((m) => m.state === 'settled' || m.state === 'void');
     return !isSettled && mkts.some((m) => m.state !== 'pending');
   });
-  const liveGroups = Object.fromEntries(Object.entries(groups).filter(([, g]) => groupIsLive(g)));
-  const restGroups = Object.fromEntries(Object.entries(groups).filter(([, g]) => !groupIsLive(g)));
+  const liveGroups = Object.fromEntries(Object.entries(groups).filter(([tName, g]) => groupIsLive(tName, g)));
+  const restGroups = Object.fromEntries(Object.entries(groups).filter(([tName, g]) => !groupIsLive(tName, g)));
 
   // Past-section filter options (derived from the raw past markets, not groups).
   const pastYears = [...new Set(pastMarkets.map((m) => (m.tournament_date || '').slice(0, 4)).filter(Boolean))].sort((a, b) => b.localeCompare(a));
