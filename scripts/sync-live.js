@@ -18,6 +18,7 @@ const db = require('../db/db');
 const { startgg } = require('../startggClient');
 const lm = require('../liveMarkets');
 const { findOrCreatePlayerId } = require('./lib/players');
+const { upsertTournamentGame } = require('../futuresMeta');
 
 // startgg() itself has no pacing or retry - every caller is responsible for
 // its own. With several tournaments active on a busy day, each needing
@@ -332,6 +333,18 @@ async function processTournamentEvents(tRow, events = []) {
   for (const ev of events) {
     const gameId = await findOrCreateGameId(ev.videogame);
     if (!gameId) continue;
+    // tournament_games is otherwise only ever populated by the daily
+    // upcoming-tournament discovery sync (sync-upcoming.js), off whatever
+    // event list start.gg had AT THAT TIME - an event a TO adds later (or
+    // one that simply wasn't live yet on the day of discovery) never gets a
+    // row, even once this live poller is actively tracking real markets for
+    // it. That row is the ONLY thing the game-tab roster (getUpcoming()) and
+    // the Future Tournaments entrant count read from - confirmed live on
+    // CEO 2026's "Marvel Tokon: Fighting Souls": fully tracked here (real
+    // markets, hundreds of bracket_history rows) but invisible as a game tab
+    // because tournament_games never had a row for it at all. Cheap/no-op
+    // once a row exists (INSERT OR IGNORE), so safe to call every cycle.
+    await upsertTournamentGame(tRow.id, gameId);
 
     // Completed (state 3) sets first, within a single poll cycle: fillBracketSlot's
     // stillActive guard blocks advancing a player into a downstream slot while
@@ -848,6 +861,7 @@ async function syncLive({ all = false, tournamentIds = null } = {}) {
       for (const phase of historyPhases) {
         const gameId = await findOrCreateGameId(phase.videogame);
         if (!gameId) continue;
+        await upsertTournamentGame(tRow.id, gameId); // see the same call in processTournamentEvents for why
         if (!byGame.has(gameId)) byGame.set(gameId, []);
         byGame.get(gameId).push(phase);
       }

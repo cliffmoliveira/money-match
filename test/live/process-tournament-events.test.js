@@ -17,12 +17,13 @@ let db, lm, sync, file;
 before(async () => {
   file = path.join(os.tmpdir(), `mm-pte-${process.pid}-${Math.random().toString(36).slice(2)}.db`);
   process.env.DATABASE_PATH = file;
-  for (const m of ['../../db/db', '../../txn', '../../wallet', '../../economy', '../../liveOdds', '../../liveMarkets', '../../startggClient', '../../scripts/sync-live']) {
+  for (const m of ['../../db/db', '../../txn', '../../wallet', '../../economy', '../../liveOdds', '../../liveMarkets', '../../startggClient', '../../futuresMeta', '../../scripts/sync-live']) {
     delete require.cache[require.resolve(m)];
   }
   db = require('../../db/db');
   lm = require('../../liveMarkets');
   sync = require('../../scripts/sync-live');
+  await require('../../futuresMeta').applyFuturesMetaSchema();
 
   await db.runAsync(`CREATE TABLE users (id INTEGER PRIMARY KEY, balance_cents INTEGER NOT NULL DEFAULT 0)`);
   await db.runAsync(`CREATE TABLE wallet_transactions (
@@ -51,11 +52,18 @@ beforeEach(async () => {
   await db.runAsync('DELETE FROM set_bets');
   await db.runAsync('DELETE FROM set_markets');
   await db.runAsync('DELETE FROM bracket_history');
+  await db.runAsync('DELETE FROM tournament_games');
   await db.runAsync('DELETE FROM players');
   await db.runAsync('DELETE FROM games');
   await db.runAsync('DELETE FROM tournaments');
   await db.runAsync('DELETE FROM wallet_transactions');
   await db.runAsync('DELETE FROM users');
+  // Several tests below call processTournamentEvents with a synthetic
+  // { id: 1 } tournament object rather than a real row - tournament_games'
+  // FOREIGN KEY (unlike the rest of this app's schema, see db.js's own
+  // comment on why it normally avoids FK declarations) needs a real row to
+  // satisfy it now that processTournamentEvents upserts into that table too.
+  await db.runAsync(`INSERT INTO tournaments (id, name, date) VALUES (1, 'Test Tournament', '2026-01-01')`);
   lm.invalidateBankrollCache();
 });
 
@@ -100,6 +108,28 @@ test('processTournamentEvents backfills a still-TBD slot on a pre-existing marke
   assert.equal(market.winner_id, xiaocai.id);
   assert.equal(market.p1_score, 0);
   assert.equal(market.p2_score, 3);
+});
+
+test('processTournamentEvents registers the game in tournament_games even when the daily discovery sync never saw it', async () => {
+  // Reproduces a real production bug found at CEO 2026: "Marvel Tokon:
+  // Fighting Souls" was fully tracked here (real settled markets, hundreds
+  // of bracket_history rows via the separate history path) but never
+  // appeared as a game tab anywhere in the app - tournament_games (the ONLY
+  // thing the game-tab roster and Future Tournaments entrant count read
+  // from) is otherwise populated exclusively by the daily upcoming-
+  // tournament discovery sync, off whatever event list start.gg had on the
+  // day it ran. An event added by a TO after that (or simply not live yet)
+  // never gets a row there, even once this live poller starts tracking it.
+  const gameRes = await db.runAsync(`INSERT INTO games (name, startgg_id) VALUES ('Marvel Tokon: Fighting Souls', 'g-tokon')`);
+  const events = [{
+    videogame: { id: 'g-tokon', name: 'Marvel Tokon: Fighting Souls' },
+    sets: { nodes: [] },
+  }];
+
+  await sync.processTournamentEvents({ id: 1 }, events);
+
+  const row = await db.getAsync('SELECT * FROM tournament_games WHERE tournament_id = 1 AND game_id = ?', [gameRes.lastID]);
+  assert.ok(row, 'a tournament_games row must exist for a game this poller is actively tracking');
 });
 
 test('processTournamentEvents persists which start.gg event a market came from', async () => {
