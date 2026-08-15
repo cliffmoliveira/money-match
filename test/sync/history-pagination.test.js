@@ -83,3 +83,60 @@ test('fetchHistoryPhaseSets pages through a pools round far larger than the old 
   assert.equal(history[0].sets.length, TOTAL_SETS, 'every real set across all pages made it through, not just the first 600');
   assert.ok(pageLog.length > 40, `expected more than the old 40-page cap, got ${pageLog.length} pages`);
 });
+
+test('ggRetry recovers a single transient network timeout mid-pagination instead of discarding everything fetched so far', async (t) => {
+  // Reproduces a real production failure: manually re-running the backfill
+  // for CEO 2026's Marvel Tokon: Fighting Souls twice in a row, each attempt
+  // hit exactly one axios timeout (no HTTP response at all, so status is
+  // undefined) partway through the ~124-page Round 1 fetch - ggRetry only
+  // ever retried on a real 429 response, so a single transient hiccup threw
+  // away every page already fetched and aborted the whole tournament sync.
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const TOTAL_SETS = 45; // 3 pages at perPage 15
+  let calls = 0;
+  startggClient.startgg = async (query, vars) => {
+    calls++;
+    // Fail the SECOND request only (page 2) with a bare axios-style timeout
+    // (no `response` object) - everything else succeeds normally.
+    if (calls === 2) {
+      const err = new Error('timeout of 10000ms exceeded');
+      err.code = 'ECONNABORTED';
+      throw err;
+    }
+    const { page, perPage } = vars;
+    const totalPages = Math.ceil(TOTAL_SETS / perPage);
+    const startIdx = (page - 1) * perPage;
+    const count = Math.max(0, Math.min(perPage, TOTAL_SETS - startIdx));
+    const nodes = Array.from({ length: count }, (_, i) => ({
+      id: startIdx + i + 1, state: 3, fullRoundText: 'Round 1', winnerId: 1, round: 1,
+      phaseGroup: { id: 'g1' }, slots: [],
+    }));
+    return { event: { id: vars.eventId, sets: { pageInfo: { totalPages }, nodes } } };
+  };
+  delete require.cache[require.resolve('../../scripts/sync-live')];
+  sync = require('../../scripts/sync-live');
+
+  const events = [{
+    id: 1517807,
+    name: 'MARVEL Tokon: Fighting Souls',
+    videogame: { id: 999999, name: 'Marvel Tokon: Fighting Souls' },
+    phases: [
+      { id: 1, name: 'Round 1', phaseOrder: 1 },
+      { id: 2, name: 'Top 8', phaseOrder: 2 },
+    ],
+  }];
+
+  let history = null;
+  let historyErr = null;
+  const historyPromise = sync.fetchHistoryPhases('sg-ceo-2026', events, 1)
+    .then((h) => { history = h; })
+    .catch((e) => { historyErr = e; });
+  for (let i = 0; i < 50 && history === null && historyErr === null; i++) {
+    t.mock.timers.tick(10000);
+    await new Promise((r) => setImmediate(r));
+  }
+  await historyPromise;
+  assert.equal(historyErr, null, `fetchHistoryPhases should recover from the transient timeout, not throw: ${historyErr}`);
+  assert.ok(history, 'fetchHistoryPhases never settled within the simulated clock budget');
+  assert.equal(history[0].sets.length, TOTAL_SETS, 'all 3 pages made it through despite page 2 timing out once');
+});

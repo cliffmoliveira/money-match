@@ -45,6 +45,22 @@ async function ggRetry(query, vars) {
         await sleep(wait);
         continue;
       }
+      // A transient network hiccup (axios's own 10s request timeout, or a
+      // connection reset) has no `response` at all, so `status` is
+      // undefined here - previously fell straight through to the throw
+      // below, discarding every page already fetched in a long paginated
+      // loop (e.g. fetchHistoryPhaseSets walking 100+ pages for a huge
+      // pools round). Confirmed live: a single mid-loop timeout during a
+      // manual backfill for CEO 2026's Marvel Tokon: Fighting Souls Round 1
+      // (1,860 real sets) aborted the whole fetch with nothing recovered,
+      // on two separate attempts in a row.
+      const isTransient = status == null && (err?.code === 'ECONNABORTED' || err?.code === 'ETIMEDOUT' || /timeout/i.test(err?.message || ''));
+      if (isTransient && attempt < MAX_RETRIES) {
+        const wait = Math.min(10000, 1000 * 2 ** attempt);
+        console.log(`[sync-live] transient network error (${err.message}); retrying in ${Math.round(wait / 1000)}s (retry ${attempt + 1}/${MAX_RETRIES})`);
+        await sleep(wait);
+        continue;
+      }
       throw err;
     }
   }
