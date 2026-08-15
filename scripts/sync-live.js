@@ -102,7 +102,17 @@ const MAX_SET_PAGES_FALLBACK = 20; // ~300 sets, same ceiling as MAX_SET_PAGES*S
 // 8 path's seedOf() reads that), so drop it and fetch smaller pages to stay
 // well under the cap even as brackets grow.
 const HISTORY_SET_PAGE_SIZE = 15;
-const MAX_HISTORY_SET_PAGES = 40; // covers a ~600-set Round 1 at a 1000+ entrant event
+// 40 pages (600 sets) turned out not to be enough: confirmed live at CEO
+// 2026, Marvel Tokon: Fighting Souls' Round 1 alone had 1,860 real sets (a
+// breakout-popularity game drawing a huge pools field) - the cap silently
+// truncated fetchHistoryPhaseSets partway through page 40, so ~1,260 of that
+// round's results never made it into bracket_history at all, without any
+// error or log line marking the gap. 250 pages (3,750 sets) covers that with
+// real headroom; the per-request complexity is unchanged (HISTORY_SET_PAGE_SIZE
+// stays small), this only lets the SAME loop keep going instead of giving up
+// early - each further page still costs latency+a request, but pagination
+// already stops itself the moment pageInfo.totalPages is reached.
+const MAX_HISTORY_SET_PAGES = 250;
 const HISTORY_PHASE_SETS = `
 query HistoryPhaseSets($eventId: ID!, $phaseId: ID!, $page: Int!, $perPage: Int!) {
   event(id: $eventId) {
