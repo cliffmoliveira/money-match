@@ -391,3 +391,48 @@ test('getActiveTournaments keeps polling a multi-day event that fell out of the 
   assert.ok(activeIds.includes(lcqId), 'a multi-day event with recent real bracket progress but no real markets yet must stay active');
   assert.ok(!activeIds.includes(oldRes.lastID), 'stale bracket_history from long ago must not sweep an old tournament back into active polling');
 });
+
+test('unresolvedSetsSql treats a multi-game major as unresolved when one game is done but another is still deep in pools', async () => {
+  // Reproduces a real production bug found on CEO 2026: it has real settled
+  // set_markets for early-finishing side games (Melee, Rivals of Aether 2),
+  // but Street Fighter 6 was still hundreds of bracket_history rows deep in
+  // pools with no real (non-preview) set_markets of its own at all. The old
+  // check gated the bracket_history fallback on the WHOLE TOURNAMENT having
+  // zero real markets anywhere - once Melee's Top 8 settled, that clause
+  // went dark for every other game too, and the tournament (whose stored
+  // date was already a day in the past, outside getActiveTournaments'/
+  // getMarkets' generous -1/+2 day polling window) looked fully resolved:
+  // is_live got auto-cleared and it fell into Past Tournaments mid-event
+  // with Street Fighter 6 missing entirely (nothing real to show for it).
+  const melee = await db.runAsync(`INSERT INTO games (name, startgg_id) VALUES ('Super Smash Bros. Melee', 'g-melee')`);
+  const sf6 = await db.runAsync(`INSERT INTO games (name, startgg_id) VALUES ('Street Fighter 6', 'g-sf6-3')`);
+
+  const ceoRes = await db.runAsync(
+    `INSERT INTO tournaments (name, date, is_live, startgg_id) VALUES ('CEO 2026', date('now','-10 days'), 0, 'sg-ceo-2026')`
+  );
+  const ceoId = ceoRes.lastID;
+  // Melee already reached and settled its Grand Final.
+  await db.runAsync(
+    `INSERT INTO set_markets (tournament_id, game_id, startgg_set_id, round_text, player1_id, player2_id, state, winner_id)
+     VALUES (?, ?, 'ceo-melee-gf', 'Grand Final', 1, 2, 'settled', 1)`,
+    [ceoId, melee.lastID]
+  );
+  // SF6 is still deep in pools: real bracket progress, no real markets yet.
+  await db.runAsync(
+    `INSERT INTO bracket_history (tournament_id, game_id, startgg_set_id, round_text, state, updated_at)
+     VALUES (?, ?, 'ceo-sf6-pool-1', 'Pools', 'pending', datetime('now','-2 hours'))`,
+    [ceoId, sf6.lastID]
+  );
+
+  const row = await db.getAsync(
+    `SELECT ${lm.unresolvedSetsSql('sm', 't')} AS unresolved FROM tournaments t WHERE t.id = ?`,
+    [ceoId]
+  );
+  assert.equal(
+    row.unresolved, 1,
+    'a game still deep in pools with recent bracket progress must count as unresolved, even though a different game already has real settled markets'
+  );
+
+  const active = await sync.getActiveTournaments();
+  assert.ok(active.map((t) => t.id).includes(ceoId), 'and getActiveTournaments must keep polling it as a result');
+});

@@ -46,22 +46,32 @@ function unresolvedSetsSql(marketAlias, tournamentAlias) {
       -- multi-day event's stored date (day 1) is now more than a day in
       -- the past relative to "today" even though it's still airing on a
       -- later day. Only applies while no REAL (non-preview) set_markets row
-      -- exists yet — once real markets exist, the clause above is the
-      -- authoritative signal. Confirmed live: "Esports World Cup 2026:
-      -- Street Fighter 6 - LCQ" (a 3-day event) fell out of the date window
-      -- on its own final day and got permanently excluded from polling —
-      -- stranded on stale bracket_history progress (Winners Semi-Final)
-      -- with real Top-8 markets never created, since nothing ever polled it
-      -- again to find out it kept going.
-      NOT EXISTS (
-        SELECT 1 FROM set_markets ${marketAlias}_real
-        WHERE ${marketAlias}_real.tournament_id = ${tournamentAlias}.id
-          AND ${marketAlias}_real.startgg_set_id NOT LIKE 'preview_%'
-      )
-      AND EXISTS (
+      -- exists yet for THAT SAME GAME — a big multi-game major (e.g. CEO)
+      -- has wildly staggered per-game lifecycles, so gating on the whole
+      -- tournament having zero real markets anywhere was wrong: the moment
+      -- ANY one game reached Top 8, this clause went permanently dark for
+      -- every other game still deep in pools, and the tournament looked
+      -- "resolved" — confirmed live on CEO 2026, which had real settled
+      -- markets for early-finishing side games (Melee, Rivals of Aether 2)
+      -- while Street Fighter 6/TEKKEN 8/etc. still had hundreds of pending
+      -- bracket_history rows and no real markets of their own at all.
+      -- Once real markets exist FOR THAT GAME, the clause above is the
+      -- authoritative signal for it. Confirmed live: "Esports World Cup
+      -- 2026: Street Fighter 6 - LCQ" (a 3-day event) fell out of the date
+      -- window on its own final day and got permanently excluded from
+      -- polling — stranded on stale bracket_history progress (Winners
+      -- Semi-Final) with real Top-8 markets never created, since nothing
+      -- ever polled it again to find out it kept going.
+      EXISTS (
         SELECT 1 FROM bracket_history ${marketAlias}_bh
         WHERE ${marketAlias}_bh.tournament_id = ${tournamentAlias}.id
           AND date(${marketAlias}_bh.updated_at) >= date('now','-${STALE_PENDING_DAYS} days')
+          AND NOT EXISTS (
+            SELECT 1 FROM set_markets ${marketAlias}_real
+            WHERE ${marketAlias}_real.tournament_id = ${tournamentAlias}.id
+              AND ${marketAlias}_real.game_id = ${marketAlias}_bh.game_id
+              AND ${marketAlias}_real.startgg_set_id NOT LIKE 'preview_%'
+          )
       )
     )
   )`;
