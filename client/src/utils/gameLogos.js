@@ -59,6 +59,9 @@ export const gameSlugMap = {
   // Filename has two typos vs the correct slug ("choundokyuu" for "choudokyuu",
   // "nazu" for "nazo") — mapped as shipped rather than renaming the asset.
   'Touhou Hisoutensoku: Choudokyuu Ginyoru no Nazo wo Oe': 'touhou-hisoutensoku-choundokyuu-ginyoru-no-nazu',
+  // CEO 2026 rhythm-game side events
+  'Dance Dance Revolution EXTREME Pro': 'dance-dance-revolution-extreme', // shipped filename drops "Pro"
+  'StepManiaX': 'step-mania-x', // auto-slugify collapses to "stepmaniax" (no dashes); shipped filename has them
 };
 
 // Per-game visual tuning (very wide logos, etc.) by slug
@@ -202,6 +205,12 @@ const logoFileBySlug = {
   // DB name is "Def Jam: Fight for NY", auto-slugifies to "def-jam-fight-for-ny";
   // shipped filename spells out "new-york" - mapped as shipped.
   'def-jam-fight-for-ny': 'def-jam-fight-for-new-york.png',
+  // CEO 2026 rhythm-game side events
+  'dance-dance-revolution-world': 'dance-dance-revolution-world.png',
+  'dance-dance-revolution-extreme': 'dance-dance-revolution-extreme.png',
+  'itgmania': 'itgmania.png',
+  'pump-it-up-phoenix': 'pump-it-up-phoenix.webp',
+  'step-mania-x': 'step-mania-x.png',
 };
 
 export function getGameLogoSources(name) {
