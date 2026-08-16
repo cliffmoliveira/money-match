@@ -13,3 +13,8 @@ test('resolves the CEO 2026 rhythm-game logos to their real shipped filenames', 
   expect(getGameLogoSources('Pump it Up Phoenix').webp).toMatch(/pump-it-up-phoenix\.webp$/);
   expect(getGameLogoSources('StepManiaX').png).toMatch(/step-mania-x\.png$/);
 });
+
+test('resolves Avatar Legends: The Fighting Game to its shipped filename', () => {
+  expect(getGameLogoSources('Avatar Legends: The Fighting Game').png)
+    .toMatch(/avatar-legends-the-fighting-game\.png$/);
+});

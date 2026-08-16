@@ -211,6 +211,7 @@ const logoFileBySlug = {
   'itgmania': 'itgmania.png',
   'pump-it-up-phoenix': 'pump-it-up-phoenix.webp',
   'step-mania-x': 'step-mania-x.png',
+  'avatar-legends-the-fighting-game': 'avatar-legends-the-fighting-game.png',
 };
 
 export function getGameLogoSources(name) {
