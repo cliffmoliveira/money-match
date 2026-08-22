@@ -1106,6 +1106,46 @@ function scheduleStaleMarketReconcile() {
   })();
 }
 
+// Read-only, no start.gg calls at all (pure SQL over data already synced),
+// so unlike scheduleStaleMarketReconcile above this doesn't need - and isn't
+// gated behind - STARTGG_API_TOKEN. Same restart-safe app_state pattern.
+// See liveMarkets.diagnoseStuckLiveTournaments's own doc comment for why
+// this exists: a tournament stuck "live" past a plausible real-world
+// duration was previously only ever caught by a user noticing the page.
+function scheduleStuckTournamentDiagnostic() {
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const LAST_RUN_KEY = 'last_stuck_tournament_diagnostic_at';
+  const attempt = async () => {
+    try {
+      await liveMarkets.diagnoseStuckLiveTournaments();
+    } catch (err) {
+      console.error('Stuck-tournament diagnostic failed:', err.message);
+    }
+    try {
+      await db.runAsync(
+        `INSERT INTO app_state (key, value) VALUES (?, ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+        [LAST_RUN_KEY, new Date().toISOString()]
+      );
+    } catch (err) {
+      console.error(`Failed to record ${LAST_RUN_KEY}:`, err.message);
+    }
+    setTimeout(attempt, DAY_MS);
+  };
+  (async () => {
+    let lastRun = null;
+    try {
+      const row = await db.getAsync('SELECT value FROM app_state WHERE key = ?', [LAST_RUN_KEY]);
+      lastRun = row ? new Date(row.value).getTime() : null;
+    } catch (err) {
+      console.error(`Failed to read ${LAST_RUN_KEY}:`, err.message);
+    }
+    const elapsed = lastRun ? Date.now() - lastRun : Infinity;
+    const initialDelay = elapsed >= DAY_MS ? 0 : DAY_MS - elapsed;
+    setTimeout(attempt, initialDelay);
+  })();
+}
+
 // EWC main-stage results never touch start.gg (see docs/manual-results-
 // ingestion.md), so nothing above can discover them - this was previously a
 // manually-triggered process (someone runs scripts/fetch-liquipedia-bracket.js,
@@ -1204,6 +1244,7 @@ if (!process.env.DISABLE_SYNC) {
   scheduleLiveSync();
   scheduleStaleMarketReconcile();
   scheduleManualEventAutoSync();
+  scheduleStuckTournamentDiagnostic();
 }
 
 // Catch-all route for React

@@ -845,6 +845,40 @@ async function getUpcoming() {
   }));
 }
 
+// Read-only diagnostic: a tournament that's still is_live=1 or still
+// "unresolved" (unresolvedSetsSql) days after its own date is a sign
+// something's stuck, not that it's genuinely still running - no real
+// multi-day major runs a week+ past its listed start. Confirmed live: CEO
+// 2026 sat "current" for 8+ days because a few side-event games (rhythm
+// games with no real bettable Top 8) kept getting their bracket_history
+// rewritten identically every 60s poll, resetting the staleness clock that
+// was supposed to let it resolve. That specific rewrite bug is fixed, but
+// nothing short of a user noticing the page would have caught the symptom -
+// this surfaces it in logs on its own instead. STUCK_TOURNAMENT_DAYS is
+// intentionally looser than STALE_PENDING_DAYS (5): a real multi-day event
+// can still legitimately be mid-event for a few days past its stored
+// (day-1) date, so this only fires once that's no longer a plausible
+// explanation.
+const STUCK_TOURNAMENT_DAYS = 10;
+async function diagnoseStuckLiveTournaments(logPrefix = '[diagnostic]') {
+  const rows = await db.allAsync(
+    `SELECT id, name, date, is_live
+     FROM tournaments t
+     WHERE date(date) < date('now', '-${STUCK_TOURNAMENT_DAYS} days')
+       AND (is_live = 1 OR ${unresolvedSetsSql('sm', 't')})`
+  );
+  if (rows.length) {
+    console.warn(
+      `${logPrefix} ${rows.length} tournament(s) still is_live/unresolved more than ${STUCK_TOURNAMENT_DAYS} days ` +
+      `past their own date - likely stuck, not genuinely still running:`
+    );
+    for (const r of rows) {
+      console.warn(`${logPrefix}   [${r.id}] "${r.name}" (${r.date}, is_live=${r.is_live})`);
+    }
+  }
+  return rows;
+}
+
 // Read-only: round-by-round history for a game's pre-Top-8 rounds — powers
 // the Bracket Tracker's round pills, results feed, and still-alive list.
 // Entirely separate from set_markets: no odds, no stakes, nothing bettable.
@@ -988,4 +1022,5 @@ module.exports = {
   seedDemoMarkets, advanceDemoBracket, clearDemoMarkets, getUpcoming,
   invalidateBankrollCache, getGameTracker,
   unresolvedSetsSql, STALE_PENDING_DAYS,
+  diagnoseStuckLiveTournaments, STUCK_TOURNAMENT_DAYS,
 };

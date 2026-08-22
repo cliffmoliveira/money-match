@@ -19,7 +19,7 @@ before(async () => {
   await db.runAsync(`CREATE TABLE games (id INTEGER PRIMARY KEY, name TEXT)`);
   await db.runAsync(`CREATE TABLE players_games_tournaments (tournament_id INTEGER, game_id INTEGER, player_id INTEGER, seed_num INTEGER)`);
   await db.runAsync(`CREATE TABLE tournament_games (tournament_id INTEGER, game_id INTEGER, num_entrants INTEGER)`);
-  await db.runAsync(`CREATE TABLE set_markets (tournament_id INTEGER, state TEXT)`);
+  await db.runAsync(`CREATE TABLE set_markets (tournament_id INTEGER, game_id INTEGER, state TEXT, startgg_set_id TEXT)`);
   // bracket_history is already created by db.js itself at require-time (see
   // its own CREATE TABLE IF NOT EXISTS) - don't recreate it here.
 });
@@ -178,4 +178,38 @@ test('returns an empty array when nothing is upcoming or live', async () => {
 
   const result = await lm.getUpcoming();
   assert.deepEqual(result, []);
+});
+
+test('diagnoseStuckLiveTournaments flags a tournament still is_live/unresolved long past its own date', async () => {
+  // Reproduces a real production bug found on CEO 2026: a handful of
+  // side-event games (rhythm games with no real bettable Top 8) kept their
+  // bracket_history rewritten identically every 60s poll, resetting the
+  // staleness clock that was supposed to let the tournament resolve - it
+  // sat "live" over a week past its own date with nobody the wiser until a
+  // user noticed the page.
+  await addGame(10, 'Pump it Up Phoenix');
+  await addTournament(1, 'CEO 2026', '2000-01-01', { isLive: 1 });
+  await addBracketHistory(1, 10, 'stuck-set-1'); // defaults to updated_at = now, state 'completed'
+
+  const stuck = await lm.diagnoseStuckLiveTournaments();
+  assert.deepEqual(stuck.map((r) => r.id), [1]);
+});
+
+test('diagnoseStuckLiveTournaments stays silent once a tournament has genuinely resolved', async () => {
+  await addTournament(1, 'Finished Old Major', '2000-01-01', { isLive: 0 });
+  // No bracket_history, no set_markets at all - nothing left unresolved.
+
+  const stuck = await lm.diagnoseStuckLiveTournaments();
+  assert.deepEqual(stuck, []);
+});
+
+test('diagnoseStuckLiveTournaments does not flag a multi-day major still within a plausible real-world duration', async () => {
+  await addGame(10, 'Street Fighter 6');
+  // Started 2 days ago with a genuinely unresolved (pending, fresh) set -
+  // a real event can still be mid-run this soon after its stored date.
+  await addTournament(1, 'Still Running Major', new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10), { isLive: 1 });
+  await addBracketHistory(1, 10, 'fresh-set-1');
+
+  const stuck = await lm.diagnoseStuckLiveTournaments();
+  assert.deepEqual(stuck, []);
 });
