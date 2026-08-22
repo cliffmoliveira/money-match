@@ -497,18 +497,38 @@ async function processHistorySets(tRow, gameId, roundGroups = []) {
         if (winnerEntrant) winnerPid = await findOrCreatePlayerId(winnerEntrant);
       }
 
-      const existing = await db.getAsync('SELECT id FROM bracket_history WHERE startgg_set_id = ?', [setId]);
+      const existing = await db.getAsync(
+        `SELECT id, round_text, round_int, phase_order, state, player1_id, player2_id, winner_id, player1_score, player2_score
+         FROM bracket_history WHERE startgg_set_id = ?`,
+        [setId]
+      );
       const p1Score = scoreOf(set.slots?.[0]);
       const p2Score = scoreOf(set.slots?.[1]);
       if (existing) {
-        await db.runAsync(
-          `UPDATE bracket_history SET
-             round_text=?, round_int=?, phase_order=?, state=?,
-             player1_id=?, player2_id=?, winner_id=?, player1_score=?, player2_score=?,
-             updated_at=CURRENT_TIMESTAMP
-           WHERE startgg_set_id=?`,
-          [group.roundText, group.roundInt, group.phaseOrder, state, p0, p1, winnerPid, p1Score, p2Score, setId]
-        );
+        // Only touch updated_at when something actually changed. Stamping it
+        // on every poll cycle regardless - even for a set that's genuinely
+        // never going to resolve further (start.gg simply never finished
+        // reporting it, e.g. a DQ'd/abandoned pools match) - kept resetting
+        // unresolvedSetsSql's "pending within STALE_PENDING_DAYS" freshness
+        // check forever. Confirmed live: CEO 2026 stayed permanently
+        // "current" 8+ days after the event ended because a handful of
+        // pending Pump it Up Phoenix sets got rewritten identically every
+        // 60s cycle, each rewrite resetting the 5-day clock before it could
+        // ever expire.
+        const changed = existing.round_text !== group.roundText || existing.round_int !== group.roundInt
+          || existing.phase_order !== group.phaseOrder || existing.state !== state
+          || existing.player1_id !== p0 || existing.player2_id !== p1 || existing.winner_id !== winnerPid
+          || existing.player1_score !== p1Score || existing.player2_score !== p2Score;
+        if (changed) {
+          await db.runAsync(
+            `UPDATE bracket_history SET
+               round_text=?, round_int=?, phase_order=?, state=?,
+               player1_id=?, player2_id=?, winner_id=?, player1_score=?, player2_score=?,
+               updated_at=CURRENT_TIMESTAMP
+             WHERE startgg_set_id=?`,
+            [group.roundText, group.roundInt, group.phaseOrder, state, p0, p1, winnerPid, p1Score, p2Score, setId]
+          );
+        }
       } else {
         await db.runAsync(
           `INSERT INTO bracket_history

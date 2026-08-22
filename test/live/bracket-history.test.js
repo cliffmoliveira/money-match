@@ -218,3 +218,36 @@ test('processHistorySets removes stale rows for a round whose set ids start.gg n
   assert.equal(rows[0].startgg_set_id, 'fresh-current-id');
   assert.equal(rows[0].state, 'completed');
 });
+
+test('processHistorySets does not bump updated_at when re-writing an unchanged row', async () => {
+  // Reproduces a real production bug found at CEO 2026: a handful of pool
+  // sets never got a final report from start.gg (abandoned/DQ'd matches),
+  // so every 60s poll cycle re-wrote the identical 'pending' row - each
+  // rewrite reset updated_at to "now", which kept unresolvedSetsSql's
+  // "pending within STALE_PENDING_DAYS" freshness check from ever expiring.
+  // The tournament stayed permanently "current" over a week after it ended.
+  const roundGroup = {
+    roundText: 'Round 3', roundInt: null, phaseOrder: 0,
+    sets: [{
+      id: 'stuck-pool-set', state: 1, fullRoundText: 'Round 3', round: null,
+      winnerId: null,
+      slots: [
+        { entrant: { id: 'e1', name: 'PlayerA', seeds: [{ seedNum: 1 }] }, standing: { stats: { score: { value: null } } } },
+        { entrant: { id: 'e2', name: 'PlayerB', seeds: [{ seedNum: 2 }] }, standing: { stats: { score: { value: null } } } },
+      ],
+    }],
+  };
+
+  await syncLive.processHistorySets({ id: 1 }, 10, [roundGroup]);
+  await db.runAsync(
+    `UPDATE bracket_history SET updated_at = datetime('now', '-10 days') WHERE startgg_set_id = 'stuck-pool-set'`
+  );
+  const before = await db.getAsync(`SELECT updated_at FROM bracket_history WHERE startgg_set_id = 'stuck-pool-set'`);
+
+  // A later poll cycle re-fetches the exact same unresolved set from
+  // start.gg - identical data, nothing to actually update.
+  await syncLive.processHistorySets({ id: 1 }, 10, [roundGroup]);
+
+  const after = await db.getAsync(`SELECT updated_at FROM bracket_history WHERE startgg_set_id = 'stuck-pool-set'`);
+  assert.equal(after.updated_at, before.updated_at, 'a no-op re-write must not reset the staleness clock');
+});
